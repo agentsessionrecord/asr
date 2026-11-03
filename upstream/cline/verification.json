@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-03",
+  "platform": "linux-x64",
+  "base": "a542151bb737e25eb332d34c647ab4b9d99dd98b",
+  "head": "a88a2048ce86849236732f49dd98a357bf0d405f",
+  "projectChecks": "The SDK build, CLI build, CLI type check and Biome check pass. All 47 focused test cases pass across six files. The session-import file uses a 30-second hook timeout.",
+  "nativeFixtures": {
+    "records": [
+      6
+    ],
+    "validatorErrors": 0,
+    "validatorWarnings": 0,
+    "exactPackagedSampleReplay": true
+  },
+  "liveModelRun": "not performed",
+  "testNotes": "Five files passed 34 cases. The session file passed 13 cases with --hookTimeout 30000 after its default 10-second import hook timed out."
+}

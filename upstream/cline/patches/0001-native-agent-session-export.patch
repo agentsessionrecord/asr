@@ -1,7 +1,7 @@
-From faac04e8d396046986926438daf0fdbdaaef8df4 Mon Sep 17 00:00:00 2001
+From a88a2048ce86849236732f49dd98a357bf0d405f Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:27 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] feat(cli): add Agent Session Record export format
 
 ---
  apps/cli/src/commands/history-asr.test.ts     |  69 ++++
@@ -9,11 +9,11 @@ Subject: [PATCH] feat: export native sessions with accurate reasoning content
  apps/cli/src/commands/history.ts              |  30 +-
  .../__tests__/agent-session.native.json       |  48 +++
  .../session/__tests__/agent-session.test.ts   | 281 ++++++++++++++
- apps/cli/src/session/agent-session.ts         | 343 ++++++++++++++++++
+ apps/cli/src/session/agent-session.ts         | 346 ++++++++++++++++++
  apps/cli/src/session/export.ts                |   3 +
  apps/cli/src/session/history-export.ts        |  13 +-
  apps/cli/src/session/session.ts               |   3 +
- 9 files changed, 791 insertions(+), 10 deletions(-)
+ 9 files changed, 794 insertions(+), 10 deletions(-)
  create mode 100644 apps/cli/src/commands/history-asr.test.ts
  create mode 100644 apps/cli/src/session/__tests__/agent-session.native.json
  create mode 100644 apps/cli/src/session/__tests__/agent-session.test.ts
@@ -518,10 +518,10 @@ index 0000000..076028a
 +});
 diff --git a/apps/cli/src/session/agent-session.ts b/apps/cli/src/session/agent-session.ts
 new file mode 100644
-index 0000000..51389c9
+index 0000000..1ff9f3e
 --- /dev/null
 +++ b/apps/cli/src/session/agent-session.ts
-@@ -0,0 +1,343 @@
+@@ -0,0 +1,346 @@
 +import type { MessageWithMetadata } from "@cline/shared";
 +
 +type JsonObject = { [key: string]: unknown };
@@ -672,10 +672,8 @@ index 0000000..51389c9
 +			const b = object(value);
 +			if (b.type === "text" && typeof b.text === "string")
 +				return [{ type: "text", text: b.text }];
-+			if (b.type === "thinking")
-+				return [asrReasoning(b.thinking, true)];
-+			if (b.type === "reasoning")
-+				return [asrReasoning(b.text, false)];
++			if (b.type === "thinking") return [asrReasoning(b.thinking, true)];
++			if (b.type === "reasoning") return [asrReasoning(b.text, false)];
 +			if (b.type === "redacted_thinking")
 +				return [{ type: "reasoning", visibility: "encrypted" }];
 +			if (b.type === "file" && typeof b.content === "string")
@@ -860,10 +858,15 @@ index 0000000..51389c9
 +	return `${[safeHeader, ...cleaned].map((record) => JSON.stringify(record)).join("\n")}\n`;
 +}
 +
-+function asrReasoning(text: unknown, summary = false): { type: string; visibility?: string; text?: string; summary?: string[] } {
-+  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
-+  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
-+  return { type: "reasoning", text };
++function asrReasoning(
++	text: unknown,
++	summary = false,
++): { type: string; visibility?: string; text?: string; summary?: string[] } {
++	if (typeof text !== "string" || text.length === 0)
++		return { type: "reasoning", visibility: "omitted" };
++	if (summary)
++		return { type: "reasoning", visibility: "summary", summary: [text] };
++	return { type: "reasoning", text };
 +}
 diff --git a/apps/cli/src/session/export.ts b/apps/cli/src/session/export.ts
 index 761eb3d..bdf842a 100644
@@ -929,4 +932,7 @@ index 3f04c2c..21f5b58 100644
  				messages: messages as ConversationHistory["messages"],
  				sessionId: row.sessionId,
 
-base-commit: 46996c9992d91e57c268091c971cfda52b0da399
+base-commit: a542151bb737e25eb332d34c647ab4b9d99dd98b
+-- 
+2.43.0
+

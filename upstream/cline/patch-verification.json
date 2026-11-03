@@ -1,17 +1,9 @@
 [
   {
     "agent": "cline",
+    "base": "a542151bb737e25eb332d34c647ab4b9d99dd98b",
+    "head": "a88a2048ce86849236732f49dd98a357bf0d405f",
     "forwardApply": "passed",
     "exactPatchedFiles": 9
-  },
-  {
-    "agent": "roo-code",
-    "forwardApply": "passed",
-    "exactPatchedFiles": 4
-  },
-  {
-    "agent": "continue",
-    "forwardApply": "passed",
-    "exactPatchedFiles": 6
   }
 ]

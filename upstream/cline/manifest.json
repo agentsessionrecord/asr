@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "agent": "cline",
-  "base": "46996c9992d91e57c268091c971cfda52b0da399",
-  "head": "faac04e8d396046986926438daf0fdbdaaef8df4",
+  "base": "a542151bb737e25eb332d34c647ab4b9d99dd98b",
+  "head": "a88a2048ce86849236732f49dd98a357bf0d405f",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "faac04e8d396046986926438daf0fdbdaaef8df4",
-      "sha256": "5753e49687383706d639a9890abd6526e438a230d3ee3da7e32b6367bd0725d9"
+      "commit": "a88a2048ce86849236732f49dd98a357bf0d405f",
+      "sha256": "28ea37fdecb2c8f85b2b9bca67b3327068e3fe4c7b62b17fdadb2492c0a8f8ff"
     }
   ],
   "checks": [
@@ -19,27 +19,32 @@
   ],
   "provenance": {
     "agent": "cline",
-    "upstreamCommit": "46996c9992d91e57c268091c971cfda52b0da399",
+    "upstreamCommit": "a542151bb737e25eb332d34c647ab4b9d99dd98b",
     "patch": "patches/0001-native-agent-session-export.patch",
     "exporter": "apps/cli/src/session/agent-session.ts",
     "fixture": "samples/native/native.json",
     "sample": "samples/asr/session.jsonl",
     "synthetic": true,
-    "patchCommit": "faac04e8d396046986926438daf0fdbdaaef8df4",
-    "exporterSha256": "690e28aac4d158b8b5aabd268d997f3ee3fc4ab1d277ae02c3811349c6910d86"
+    "patchCommit": "a88a2048ce86849236732f49dd98a357bf0d405f",
+    "exporterSha256": "ad6f9c710f89d420957eb70fc348f9548f826d8418c788c26b2be84b6bfcdcd8",
+    "repository": "https://github.com/cline/cline",
+    "base": "a542151bb737e25eb332d34c647ab4b9d99dd98b",
+    "commit": "a88a2048ce86849236732f49dd98a357bf0d405f"
   },
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
-    "PROPOSAL.md": "22443f3850a815ce4309ab4f489a74cb727766784c8ef72215db05d3f59237cb",
-    "README.md": "533f3c093562554b403725eb03a75767343fdb9283eba43bea4f145ee0712161",
+    "PROPOSAL.md": "feb304c8294a1e42af5102f0598674258fb9f1c54964098d10ddaa7ac7886775",
+    "README.md": "7aeb0aa1a4d0cee1a16c0b1744a156a8e8ab3087528633f5b19f46ab5a0b29a5",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "check.test.mjs": "1f911456695a1d28e46281c979c0059c5cf8d2b1cc60b14b8accd0250111acbf",
     "contracts.mjs": "efe120866612a860033aa2897caa7b4f27a41317575a85a4e7f05a4b1dfeca92",
-    "patch-verification.json": "07b4aa263c6819dee20fb299612fafc0ec18b24998b63c410b73789622c94f5b",
-    "patches/0001-native-agent-session-export.patch": "5753e49687383706d639a9890abd6526e438a230d3ee3da7e32b6367bd0725d9",
+    "patch-verification.json": "8b25f64d43bfa3314d29ee2d09c17d32bd66c7cb365732e8ed9821d65d466b3d",
+    "patches/0001-native-agent-session-export.patch": "28ea37fdecb2c8f85b2b9bca67b3327068e3fe4c7b62b17fdadb2492c0a8f8ff",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
     "samples/asr/session.jsonl": "05bdfb8417d84b641aec97931e75e0890c1f3fbd88ce2afaf6a690e32e381774",
     "samples/native/native.json": "fca8c5637127378c8dc0d30dd5cc6af5c196c4fabc16d3299dc67e041f1c9a82",
-    "validation.json": "0736fb446f14b947054ee209a1ddd68a7bc87a7098fb977ae00c30251b0767d7"
+    "validation.json": "ba6a5ccf67188a776c3e10aff1c88e913d41768a6299e846b52bdd538d32eaa7",
+    "verification.json": "aee326bb63377a9bf6ff10de2191f8352c6f72d28d5a1df459fb56021c5019bb",
+    "verify-native.mjs": "b70a3f0bc5b086c34e4e49e0a818ed13b5163fd59c5d19fb41dbff3701e98459"
   }
 }

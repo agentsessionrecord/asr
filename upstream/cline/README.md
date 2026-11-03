@@ -1,67 +1,49 @@
-# Cline native export patch
+# Cline native ASR export patch
 
-## Install
+Export saved Cline sessions in an open schema for search and audit archives.
 
-Use a separate writable checkout of the upstream project. The supported base is
-`46996c9992d91e57c268091c971cfda52b0da399`. [manifest.json](manifest.json) pins
-this base, the ordered patches and their digests. Read [PROPOSAL.md](PROPOSAL.md)
-for the upstream repository, runtime requirements and native build instructions.
-These patches are local source changes. They are not installed by the ASR CLI.
+Upstream: https://github.com/cline/cline
 
-Set `ASR_PACKAGE` to this package's absolute path. Run in a clean upstream
-checkout at the pinned base:
+The pinned base is `a542151bb737e25eb332d34c647ab4b9d99dd98b`. The manifest
+records the local feature commit, patch digest and all package file digests.
+Apply from a separate clean upstream checkout at that base:
 
 ```sh
 git am "$ASR_PACKAGE"/patches/*.patch
+cline history export SESSION_ID --format agent-session
 ```
 
-Build and install the patched agent using its own instructions and the focused
-checks in the proposal. To remove the feature, use a clean unpatched build.
-Existing exported files remain in their output directory.
+Adds one format to the existing history export command. HTML remains the
+default. An optional `--output` names a file. Repeated tool results occupy their
+final retained position.
 
-## Use
+The source is the selected local session transcript. Approvals, settings,
+inference boundaries, usage, file edits, commits and lineage remain missing.
+Compaction can remove history. Unsafe parsed integers stop export. Known
+credential filtering does not establish that an export is safe to share.
 
-Run with the patched agent. Replace example IDs and input paths with a selected
-native session. See the proposal for selection and output options.
-
-```sh
-cline history export SESSION_ID --format agent-session --output ./session.jsonl
-```
-
-## What it records
-
-Native session fields, retained message order, exact text, readable reasoning, tool requests and model-facing results. Repeated results fold at their final stored position.
-
-Output uses ASR 0.1 with `producer.method: native`. Known credential fields and
-recognized secret text are excluded. Keep exports private and review content
-before sharing. Pattern filtering cannot identify every secret.
-
-## Limits
-
-Approvals, settings, inference boundaries, usage, file edits, commits and lineage remain missing. Compaction can remove history. Unsafe parsed numbers stop export. No live writer or discovery registration is added.
-
-The [proposal](PROPOSAL.md) describes the source profile and detailed losses.
-Valid ASR does not establish complete source capture.
-
-## Tests and status
-
-Run from the ASR repository root with its Node dependencies installed:
+Run package checks from the ASR repository root:
 
 ```sh
 node upstream/cline/check.mjs
 node upstream/cline/reproduce.mjs /path/to/upstream-checkout
+bun upstream/cline/verify-native.mjs /path/to/upstream-checkout
 ```
 
-The package check verifies file hashes, patch syntax, synthetic source contracts
-and ASR sample validation. The reproduce command also replays the series in a
-temporary Git index against the pinned source commits. It preserves the source
-checkout. It needs both pinned commits in that checkout and does not build or
-run the agent. Upstream build and test evidence is in the proposal.
+Reproduction compares a temporary Git index with the pinned feature tree. It
+preserves the source checkout and does not run a model. The native driver loads
+the source exporter, validates a synthetic stream and compares the sample. It
+does not exercise an installed full CLI and model session.
 
-Live-test status: **partial**.
-The evidence below is from a prior revision. A live run of the current code has not been verified.
-Source CLI 3.0.74 completed a scratch turn through a compatible endpoint. Its patched history command exported 3 records with zero validation errors or warnings.
+The SDK build, CLI build, CLI type check and Biome check pass. All 47 focused
+test cases pass across six files. The session-import file uses a 30-second hook
+timeout. Native fixture exports pass the reference validator with zero errors
+and zero warnings. [verification.json](verification.json) records the checked
+source revision and focused results. See [PROPOSAL.md](PROPOSAL.md) for the
+scope.
 
-The package's [synthetic export](samples/asr/session.jsonl) has zero validator
-errors. Any expected extension or pairing warnings are explained by the proposal
-or printed by the package check. Package checks make no model requests.
+Current live-model status is unverified. Earlier live evidence is partial and
+applies to an older revision. No model run was performed for this refresh.
+
+Submission prerequisites: An approved feature request is required before
+submission.
