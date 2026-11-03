@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-03",
+  "platform": "linux-x64",
+  "base": "203fbc528d83982a7866da43e989b69dd089de83",
+  "head": "3721b9452ae6f38aca360105ee8ed05e65db8b85",
+  "projectChecks": "The workspace build, 11 focused export tests, CLI type check and focused ESLint pass. Validation used npm 11, which supports the repository's dependency alias overrides.",
+  "nativeFixtures": {
+    "records": [
+      5
+    ],
+    "validatorErrors": 0,
+    "validatorWarnings": 0,
+    "exactPackagedSampleReplay": true
+  },
+  "liveModelRun": "not performed"
+}

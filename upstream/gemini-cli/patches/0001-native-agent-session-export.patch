@@ -1,17 +1,17 @@
-From 23f3d8e2fb46a21404cb7f98a956bc115805c388 Mon Sep 17 00:00:00 2001
+From 3721b9452ae6f38aca360105ee8ed05e65db8b85 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] feat(cli): add Agent Session Record export format
 
 ---
- docs/cli/agent-session-export.md              |  30 ++
+ docs/cli/agent-session-export.md              |  32 ++
  docs/sidebar.json                             |   4 +
  packages/cli/src/commands/sessions.ts         |  24 ++
- .../src/commands/sessions/agent-session.ts    | 357 ++++++++++++++++++
- .../cli/src/commands/sessions/export.test.ts  | 252 +++++++++++++
+ .../src/commands/sessions/agent-session.ts    | 367 ++++++++++++++++++
+ .../cli/src/commands/sessions/export.test.ts  | 252 ++++++++++++
  packages/cli/src/commands/sessions/export.ts  | 351 +++++++++++++++++
  packages/cli/src/config/config.ts             |   3 +
- 7 files changed, 1021 insertions(+)
+ 7 files changed, 1033 insertions(+)
  create mode 100644 docs/cli/agent-session-export.md
  create mode 100644 packages/cli/src/commands/sessions.ts
  create mode 100644 packages/cli/src/commands/sessions/agent-session.ts
@@ -20,14 +20,15 @@ Subject: [PATCH] feat: export native sessions with accurate reasoning content
 
 diff --git a/docs/cli/agent-session-export.md b/docs/cli/agent-session-export.md
 new file mode 100644
-index 0000000..d8149a3
+index 0000000..7037c1c
 --- /dev/null
 +++ b/docs/cli/agent-session-export.md
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,32 @@
 +# Export saved sessions
 +
-+Export a saved Gemini conversation in an open format that search and code history
-+tools can read. The export works offline and does not start a model call.
++Export a saved Gemini conversation in an open format that search and code
++history tools can read. The export works offline and does not start a model
++call.
 +
 +```sh
 +gemini sessions export --format agent-session --session SESSION_ID
@@ -39,13 +40,14 @@ index 0000000..d8149a3
 +Existing files are refused. Files use private permissions and names derived from
 +the session identity.
 +
-+Use `--input FILE` to read a specific transcript without loading global settings.
-+Repeat it for several files. `--since` accepts an RFC 3339 timestamp and selects
-+files by modification time. Missing sessions and ambiguous selections fail.
++Use `--input FILE` to read a specific transcript without loading global
++settings. Repeat it for several files. `--since` accepts an RFC 3339 timestamp
++and selects files by modification time. Missing sessions and ambiguous
++selections fail.
 +
 +The export keeps recorded messages, tool requests and available results. Updated
-+results appear where their final version was saved. Retained work stays available
-+after a rewind. Gaps identify corrupt or incomplete history.
++results appear where their final version was saved. Retained work stays
++available after a rewind. Gaps identify corrupt or incomplete history.
 +
 +Saved conversations do not contain every approval, setting, model call or file
 +edit. The export declares these limits. It supports current JSONL recordings and
@@ -101,10 +103,10 @@ index 0000000..eabbbe7
 +};
 diff --git a/packages/cli/src/commands/sessions/agent-session.ts b/packages/cli/src/commands/sessions/agent-session.ts
 new file mode 100644
-index 0000000..ca27c6f
+index 0000000..c86daae
 --- /dev/null
 +++ b/packages/cli/src/commands/sessions/agent-session.ts
-@@ -0,0 +1,357 @@
+@@ -0,0 +1,367 @@
 +/**
 + * @license
 + * Copyright 2026 Google LLC
@@ -298,7 +300,9 @@ index 0000000..ca27c6f
 +      Array.isArray(raw['content']) &&
 +      raw['content'].some((part) => {
 +        const response = object(
-+          object(object(part)['part'])['functionResponse'],
++          object(object(object(object(part)['_meta'])[this.vendor])['native'])[
++            'functionResponse'
++          ],
 +        );
 +        const output = object(response['response'])['output'];
 +        return (
@@ -348,7 +352,10 @@ index 0000000..ca27c6f
 +          data: media['data'],
 +        };
 +      }
-+      return { type: `${this.vendor}/part`, part: p };
++      return {
++        type: `${this.vendor}/part`,
++        _meta: { [this.vendor]: { native: p } },
++      };
 +    });
 +  }
 +
@@ -457,10 +464,15 @@ index 0000000..ca27c6f
 +  }
 +}
 +
-+function asrReasoning(text: unknown, summary = false): { type: string; visibility?: string; text?: string; summary?: string[] } {
-+  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
-+  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
-+  return { type: "reasoning", text };
++function asrReasoning(
++  text: unknown,
++  summary = false,
++): { type: string; visibility?: string; text?: string; summary?: string[] } {
++  if (typeof text !== 'string' || text.length === 0)
++    return { type: 'reasoning', visibility: 'omitted' };
++  if (summary)
++    return { type: 'reasoning', visibility: 'summary', summary: [text] };
++  return { type: 'reasoning', text };
 +}
 diff --git a/packages/cli/src/commands/sessions/export.test.ts b/packages/cli/src/commands/sessions/export.test.ts
 new file mode 100644
@@ -1106,4 +1118,7 @@ index 3c6672e..e735651 100755
    yargsInstance.command(extensionsCommand);
    yargsInstance.command(skillsCommand);
 
-base-commit: a60946692b11e2f144a8fe4db46bbc4e514daa7a
+base-commit: 203fbc528d83982a7866da43e989b69dd089de83
+-- 
+2.43.0
+
