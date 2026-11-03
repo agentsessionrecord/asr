@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { checkWriting } from '../../scripts/check-writing.mjs';
+const read = name => readFileSync(new URL(name, import.meta.url), 'utf8');
+for (const name of ['README.md', 'PROPOSAL.md']) assert.deepEqual(checkWriting(read(name), name), []);
+const rows = read('samples/asr/session.jsonl').trimEnd().split('\n').map(JSON.parse);
+assert.equal(rows[0].producer.method, 'native');
+assert.equal(rows[0].agent.name, 'crush');
+assert.equal(rows.find(row => row.type === 'message').content[0].text, 'Exact\r\n');
+assert.ok(!read('samples/asr/session.jsonl').includes('SYNTHETIC-OPAQUE'));
+assert.equal(rows.filter(row => row.type === 'tool_result').length, 1);
+const patch = read('patches/0001-native-agent-session-export.patch');
+assert.ok(patch.includes('sessionShowCmd.Flags().StringVarP'));
+assert.ok(patch.includes('sessionShowExportFormat'));
+assert.ok(!patch.includes('Use: "export"'));
+console.log('crush: command shape, exact text, excluded state, and prose checks passed');

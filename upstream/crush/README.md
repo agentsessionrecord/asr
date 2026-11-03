@@ -1,67 +1,28 @@
-# Crush native export patch
+# Crush ASR export
 
-## Install
+The patch adds ASR output to the existing `session show` command. A `.jsonl` output path selects ASR. A `.json` path selects the existing JSON representation. Explicit `--format agent-session` selects ASR on stdout or with any output filename. `--json` and `--format` are mutually exclusive. Files are created with private permissions and existing files are never overwritten.
 
-Use a separate writable checkout of the upstream project. The supported base is
-`b576f95896704c88ed84b2f16c3c346d6c58cb42`. [manifest.json](manifest.json) pins
-this base, the ordered patches and their digests. Read [PROPOSAL.md](PROPOSAL.md)
-for the upstream repository, runtime requirements and native build instructions.
-These patches are local source changes. They are not installed by the ASR CLI.
+Source: https://github.com/charmbracelet/crush. Pinned base: `3b1f8604f0027cf5fa47f29a27655ef1aeed8d8f`.
 
-Set `ASR_PACKAGE` to this package's absolute path. Run in a clean upstream
-checkout at the pinned base:
+Apply `patches/*.patch` with `git am` in a clean writable checkout at the pinned base. Build the patched source using its own instructions.
 
 ```sh
-git am "$ASR_PACKAGE"/patches/*.patch
+crush session show SESSION_ID --format agent-session
+crush session show SESSION_ID -o session.asr.jsonl
+crush session show SESSION_ID --json -o session.json
 ```
 
-Build and install the patched agent using its own instructions and the focused
-checks in the proposal. To remove the feature, use a clean unpatched build.
-Existing exported files remain in their output directory.
+The exporter reads retained SQLite messages in native row and content order. It keeps text, visible reasoning, calls, and final results. Mutable snapshots cannot recover overwritten events. Media, provider state, approvals, model accounting, settings, file changes, commits, and relationships are declared missing. The export is not a redactor. Review conversation content before sharing.
 
-## Use
+Go 1.27 or newer is required. Focused checks are `go test ./internal/asr ./internal/cmd`, `go vet ./internal/asr ./internal/cmd`, and `go build .`. With a built binary, `python3 upstream/crush/reproduce-native.py /path/to/crush` exercises explicit format selection, extension inference, and private file output without a model call.
 
-Run with the patched agent. Replace example IDs and input paths with a selected
-native session. See the proposal for selection and output options.
-
-```sh
-crush sessions export --session SESSION_ID --format agent-session --output exports
-```
-
-## What it records
-
-Retained SQLite text, readable reasoning, tool calls, final results and compaction summaries in native row and content order.
-
-Output uses ASR 0.1 with `producer.method: native`. Known credential fields and
-recognized secret text are excluded. Keep exports private and review content
-before sharing. Pattern filtering cannot identify every secret.
-
-## Limits
-
-Deleted history, event order hidden by mutable rows, media, provider state, approvals, model accounting, settings, file changes and commits are unavailable.
-
-The [proposal](PROPOSAL.md) describes the source profile and detailed losses.
-Valid ASR does not establish complete source capture.
-
-## Tests and status
-
-Run from the ASR repository root with its Node dependencies installed:
+Run these package checks from the ASR repository:
 
 ```sh
 node upstream/crush/check.mjs
-node upstream/crush/reproduce.mjs /path/to/upstream-checkout
+node upstream/crush/reproduce.mjs /path/to/patched-checkout
 ```
 
-The package check verifies file hashes, patch syntax, synthetic source contracts
-and ASR sample validation. The reproduce command also replays the series in a
-temporary Git index against the pinned source commits. It preserves the source
-checkout. It needs both pinned commits in that checkout and does not build or
-run the agent. Upstream build and test evidence is in the proposal.
+Package reproduction replays the patch in a temporary Git index. It preserves the checkout and does not compile the agent. [TESTS.json](TESTS.json) records the current verification scope. No current model session was run.
 
-Live-test status: **partial**.
-The evidence below is from a prior revision. A live run of the current code has not been verified.
-An isolated source binary run through the local Responses endpoint exported 5 records, including one tool call and one result. Validation reported zero errors or warnings. The provider key was read only from a private provider settings file.
-
-The package's [synthetic export](samples/asr/session.jsonl) has zero validator
-errors. Any expected extension or pairing warnings are explained by the proposal
-or printed by the package check. Package checks make no model requests.
+Charm requires a CLA and feature discussion before a contribution. The patch follows the existing command shape requested in discussion #3740 and PR #2609. Markdown export is outside this change.

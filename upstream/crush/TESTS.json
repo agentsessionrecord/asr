@@ -1,12 +1,29 @@
 {
-  "checks": [
-    "2 focused exporter tests and matching session-setup tests",
-    "Go vet for the exporter",
-    "Go formatting",
-    "Synthetic fixture created through the real SQLite services"
+  "date": "2026-11-03",
+  "upstreamChecks": [
+    {
+      "command": "go test ./internal/asr ./internal/cmd",
+      "status": "blocked",
+      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+    },
+    {
+      "command": "go vet ./internal/asr ./internal/cmd",
+      "status": "blocked",
+      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+    },
+    {
+      "command": "go build .",
+      "status": "blocked",
+      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+    }
   ],
+  "formatting": "gofmt applied to changed command files",
+  "nativeFixture": "blocked until native build admission",
+  "packageCheck": "passed",
+  "patchReplay": "passed",
   "sampleRecords": 5,
   "sampleErrors": 0,
   "sampleWarnings": [],
-  "liveTestStatus": "partial"
+  "liveTestStatus": "not-live-tested",
+  "liveTestNotes": "No current model session was run."
 }
