@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { checkWriting } from '../../scripts/check-writing.mjs';
+const read = name => readFileSync(new URL(name, import.meta.url), 'utf8');
+for (const name of ['README.md', 'PROPOSAL.md']) assert.deepEqual(checkWriting(read(name), name), []);
+const rows = read('samples/asr/session.jsonl').trimEnd().split('\n').map(JSON.parse);
+assert.equal(rows[0].producer.method, 'native');
+assert.equal(rows[0].agent.name, 'kimi-code');
+assert.equal(rows[0].sessionId, 'synthetic-kimi');
+assert.equal(rows.find(row => row.role === 'user').author, 'human');
+assert.equal(rows.find(row => row.role === 'user').id, 'prompt-1');
+assert.equal(rows.find(row => row.type === 'tool_call').input.n, '9007199254740993');
+assert.ok(!read('samples/asr/session.jsonl').includes('SYNTHETIC-OPAQUE'));
+assert.ok(rows.some(row => row.content?.some(part => part.visibility === 'encrypted')));
+assert.equal(rows.filter(row => row.type === 'tool_result').length, 1);
+console.log('kimi-code: current journal, large arguments, authorship, reasoning, and prose checks passed');

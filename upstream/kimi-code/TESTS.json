@@ -1,11 +1,40 @@
 {
-  "checks": [
-    "3 focused pytest tests",
-    "Ruff lint and format",
-    "Pyright with zero errors and warnings"
+  "date": "2026-11-03",
+  "upstreamChecks": [
+    {
+      "command": "pnpm install --frozen-lockfile",
+      "status": "blocked",
+      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+    },
+    {
+      "command": "focused engine and CLI Vitest tests",
+      "status": "blocked",
+      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+    },
+    {
+      "command": "engine, SDK, and CLI build, lint, and typecheck",
+      "status": "blocked",
+      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+    }
   ],
+  "formatting": "comment-free engine additions reviewed",
+  "nativeFixture": "passed with the current native reader",
+  "packageCheck": "passed",
+  "patchReplay": "passed",
   "sampleRecords": 7,
   "sampleErrors": 0,
   "sampleWarnings": [],
-  "liveTestStatus": "partial"
+  "liveTestStatus": "not-live-tested",
+  "liveTestNotes": "No current model session was run.",
+  "isolatedReaderTypecheck": "passed with strict TypeScript checks",
+  "readerRegressions": [
+    "source IDs",
+    "exact text and readable reasoning",
+    "large integer arguments",
+    "encrypted marker without payload",
+    "final result completion order",
+    "malformed complete lines",
+    "incomplete tail",
+    "unsupported protocol rejection"
+  ]
 }

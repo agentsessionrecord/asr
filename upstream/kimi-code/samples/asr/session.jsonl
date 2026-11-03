@@ -1,7 +1,7 @@
-{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"kimi-code","version":"1.52.0"},"sessionId":"synthetic-kimi","producer":{"name":"kimi-asr-export","version":"1","method":"native","source":"kimi-wire"},"missing":["agent_settings","approvals","commits","copies","file_changes","inference_settings","instructions","media","message_author","model","native_events","reasoning","secrets","subagents","tools","usage"]}
-{"id":"wire-1","ts":"2026-10-30T12:00:00+00:00","type":"message","role":"user","content":[{"type":"text","text":"Exact\r\n"}]}
-{"id":"wire-2","ts":"2026-10-30T12:00:01+00:00","type":"message","role":"assistant","author":"model","content":[{"type":"reasoning","text":"Check the fixture."}]}
-{"id":"wire-3","ts":"2026-10-30T12:00:02+00:00","type":"tool_call","callId":"call-1","name":"read","requestedBy":"model","input":{"path":"fixture.txt"}}
-{"id":"wire-5","ts":"2026-10-30T12:00:04+00:00","type":"approval","decision":"approved","native":{"response":"approve_for_session"},"callId":"call-1","subject":"Read synthetic fixture","scope":"session"}
-{"id":"wire-6","ts":"2026-10-30T12:00:05+00:00","type":"tool_result","callId":"call-1","status":"completed","content":[{"type":"text","text":"Synthetic fixture.\n"}]}
-{"id":"wire-7","ts":"2026-10-30T12:00:06+00:00","type":"message","role":"assistant","author":"model","content":[{"type":"text","text":"SYNTHETIC-OK"}]}
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"kimi-code"},"sessionId":"synthetic-kimi","producer":{"name":"kimi-code-asr-export","version":"1","method":"native","source":"kimi-code-wire"},"missing":["usage","model","approvals","agent_settings","tools","file_changes","commits","subagents","copies","media","provider_state","native_events","message_author","reasoning","tool_result_updates"],"startedAt":"2026-10-30T12:00:00.000Z"}
+{"type":"message","role":"user","content":[{"type":"text","text":"Exact\r\n"}],"author":"human","origin":"prompt","id":"prompt-1","ts":"2026-10-30T12:00:00.001Z"}
+{"type":"message","role":"assistant","author":"model","content":[{"type":"reasoning","text":"Check the fixture."}],"id":"wire-4","ts":"2026-10-30T12:00:00.003Z"}
+{"type":"message","role":"assistant","author":"model","content":[{"type":"reasoning","visibility":"encrypted"}],"id":"wire-5","ts":"2026-10-30T12:00:00.004Z"}
+{"type":"tool_call","callId":"call-1","name":"read","input":{"path":"fixture.txt","n":"9007199254740993"},"requestedBy":"model","id":"wire-6","ts":"2026-10-30T12:00:00.005Z"}
+{"type":"tool_result","callId":"call-1","status":"completed","content":[{"type":"text","text":"Synthetic fixture.\n"}],"id":"wire-7","ts":"2026-10-30T12:00:00.006Z"}
+{"type":"message","role":"assistant","content":[{"type":"text","text":"SYNTHETIC-OK"}],"author":"model","id":"wire-9","ts":"2026-10-30T12:00:00.008Z"}

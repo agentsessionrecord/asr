@@ -1,403 +1,517 @@
-From 1a1c083f1d10883182229b0001363a115e8d791f Mon Sep 17 00:00:00 2001
+From 29e58fe741ac6ad692b700e022c928e92497f1e0 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
-Date: Sun, 1 Nov 2026 15:33:28 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Date: Tue, 3 Nov 2026 14:39:21 -0500
+Subject: [PATCH] feat: add Agent Session Record session export
 
 ---
- src/kimi_cli/__main__.py        |   2 +
- src/kimi_cli/cli/_lazy_group.py |   2 +
- src/kimi_cli/cli/sessions.py    | 271 ++++++++++++++++++++++++++++++++
- tests/test_asr_export.py        |  71 +++++++++
- 4 files changed, 346 insertions(+)
- create mode 100644 src/kimi_cli/cli/sessions.py
- create mode 100644 tests/test_asr_export.py
+ .changeset/agent-session-export.md            |   5 +
+ apps/kimi-code/src/cli/sub/export.ts          |  15 +-
+ apps/kimi-code/test/cli/export.test.ts        |   7 +
+ docs/en/guides/sessions.md                    |   2 +
+ docs/zh/guides/sessions.md                    |   2 +
+ .../src/app/sessionExport/agent-session.ts    | 175 ++++++++++++++++++
+ .../src/app/sessionExport/sessionExport.ts    |   1 +
+ .../app/sessionExport/sessionExportService.ts |  25 ++-
+ .../app/sessionExport/sessionExport.test.ts   |  53 ++++++
+ packages/node-sdk/src/sdk-rpc-client-v2.ts    |   1 +
+ packages/node-sdk/src/types.ts                |   1 +
+ 11 files changed, 283 insertions(+), 4 deletions(-)
+ create mode 100644 .changeset/agent-session-export.md
+ create mode 100644 packages/agent-core-v2/src/app/sessionExport/agent-session.ts
 
-diff --git a/src/kimi_cli/__main__.py b/src/kimi_cli/__main__.py
-index 8769d75..da8c6fc 100644
---- a/src/kimi_cli/__main__.py
-+++ b/src/kimi_cli/__main__.py
-@@ -20,6 +20,8 @@ def main(argv: Sequence[str] | None = None) -> int | str | None:
-     args = list(sys.argv[1:] if argv is None else argv)
+diff --git a/.changeset/agent-session-export.md b/.changeset/agent-session-export.md
+new file mode 100644
+index 000000000..0c459fabd
+--- /dev/null
++++ b/.changeset/agent-session-export.md
+@@ -0,0 +1,5 @@
++---
++"@moonshot-ai/kimi-code": minor
++---
++
++Add Agent Session Record export with `kimi export --format agent-session`.
+diff --git a/apps/kimi-code/src/cli/sub/export.ts b/apps/kimi-code/src/cli/sub/export.ts
+index 51093f0bc..80fe4e2c7 100644
+--- a/apps/kimi-code/src/cli/sub/export.ts
++++ b/apps/kimi-code/src/cli/sub/export.ts
+@@ -57,6 +57,7 @@ export interface ExportDeps {
+ export interface ExportOptions {
+   readonly yes: boolean;
+   readonly includeGlobalLog: boolean;
++  readonly format?: string;
+ }
  
-     try:
-+        if args[:1] == ["sessions"]:
-+            return run_original_cli(args)
-         return _deprecation_gate(args)
-     finally:
-         set_phase("shutdown")
-diff --git a/src/kimi_cli/cli/_lazy_group.py b/src/kimi_cli/cli/_lazy_group.py
-index eac315e..8d6c4f7 100644
---- a/src/kimi_cli/cli/_lazy_group.py
-+++ b/src/kimi_cli/cli/_lazy_group.py
-@@ -14,6 +14,7 @@ class LazySubcommandGroup(typer.core.TyperGroup):
-     """Load heavyweight subcommands only when they are actually invoked."""
+ export async function handleExport(
+@@ -65,6 +66,11 @@ export async function handleExport(
+   output: string | undefined,
+   opts: ExportOptions,
+ ): Promise<void> {
++  if (opts.format !== undefined && opts.format !== 'zip' && opts.format !== 'agent-session') {
++    deps.stderr.write('Use --format zip or --format agent-session.\n');
++    deps.exit(1);
++  }
++  const format = opts.format as 'zip' | 'agent-session' | undefined;
+   const requestedId = normalizeOptionalSessionId(sessionId);
+   const previousSummary = requestedId === undefined ? await findPreviousSession(deps) : undefined;
  
-     lazy_subcommands: dict[str, tuple[str, str, str]] = {
-+        "sessions": ("kimi_cli.cli.sessions", "cli", "Export recorded sessions."),
-         "info": ("kimi_cli.cli.info", "cli", "Show version and protocol information."),
-         "export": ("kimi_cli.cli.export", "cli", "Export session data."),
-         "mcp": ("kimi_cli.cli.mcp", "cli", "Manage MCP server configurations."),
-@@ -22,6 +23,7 @@ class LazySubcommandGroup(typer.core.TyperGroup):
-         "web": ("kimi_cli.cli.web", "cli", "Run Kimi Code CLI web interface."),
+@@ -91,11 +97,12 @@ export async function handleExport(
+     const shellEnv = deps.getShellEnv();
+     const result = await deps.exportSession({
+       id: resolvedId,
++      format,
+       version: deps.version,
+       installSource,
+       shellEnv,
+-      ...(output === undefined ? {} : { outputPath: output }),
+-      ...(opts.includeGlobalLog ? { includeGlobalLog: true } : {}),
++      outputPath: output,
++      includeGlobalLog: opts.includeGlobalLog ? true : undefined,
+     });
+     deps.stdout.write(`${result.zipPath}\n`);
+   } catch (error) {
+@@ -109,6 +116,7 @@ export function registerExportCommand(parent: Command, deps?: Partial<ExportDeps
+     .command('export')
+     .description('Export a session as a ZIP archive.')
+     .option('-o, --output <path>', 'Output ZIP path.')
++    .option('--format <format>', 'ZIP contents: zip or agent-session.', 'zip')
+     .option('-y, --yes', 'Skip previous-session confirmation.')
+     .option(
+       '--no-include-global-log',
+@@ -118,12 +126,13 @@ export function registerExportCommand(parent: Command, deps?: Partial<ExportDeps
+     .action(
+       async (
+         sessionId: string | undefined,
+-        options: { output?: string; yes?: boolean; includeGlobalLog?: boolean },
++        options: { output?: string; yes?: boolean; includeGlobalLog?: boolean; format?: string },
+       ) => {
+         const resolved = createDefaultExportDeps(deps);
+         try {
+           await handleExport(resolved, sessionId, options.output, {
+             yes: options.yes === true,
++            format: options.format,
+             includeGlobalLog: options.includeGlobalLog !== false,
+           });
+         } finally {
+diff --git a/apps/kimi-code/test/cli/export.test.ts b/apps/kimi-code/test/cli/export.test.ts
+index f732f938b..fcf2bbc54 100644
+--- a/apps/kimi-code/test/cli/export.test.ts
++++ b/apps/kimi-code/test/cli/export.test.ts
+@@ -565,3 +565,10 @@ describe('kimi export', () => {
+     );
+   });
+ });
++
++
++it('passes the ASR format to the existing export service', async () => {
++  const { deps, exportInputs } = makeDeps();
++  await handleExport(deps, 'synthetic', 'record.zip', { yes: true, includeGlobalLog: false, format: 'agent-session' });
++  expect(exportInputs[0]?.format).toBe('agent-session');
++});
+diff --git a/docs/en/guides/sessions.md b/docs/en/guides/sessions.md
+index 0798b84f7..3d44abd61 100644
+--- a/docs/en/guides/sessions.md
++++ b/docs/en/guides/sessions.md
+@@ -107,6 +107,8 @@ Omitting `sessionId` exports the most recent session in the current directory (w
+ kimi export <sessionId> -o ~/Desktop/my-session.zip
+ ```
+ 
++Set `KIMI_CODE_EXPERIMENTAL_AGENT_SESSION_EXPORT=1` to enable this export mode. Use `kimi export <sessionId> --format agent-session -o record.zip` to export the main agent journal as Agent Session Record 0.1. The ZIP contains `session.asr.jsonl` and a manifest. It omits subagents, raw journals, settings, and diagnostic logs. Known losses are listed in the ASR header.
++
+ The export includes all files in the session directory, including diagnostic logs. The global diagnostic log (`~/.kimi-code/logs/kimi-code.log`) is also bundled by default; add `--no-include-global-log` to exclude it.
+ 
+ You can also export from inside the TUI without leaving the interactive session:
+diff --git a/docs/zh/guides/sessions.md b/docs/zh/guides/sessions.md
+index 150579618..fd3d613d5 100644
+--- a/docs/zh/guides/sessions.md
++++ b/docs/zh/guides/sessions.md
+@@ -107,6 +107,8 @@ kimi export <sessionId>
+ kimi export <sessionId> -o ~/Desktop/my-session.zip
+ ```
+ 
++设置 `KIMI_CODE_EXPERIMENTAL_AGENT_SESSION_EXPORT=1` 可启用此导出模式。运行 `kimi export <sessionId> --format agent-session -o record.zip`，以 Agent Session Record 0.1 格式导出 main agent 的会话记录。ZIP 包含 `session.asr.jsonl` 和清单，不含 subagent、原始会话记录、设置或诊断日志。ASR 文件头列出了已知的信息缺失。
++
+ 导出包含会话目录下的所有文件，包括诊断日志。全局诊断日志（`~/.kimi-code/logs/kimi-code.log`）默认也会打包；如不需要，加 `--no-include-global-log` 排除。
+ 
+ 也可以在 TUI 内导出，无需离开交互界面：
+diff --git a/packages/agent-core-v2/src/app/sessionExport/agent-session.ts b/packages/agent-core-v2/src/app/sessionExport/agent-session.ts
+new file mode 100644
+index 000000000..ce8772186
+--- /dev/null
++++ b/packages/agent-core-v2/src/app/sessionExport/agent-session.ts
+@@ -0,0 +1,175 @@
++import { readFile } from 'node:fs/promises';
++import { join } from 'node:path';
++
++type Row = Record<string, unknown>;
++
++export async function readAgentSession(sessionDir: string, sessionId: string): Promise<string> {
++  const source = await readFile(join(sessionDir, 'agents', 'main', 'wire.jsonl'), 'utf8');
++  return formatAgentSession(source, sessionId);
++}
++
++export function formatAgentSession(source: string, sessionId: string): string {
++  if (!sessionId) throw new Error('Session ID is required');
++  const lines = source.split('\n');
++  const first: unknown = JSON.parse(lines[0] ?? '');
++  const metadata = object(first);
++  if (metadata?.['type'] !== 'metadata') {
++    throw new Error('Wire metadata is required');
++  }
++  if (metadata['protocol_version'] !== '1.5') {
++    throw new Error('Unsupported wire protocol version');
++  }
++  const header: Row = {
++    type: 'session', id: 'header', formatVersion: '0.1',
++    agent: { name: 'kimi-code' }, sessionId,
++    producer: { name: 'kimi-code-asr-export', version: '1', method: 'native', source: 'kimi-code-wire' },
++    missing: ['usage', 'model', 'approvals', 'agent_settings', 'tools', 'file_changes', 'commits',
++      'subagents', 'copies', 'media', 'provider_state', 'native_events', 'message_author', 'reasoning', 'tool_result_updates'],
++  };
++  const created = metadata['created_at'];
++  if (typeof created === 'number' && Number.isFinite(created)) {
++    const date = new Date(created);
++    if (!Number.isNaN(date.getTime())) header['startedAt'] = date.toISOString();
++  }
++  const rows: (Row | undefined)[] = [header];
++  const nativeIds = new Map<string, string>();
++  const counts = new Map<string, number>();
++  for (let index = 1; index < lines.length - 1; index++) {
++    try {
++      const record = object(JSON.parse(lines[index]!) as unknown);
++      const candidate = record?.['type'] === 'context.append_message'
++        ? object(record['message'])?.['id'] : object(record?.['event'])?.['uuid'];
++      if (typeof candidate === 'string' && candidate.length > 0 && candidate.length <= 256
++        && candidate !== 'header' && !/[\u0000-\u001f\u007f-\u009f]/u.test(candidate)) {
++        nativeIds.set(`wire-${index + 1}`, candidate);
++        counts.set(candidate, (counts.get(candidate) ?? 0) + 1);
++      }
++    } catch {}
++  }
++  const results = new Map<string, number>();
++  const emit = (row: Row, id: string, time: unknown): void => {
++    const candidate = nativeIds.get(id);
++    if (candidate !== undefined && counts.get(candidate) === 1) row['id'] = candidate;
++    else {
++      while (counts.has(id)) id += '-derived';
++      row['id'] = id;
++    }
++    if (typeof time === 'number' && Number.isFinite(time)) {
++      const date = new Date(time);
++      if (!Number.isNaN(date.getTime())) row['ts'] = date.toISOString();
++    }
++    if (row['type'] === 'tool_result' && typeof row['callId'] === 'string') {
++      const previous = results.get(row['callId']);
++      if (previous !== undefined) rows[previous] = undefined;
++      results.set(row['callId'], rows.length);
++    }
++    rows.push(row);
++  };
++  for (let index = 1; index < lines.length; index++) {
++    const line = lines[index]!;
++    if (index === lines.length - 1 && line === '') continue;
++    const id = `wire-${index + 1}`;
++    if (index === lines.length - 1) {
++      emit({ type: 'gap', reason: 'not_retained', detail: 'Incomplete native journal tail.' }, id, undefined);
++      continue;
++    }
++    let value: unknown;
++    try {
++      value = JSON.parse(line, (_key: string, item: unknown, context?: { source: string }) => {
++        if (typeof item === 'number' && Number.isInteger(item) && !Number.isSafeInteger(item)) {
++          if (context === undefined) throw new Error('Lossless JSON parsing is unavailable');
++          return context.source;
++        }
++        return item;
++      }) as unknown;
++    } catch {
++      emit({ type: 'gap', reason: 'unparseable', count: 1 }, id, undefined);
++      continue;
++    }
++    const record = object(value);
++    if (record === undefined || typeof record['type'] !== 'string') {
++      emit({ type: 'gap', reason: 'unparseable', count: 1 }, id, undefined);
++      continue;
++    }
++    const message = object(record['message']);
++    if (record['type'] === 'context.apply_compaction') {
++      const summary = record['summary'] ?? record['contextSummary'];
++      const content = typeof summary === 'string' ? [{ type: 'text', text: summary }] : parts(object(summary)?.['content']);
++      emit({ type: 'message', role: 'user', author: 'harness', origin: 'compaction', content }, id, record['time']);
++      continue;
++    }
++    if (record['type'] === 'context.append_message' && message === undefined) {
++      emit({ type: 'gap', reason: 'unparseable', count: 1 }, id, record['time']);
++      continue;
++    }
++    if (record['type'] === 'context.append_message' && message !== undefined) {
++      const role = message['role'];
++      if (role === 'tool') {
++        emit({ type: 'tool_result', callId: message['toolCallId'],
++          status: status(message['isError']), content: parts(message['content']) }, id, record['time']);
++      } else if (role === 'user' || role === 'assistant' || role === 'system') {
++        const origin = object(message['origin'])?.['kind'];
++        const row: Row = { type: 'message', role, content: parts(message['content']) };
++        if (role === 'assistant') row['author'] = 'model';
++        if (role === 'system') Object.assign(row, { author: 'harness', origin: 'instructions' });
++        if (origin === 'user') Object.assign(row, { author: 'human', origin: 'prompt' });
++        if (origin === 'injection') Object.assign(row, { author: 'harness', origin: 'injected' });
++        if (origin === 'compaction_summary') Object.assign(row, { author: 'harness', origin: 'compaction' });
++        emit(row, id, record['time']);
++        const calls = message['toolCalls'];
++        if (Array.isArray(calls)) calls.forEach((call: unknown, part: number) => {
++          const item = object(call);
++          if (typeof item?.['id'] !== 'string' || !item['id'] || typeof item['name'] !== 'string' || !item['name']) return;
++          emit({ type: 'tool_call', callId: item['id'], name: item['name'], inputText: typeof item['arguments'] === 'string' ? item['arguments'] : undefined },
++            `${id}-call-${part}`, record['time']);
++        });
++      }
++      continue;
++    }
++    if (record['type'] !== 'context.append_loop_event') continue;
++    const event = object(record['event']);
++    if (event === undefined) { emit({ type: 'gap', reason: 'unparseable', count: 1 }, id, record['time']); continue; }
++    switch (event['type']) {
++      case 'content.part':
++        emit({ type: 'message', role: 'assistant', author: 'model', content: parts([event['part']]) }, id, record['time']);
++        break;
++      case 'tool.call':
++        if (typeof event['toolCallId'] !== 'string' || !event['toolCallId']) throw new Error('Missing tool call ID');
++        if (typeof event['name'] !== 'string' || !event['name']) throw new Error('Missing tool name');
++        emit({ type: 'tool_call', callId: event['toolCallId'], name: event['name'], input: event['args'], requestedBy: 'model' }, id, record['time']);
++        break;
++      case 'tool.result': {
++        const result = object(event['result']);
++        if (result === undefined) throw new Error('Missing tool result');
++        const output = result['output'];
++        emit({ type: 'tool_result', callId: event['toolCallId'], status: status(result['isError']),
++          content: typeof output === 'string' ? [{ type: 'text', text: output }] : parts(output) }, id, record['time']);
++        break;
++      }
++    }
++  }
++  return rows.filter(row => row !== undefined).map(row => JSON.stringify(row)).join('\n') + '\n';
++}
++
++function object(value: unknown): Row | undefined {
++  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Row : undefined;
++}
++
++function status(error: unknown): string {
++  return error === true ? 'failed' : error === false ? 'completed' : 'unknown';
++}
++
++function parts(value: unknown): Row[] {
++  if (!Array.isArray(value)) return [];
++  return value.flatMap((item: unknown): Row[] => {
++    const part = object(item);
++    if (part?.['type'] === 'text' && typeof part['text'] === 'string') return [{ type: 'text', text: part['text'] }];
++    if (part?.['type'] === 'think') {
++      const result: Row[] = [];
++      if (typeof part['think'] === 'string' && part['think'] !== '') result.push({ type: 'reasoning', text: part['think'] });
++      if (typeof part['encrypted'] === 'string' && part['encrypted'] !== '') result.push({ type: 'reasoning', visibility: 'encrypted' });
++      return result.length > 0 ? result : [{ type: 'reasoning', visibility: 'omitted' }];
++    }
++    return [];
++  });
++}
+diff --git a/packages/agent-core-v2/src/app/sessionExport/sessionExport.ts b/packages/agent-core-v2/src/app/sessionExport/sessionExport.ts
+index 1f782dca1..d53430113 100644
+--- a/packages/agent-core-v2/src/app/sessionExport/sessionExport.ts
++++ b/packages/agent-core-v2/src/app/sessionExport/sessionExport.ts
+@@ -9,6 +9,7 @@ export interface ShellEnvironment {
+ }
+ 
+ export interface ExportSessionPayload {
++  readonly format?: 'zip' | 'agent-session';
+   readonly sessionId: string;
+   readonly outputPath?: string | undefined;
+   readonly includeGlobalLog?: boolean | undefined;
+diff --git a/packages/agent-core-v2/src/app/sessionExport/sessionExportService.ts b/packages/agent-core-v2/src/app/sessionExport/sessionExportService.ts
+index 55f8f650f..c26b2a718 100644
+--- a/packages/agent-core-v2/src/app/sessionExport/sessionExportService.ts
++++ b/packages/agent-core-v2/src/app/sessionExport/sessionExportService.ts
+@@ -1,4 +1,6 @@
+ import { join, resolve } from 'pathe';
++import { IFlagService } from '#/app/flag/flag';
++import { registerFlagDefinition } from '#/app/flag/flagRegistry';
+ import { LifecycleScope } from '#/app/scopes';
+ import { ScopeActivation, registerScopedService } from '#/_base/di/scope';
+ import type { ISessionScopeHandle } from '#/_base/di/scope';
+@@ -25,6 +27,7 @@ import {
+   ISessionExportService,
+ } from './sessionExport';
+ import { scanSessionWire } from './wire-scan';
++import { readAgentSession } from './agent-session';
+ import {
+   type ExtraZipEntry,
+   type SessionZipEntry,
+@@ -34,6 +37,13 @@ import {
+ import { openZipSource, type ZipSource } from './file-source';
+ import { FILE_HISTORY_BLOB_PREFIX } from '#/features/fileHistory/fileHistoryService';
+ 
++const ASR_FLAG = 'agent_session_export';
++registerFlagDefinition({
++  id: ASR_FLAG, title: 'Agent Session Record export',
++  description: 'Export the main agent journal as Agent Session Record.',
++  env: 'KIMI_CODE_EXPERIMENTAL_AGENT_SESSION_EXPORT', default: false, surface: 'core',
++});
++
+ const SESSION_LOG_REL = 'logs/kimi-code.log';
+ const GLOBAL_LOG_REL = 'logs/global/kimi-code.log';
+ const WEB_LOG_REL = 'logs/kimi-web.jsonl';
+@@ -48,6 +58,7 @@ export class SessionExportService implements ISessionExportService {
+     @ISessionManager private readonly sessions: ISessionManager,
+     @IWorkspaceService private readonly workspaces: IWorkspaceService,
+     @ILogService private readonly log: ILogService,
++    @IFlagService private readonly flags: IFlagService,
+   ) {}
+ 
+   async export(
+@@ -63,6 +74,9 @@ export class SessionExportService implements ISessionExportService {
+       );
      }
-     lazy_command_order: tuple[str, ...] = (
-+        "sessions",
-         "info",
-         "export",
-         "mcp",
-diff --git a/src/kimi_cli/cli/sessions.py b/src/kimi_cli/cli/sessions.py
-new file mode 100644
-index 0000000..7850c5f
---- /dev/null
-+++ b/src/kimi_cli/cli/sessions.py
-@@ -0,0 +1,271 @@
-+"""Offline export of the typed session wire log as Agent Session Record."""
-+
-+from __future__ import annotations
-+
-+import hashlib
-+import json
-+import os
-+from datetime import UTC, datetime
-+from pathlib import Path
-+from typing import Annotated, Any
-+
-+import typer
-+from kosong.message import ContentPart, TextPart, ThinkPart, ToolCall, ToolCallPart
-+from kosong.tooling import ToolResult
-+
-+from kimi_cli.constant import get_version
-+from kimi_cli.share import get_share_dir
-+from kimi_cli.soul.message import tool_result_to_message
-+from kimi_cli.wire.file import WireFileMetadata, parse_wire_file_line
-+from kimi_cli.wire.types import (
-+    ApprovalRequest,
-+    ApprovalResponse,
-+    CompactionEnd,
-+    StatusUpdate,
-+    SteerInput,
-+    TurnBegin,
-+)
-+
-+cli = typer.Typer(help="Export recorded sessions without starting a model.")
-+
-+
-+@cli.callback()
-+def _asr_reasoning(text: str, summary: bool = False) -> dict[str, object]:
-+    if not text:
-+        return {"type": "reasoning", "visibility": "omitted"}
-+    if summary:
-+        return {"type": "reasoning", "visibility": "summary", "summary": [text]}
-+    return {"type": "reasoning", "text": text}
-+
-+
-+def sessions() -> None:
-+    """Manage recorded sessions."""
-+
-+
-+def _parts(value: str | list[ContentPart]) -> list[dict[str, Any]]:
-+    if isinstance(value, str):
-+        return [{"type": "text", "text": value}]
-+    parts: list[dict[str, Any]] = []
-+    for part in value:
-+        if isinstance(part, TextPart):
-+            parts.append({"type": "text", "text": part.text})
-+        elif isinstance(part, ThinkPart):
-+            parts.append(_asr_reasoning(part.think, False))
-+        # Media and opaque provider signatures are deliberately not copied.
-+    return parts
-+
-+
-+def export_wire(path: Path, session_id: str) -> str:
-+    """Keep wire order and fold streamed items at their last observation."""
-+    if not session_id:
-+        raise ValueError("A native session ID is required")
-+    records: list[dict[str, Any] | None] = []
-+    pending_call: tuple[ToolCall, int] | None = None
-+    pending_parts: list[ContentPart] = []
-+    pending_position = 0
-+    approvals: dict[str, ApprovalRequest] = {}
-+    result_positions: dict[str, int] = {}
-+    missing = {
-+        "agent_settings",
-+        "tools",
-+        "approvals",
-+        "usage",
-+        "model",
-+        "inference_settings",
-+        "file_changes",
-+        "commits",
-+        "subagents",
-+        "copies",
-+        "instructions",
-+        "media",
-+        "native_events",
-+        "message_author",
-+        "reasoning",
-+        "secrets",
+ 
++    if (input.format === 'agent-session' && !this.flags.enabled(ASR_FLAG)) {
++      throw new Error('Set KIMI_CODE_EXPERIMENTAL_AGENT_SESSION_EXPORT=1 to enable Agent Session Record export.');
 +    }
+     const summary = await this.index.get(input.sessionId);
+     if (summary === undefined) {
+       throw new Error2(
+@@ -74,7 +88,7 @@ export class SessionExportService implements ISessionExportService {
+ 
+     const liveSummary = await this.flushLiveSession(summary);
+     options.signal?.throwIfAborted();
+-    if (input.includeGlobalLog === true) {
++    if (input.format !== 'agent-session' && input.includeGlobalLog === true) {
+       await this.warnIfFails('export global log flush failed', () => this.log.flush(), {
+         retry: true,
+       });
+@@ -176,6 +190,15 @@ export async function exportSessionDirectory(input: {
+ }): Promise<ExportSessionResult> {
+   input.signal?.throwIfAborted();
+   const sessionDir = input.summary.sessionDir;
++  if (input.request.format === 'agent-session') {
++    const text = await readAgentSession(sessionDir, input.summary.id);
++    const now = new Date();
++    const manifest = buildExportManifest({ summary: input.summary, now, version: input.request.version, sessionScan: {} });
++    const outputPath = resolve(input.request.outputPath ?? `kimi-asr-${input.summary.id.slice(0, 8)}.zip`);
++    const entries = await writeExportZip({ outputPath, manifest, sessionDir, sessionFiles: [],
++      extraEntries: [{ data: Buffer.from(text, 'utf8'), target: 'session.asr.jsonl' }], signal: input.signal });
++    return { zipPath: outputPath, entries, sessionDir, manifest };
++  }
+   const sessionLogPath = join(sessionDir, SESSION_LOG_REL);
+   let sessionLogSource: ZipSource | undefined;
+   let sessionLogSourceTransferred = false;
+diff --git a/packages/agent-core-v2/test/app/sessionExport/sessionExport.test.ts b/packages/agent-core-v2/test/app/sessionExport/sessionExport.test.ts
+index ffceb2e24..be22dfc04 100644
+--- a/packages/agent-core-v2/test/app/sessionExport/sessionExport.test.ts
++++ b/packages/agent-core-v2/test/app/sessionExport/sessionExport.test.ts
+@@ -27,6 +27,8 @@ import {
+   type ServiceRegistration,
+   type TestInstantiationService,
+ } from '#/_base/di/test';
++import { IFlagService } from '#/app/flag/flag';
++import { stubFlag } from '../flag/stubs';
+ import { LifecycleScope } from '#/app/scopes';
+ import { type IAgentScopeHandle, type ISessionScopeHandle } from '#/_base/di/scope';
+ import type { ServiceIdentifier, ServicesAccessor } from '#/_base/di/instantiation';
+@@ -43,6 +45,7 @@ import {
+   SessionExportService,
+ } from '#/app/sessionExport/sessionExportService';
+ import { writeExportZip } from '#/app/sessionExport/zip';
++import { formatAgentSession } from '#/app/sessionExport/agent-session';
+ import { ISessionIndex, type SessionSummary } from '#/app/sessionIndex/sessionIndex';
+ import { ISessionManager, type UnguardedSessionLifecycle } from '#/app/sessionManager/sessionManager';
+ import { ISessionLifecycleService } from '#/workspace/sessionLifecycle/sessionLifecycle';
+@@ -711,6 +714,14 @@ describe('sessionExport', () => {
+     expect((await readdir(tmp)).toSorted()).toEqual(['export.zip', 'safe-output', 'state.json']);
+   });
+ 
++  it('requires the experimental flag for ASR export', async () => {
++    const tmp = await mkdtemp(join(tmpdir(), 'session-export-test-'));
++    ix = createTestServices(tmp, { summary: undefined, lifecycleHandle: undefined });
++    await expect(ix.get(ISessionExportService).export({
++      sessionId: 'synthetic', version: 'test', format: 'agent-session',
++    })).rejects.toThrow('KIMI_CODE_EXPERIMENTAL_AGENT_SESSION_EXPORT=1');
++  });
 +
-+    def finish_call() -> None:
-+        nonlocal pending_call
-+        if pending_call is None:
-+            return
-+        call, position = pending_call
-+        record = records[position]
-+        assert record is not None
-+        record.update(type="tool_call", callId=call.id, name=call.function.name)
-+        record["requestedBy"] = "model"
-+        if call.function.arguments is not None:
-+            try:
-+                record["input"] = json.loads(
-+                    call.function.arguments,
-+                    parse_int=lambda value: int(value)
-+                    if abs(int(value)) <= 9007199254740991
-+                    else value,
-+                    parse_constant=lambda value: (_ for _ in ()).throw(
-+                        ValueError(value)
-+                    ),
-+                )
-+            except ValueError:
-+                record["inputText"] = call.function.arguments
-+        pending_call = None
+   it('throws a coded error when the session is unknown', async () => {
+     const tmp = await mkdtemp(join(tmpdir(), 'session-export-test-'));
+     ix = createTestServices(tmp, {
+@@ -874,6 +885,7 @@ function registerSessionExportServices(
+   },
+ ): void {
+   reg.defineInstance(IBootstrapService, stubBootstrap(homeDir));
++  reg.defineInstance(IFlagService, stubFlag());
+   reg.defineInstance(ILogService, options.appLog ?? stubLog());
+   reg.defineInstance(ISessionIndex, {
+     _serviceBrand: undefined,
+@@ -1092,3 +1104,44 @@ function readZipEntry(path: string, target: string): Promise<Buffer> {
+     });
+   });
+ }
 +
-+    def finish_message() -> None:
-+        if not pending_parts:
-+            return
-+        record = records[pending_position]
-+        assert record is not None
-+        record.update(
-+            type="message",
-+            role="assistant",
-+            author="model",
-+            content=_parts(pending_parts),
-+        )
-+        pending_parts.clear()
 +
-+    with path.open("r", encoding="utf-8", newline="") as source:
-+        for line_number, line in enumerate(source, 1):
-+            position = len(records)
-+            record: dict[str, Any] = {"id": f"wire-{line_number}"}
-+            records.append(record)
-+            try:
-+                if not line.endswith("\n"):
-+                    raise ValueError("Incomplete wire tail")
-+                parsed = parse_wire_file_line(line)
-+                if isinstance(parsed, WireFileMetadata):
-+                    records[position] = None
-+                    continue
-+                message = parsed.to_wire_message()
-+                record["ts"] = datetime.fromtimestamp(parsed.timestamp, UTC).isoformat()
-+            except (ValueError, TypeError, KeyError, OverflowError):
-+                finish_call()
-+                finish_message()
-+                record.update(type="gap", reason="unparseable", count=1)
-+                missing.add("corrupt_events")
-+                continue
++describe('Agent Session Record export', () => {
++  it('keeps native order, exact text, final results, and excludes opaque reasoning', () => {
++    const source = [
++      { type: 'metadata', protocol_version: '1.5', created_at: 1 },
++      { type: 'context.append_message', message: { role: 'user', origin: { kind: 'user' }, content: [{ type: 'text', text: 'Exact\r\n' }] } },
++      { type: 'context.append_loop_event', event: { type: 'tool.call', toolCallId: 'c', name: 'read', args: { path: 'fixture.txt' } } },
++      { type: 'context.append_loop_event', event: { type: 'tool.result', toolCallId: 'c', result: { output: 'old', isError: false } } },
++      { type: 'context.append_loop_event', event: { type: 'content.part', part: { type: 'think', think: '', encrypted: 'SYNTHETIC-OPAQUE' } } },
++      { type: 'context.append_loop_event', event: { type: 'tool.result', toolCallId: 'c', result: { output: 'new', isError: true } } },
++    ].map(row => JSON.stringify(row)).join('\n') + '\n';
++    const output = formatAgentSession(source, 'synthetic');
++    expect(output).not.toContain('SYNTHETIC-OPAQUE');
++    const rows = output.trimEnd().split('\n').map(line => JSON.parse(line));
++    expect(rows[1].content).toEqual([{ type: 'text', text: 'Exact\r\n' }]);
++    expect(rows[1].author).toBe('human');
++    expect(rows.filter(row => row.type === 'tool_result')).toHaveLength(1);
++    expect(rows.at(-1).status).toBe('failed');
++    expect(formatAgentSession(source, 'synthetic')).toBe(output);
++    expect(formatAgentSession(source + '{broken}\n', 'synthetic')).toContain('unparseable');
++    expect(formatAgentSession(source + '{partial', 'synthetic')).toContain('not_retained');
++  });
 +
-+            if not isinstance(message, ToolCallPart):
-+                finish_call()
-+            if not isinstance(message, ContentPart):
-+                finish_message()
-+            if isinstance(message, (TurnBegin, SteerInput)):
-+                record.update(
-+                    type="message", role="user", content=_parts(message.user_input)
-+                )
-+            elif isinstance(message, ContentPart):
-+                if pending_parts:
-+                    records[pending_position] = None
-+                if pending_parts and pending_parts[-1].merge_in_place(message):
-+                    pass
-+                else:
-+                    pending_parts.append(message)
-+                pending_position = position
-+            elif isinstance(message, ToolCall):
-+                pending_call = (message, position)
-+            elif isinstance(message, ToolCallPart):
-+                if pending_call is None:
-+                    record.update(
-+                        type="gap",
-+                        reason="not_recorded",
-+                        detail="Tool delta has no call.",
-+                    )
-+                else:
-+                    call, previous = pending_call
-+                    call.merge_in_place(message)
-+                    records[previous] = None
-+                    pending_call = (call, position)
-+            elif isinstance(message, ToolResult):
-+                previous = result_positions.get(message.tool_call_id)
-+                if previous is not None:
-+                    records[previous] = None
-+                    missing.add("tool_result_updates")
-+                result_positions[message.tool_call_id] = position
-+                record.update(
-+                    type="tool_result",
-+                    callId=message.tool_call_id,
-+                    status="failed" if message.return_value.is_error else "completed",
-+                    content=_parts(tool_result_to_message(message).content),
-+                )
-+            elif isinstance(message, ApprovalRequest):
-+                approvals[message.id] = message
-+                records[position] = None
-+            elif isinstance(message, ApprovalResponse):
-+                request = approvals.get(message.request_id)
-+                record.update(
-+                    type="approval",
-+                    decision="denied" if message.response == "reject" else "approved",
-+                    native={"response": message.response},
-+                )
-+                if request is not None:
-+                    record["callId"] = request.tool_call_id
-+                    record["subject"] = request.description
-+                else:
-+                    record["subject"] = message.request_id
-+                if message.response == "approve_for_session":
-+                    record["scope"] = "session"
-+            elif isinstance(message, StatusUpdate) and message.plan_mode is not None:
-+                record.update(
-+                    type="session_info",
-+                    agentSettings={"mode": {"plan_mode": message.plan_mode}},
-+                )
-+            elif isinstance(message, CompactionEnd):
-+                # Wire history survives compaction. The context snapshot is not replayed.
-+                records[position] = None
-+            else:
-+                records[position] = None
-+    finish_call()
-+    finish_message()
-+    header = {
-+        "type": "session",
-+        "id": "header",
-+        "formatVersion": "0.1",
-+        "agent": {"name": "kimi-code", "version": get_version()},
-+        "sessionId": session_id,
-+        "producer": {
-+            "name": "kimi-asr-export",
-+            "version": "1",
-+            "method": "native",
-+            "source": "kimi-wire",
-+        },
-+        "missing": sorted(missing),
++  it('exports ASR without raw journals, settings, or diagnostic logs', async () => {
++    const tmp = await mkdtemp(join(tmpdir(), 'session-asr-test-'));
++    try {
++      const sessionDir = join(tmp, 'session');
++      await mkdir(join(sessionDir, 'agents', 'main'), { recursive: true });
++      await writeFile(join(sessionDir, 'agents', 'main', 'wire.jsonl'), JSON.stringify({ type: 'metadata', protocol_version: '1.5' }) + '\n');
++      await writeFile(join(sessionDir, 'state.json'), '{"excluded":"SYNTHETIC-OPAQUE"}');
++      const result = await exportSessionDirectory({
++        request: { sessionId: 'synthetic', version: 'test', format: 'agent-session', outputPath: join(tmp, 'record.zip') },
++        summary: { id: 'synthetic', sessionDir },
++      });
++      expect(result.entries).toEqual(['manifest.json', 'session.asr.jsonl']);
++    } finally {
++      await rm(tmp, { recursive: true, force: true });
 +    }
-+    return "".join(
-+        json.dumps(r, ensure_ascii=False, allow_nan=False) + "\n"
-+        for r in [header, *records]
-+        if r is not None
-+    )
-+
-+
-+@cli.command("export")
-+def export(
-+    session: Annotated[str, typer.Option("--session", help="Native session ID.")],
-+    format: Annotated[str, typer.Option("--format")] = "agent-session",
-+    output: Annotated[
-+        Path | None, typer.Option("--output", help="Output directory.")
-+    ] = None,
-+) -> None:
-+    """Write one session to stdout or a private file in an output directory."""
-+    if format != "agent-session" or not session or Path(session).name != session:
-+        raise typer.BadParameter("Use agent-session and a single native session ID")
-+    root = get_share_dir() / "sessions"
-+    directories = (
-+        [p / session for p in root.iterdir() if (p / session).is_dir()]
-+        if root.exists()
-+        else []
-+    )
-+    if len(directories) != 1:
-+        raise typer.BadParameter("Session not found")
-+    directory = directories[0]
-+    try:
-+        stream = export_wire(directory / "wire.jsonl", session)
-+        if output is None:
-+            typer.echo(stream, nl=False)
-+        else:
-+            output.mkdir(mode=0o700, parents=True, exist_ok=True)
-+            name = hashlib.sha256(session.encode()).hexdigest() + ".jsonl"
-+            descriptor = os.open(
-+                output / name, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
-+            )
-+            with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as target:
-+                target.write(stream)
-+    except (OSError, ValueError) as error:
-+        typer.echo(f"Export failed: {error}", err=True)
-+        raise typer.Exit(1) from error
-diff --git a/tests/test_asr_export.py b/tests/test_asr_export.py
-new file mode 100644
-index 0000000..1e29984
---- /dev/null
-+++ b/tests/test_asr_export.py
-@@ -0,0 +1,71 @@
-+import json
-+from pathlib import Path
-+
-+from kosong.message import TextPart, ThinkPart, ToolCall, ToolCallPart
-+from kosong.tooling import ToolOk, ToolResult
-+from typer.testing import CliRunner
-+
-+from kimi_cli.cli.sessions import cli, export_wire
-+from kimi_cli.wire.file import WireMessageRecord
-+from kimi_cli.wire.types import ApprovalRequest, ApprovalResponse, TurnBegin, TurnEnd
-+
-+
-+def test_wire_export_preserves_completion_order_and_exact_text(tmp_path: Path):
-+    events = [
-+        TurnBegin(user_input="Synthetic prompt\n"),
-+        TextPart(text="a"),
-+        TextPart(text=" b\n"),
-+        ThinkPart(think="visible", encrypted="DO-NOT-COPY"),
-+        ToolCall(id="c", function=ToolCall.FunctionBody(name="read", arguments='{"n":')),
-+        ToolCallPart(arguments_part="9007199254740993}"),
-+        ApprovalRequest(
-+            id="p", tool_call_id="c", sender="read", action="read", description="Read fixture"
-+        ),
-+        ApprovalResponse(request_id="p", response="approve_for_session"),
-+        ToolResult(tool_call_id="c", return_value=ToolOk(output="old")),
-+        TurnBegin(user_input="Intervening"),
-+        ToolResult(tool_call_id="c", return_value=ToolOk(output="new\n")),
-+        TurnEnd(),
-+    ]
-+    source = tmp_path / "wire.jsonl"
-+    source.write_text(
-+        "".join(
-+            WireMessageRecord.from_wire_message(e, timestamp=1700000000 + i).model_dump_json()
-+            + "\n"
-+            for i, e in enumerate(events)
-+        )
-+    )
-+    result = export_wire(source, "synthetic-session")
-+    rows = [json.loads(line) for line in result.splitlines()]
-+    assert result == export_wire(source, "synthetic-session")
-+    assert "DO-NOT-COPY" not in result
-+    assert rows[2]["content"][0]["text"] == "a b\n"
-+    call = next(r for r in rows if r["type"] == "tool_call")
-+    assert call["input"] == {"n": "9007199254740993"}
-+    approval = next(r for r in rows if r["type"] == "approval")
-+    assert approval["scope"] == "session"
-+    assert "by" not in approval
-+    results = [r for r in rows if r["type"] == "tool_result"]
-+    assert len(results) == 1
-+    assert results[0]["content"][0]["text"] == "new\n"
-+    assert rows.index(results[0]) > next(
-+        i
-+        for i, r in enumerate(rows)
-+        if r.get("content") == [{"type": "text", "text": "Intervening"}]
-+    )
-+
-+
-+def test_corruption_and_incomplete_tail_are_gaps(tmp_path: Path):
-+    source = tmp_path / "wire.jsonl"
-+    source.write_text("bad\n{", encoding="utf-8")
-+    rows = [json.loads(x) for x in export_wire(source, "s").splitlines()]
-+    assert [r["type"] for r in rows] == ["session", "gap", "gap"]
-+    assert all(r["reason"] == "unparseable" for r in rows[1:])
-+
-+
-+def test_cli_missing_session_and_invalid_format(tmp_path: Path, monkeypatch):
-+    monkeypatch.setenv("KIMI_SHARE_DIR", str(tmp_path))
-+    runner = CliRunner()
-+    assert runner.invoke(cli, ["export", "--session", "missing"]).exit_code != 0
-+    assert runner.invoke(cli, ["export", "--session", "../escape"]).exit_code != 0
-+    assert runner.invoke(cli, ["export", "--session", "missing", "--format", "zip"]).exit_code != 0
-
-base-commit: 9ab1286b8fe4e6bcd116949a27ce5e0ac3389c82
++  });
++});
+diff --git a/packages/node-sdk/src/sdk-rpc-client-v2.ts b/packages/node-sdk/src/sdk-rpc-client-v2.ts
+index d59ea91aa..cfc598293 100644
+--- a/packages/node-sdk/src/sdk-rpc-client-v2.ts
++++ b/packages/node-sdk/src/sdk-rpc-client-v2.ts
+@@ -1974,6 +1974,7 @@ export class SDKRpcClientV2 extends SDKRpcClientBase {
+   override async exportSession(input: ExportSessionInput): Promise<ExportSessionResult> {
+     return this.engineAccessor.get(ISessionExportService).export({
+       sessionId: input.id,
++      format: input.format,
+       outputPath: input.outputPath,
+       includeGlobalLog: input.includeGlobalLog,
+       version: input.version,
+diff --git a/packages/node-sdk/src/types.ts b/packages/node-sdk/src/types.ts
+index 8ca843274..62739022a 100644
+--- a/packages/node-sdk/src/types.ts
++++ b/packages/node-sdk/src/types.ts
+@@ -409,6 +409,7 @@ export interface ForkSessionInput {
+ }
+ 
+ export interface ExportSessionInput {
++  readonly format?: 'zip' | 'agent-session';
+   readonly id: string;
+   readonly outputPath?: string | undefined;
+   readonly includeGlobalLog?: boolean | undefined;
