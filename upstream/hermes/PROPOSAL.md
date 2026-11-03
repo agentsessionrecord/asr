@@ -2,7 +2,7 @@
 
 Export a saved session as Agent Session Record so local tools can search and review its recorded work.
 
-This adds `agent-session` to the existing `hermes sessions export --format` menu. It reads the stored SQLite history and uses the existing `--session-id` selector and positional output argument. One explicit ID without output writes JSONL to stdout. An output directory receives one file per selected session. `-` also selects stdout. Existing output files are refused.
+This adds ASR to the existing `hermes sessions export --format` menu. It reads the stored SQLite history and uses the existing `--session-id` selector and positional output argument. One explicit ID without output writes JSONL to stdout. An output directory receives one file per selected session. `-` also selects stdout. Existing output files are refused.
 
 The export retains stored text, readable reasoning, tool calls, model-facing results and native message order. Inactive rows remain available. Explicit parent markers and shared message UIDs preserve supported lineage and copies. Compaction summaries carry a following gap. Tool outcomes remain unknown when storage does not establish them.
 

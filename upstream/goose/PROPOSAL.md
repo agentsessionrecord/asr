@@ -1,7 +1,7 @@
 # Agent Session Record export for goose
 
 Export saved sessions for inspection and tools that read several agents' records.
-Add `agent-session` to the existing session export format selector.
+Add Agent Session Record (ASR) to the existing session export format selector.
 The exporter lives beside the Markdown and HTML exporters in `session`.
 It reads stored history in insertion order, including inactive context.
 

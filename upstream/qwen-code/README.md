@@ -14,7 +14,7 @@ git am "$ASR_PACKAGE"/patches/*.patch
 qwen sessions export --format agent-session --session SESSION_ID
 ```
 
-Adds `agent-session` to the existing `/export` menu alongside JSON and JSONL.
+Adds ASR to the existing `/export` menu alongside JSON and JSONL.
 `/export agent-session [directory]` and offline `sessions export` share one
 projection. Same-UUID fragments and repeated results fold at completion.
 
