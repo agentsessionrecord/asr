@@ -10,7 +10,7 @@ const metadata = manifest.provenance;
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 assert.match(metadata.upstreamBase, /^[a-f0-9]{40}$/);
 assert.match(metadata.implementationRevision, /^[a-f0-9]{40}$/);
-assert.equal(manifest.patches.length, 5, 'core, settings, CLI, discovery and content naming are separate changes');
+assert.equal(manifest.patches.length, 6, 'core, settings, CLI, discovery, content naming and TUI integration are separate changes');
 assert.deepEqual(metadata.patchSeries, manifest.patches.map(patch => patch.path));
 for (const entry of manifest.patches) {
   const patch = read(`./${entry.path}`);

@@ -1,4 +1,4 @@
-From 6d2e791833d630a6e0157a0bc82d2211f6e8d120 Mon Sep 17 00:00:00 2001
+From 35d3e90eb233052dfe643d1e7c00297bdf42cffd Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:32:25 -0500
 Subject: [PATCH] Add offline session export crate with core mappings and tests
@@ -39,10 +39,10 @@ Subject: [PATCH] Add offline session export crate with core mappings and tests
  create mode 100644 codex-rs/session-export/src/tests.rs
 
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
-index 3c208054aa..4373cd7b40 100644
+index 4e0b6e98a4..5b03e52c77 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
-@@ -4726,6 +4726,29 @@ dependencies = [
+@@ -4844,6 +4844,29 @@ dependencies = [
   "tracing",
  ]
  
@@ -73,10 +73,10 @@ index 3c208054aa..4373cd7b40 100644
  name = "codex-shell-command"
  version = "0.0.0"
 diff --git a/codex-rs/Cargo.toml b/codex-rs/Cargo.toml
-index 830308f07e..a90693b674 100644
+index 7453a47de5..4b8522943e 100644
 --- a/codex-rs/Cargo.toml
 +++ b/codex-rs/Cargo.toml
-@@ -103,6 +103,7 @@ members = [
+@@ -105,6 +105,7 @@ members = [
      "protocol/tests/support",
      "prompts",
      "rollout",
@@ -84,7 +84,7 @@ index 830308f07e..a90693b674 100644
      "rollout-trace",
      "rmcp-client",
      "responses-api-proxy",
-@@ -178,6 +179,7 @@ license = "Apache-2.0"
+@@ -180,6 +181,7 @@ license = "Apache-2.0"
  
  [workspace.dependencies]
  # Internal
@@ -3238,5 +3238,6 @@ index 0000000000..1a35131696
 +    assert_eq!(inventory.segments[0].thread_id, THREAD);
 +    assert_eq!(inventory.unavailable[0]["code"], "unavailable-alias");
 +}
+-- 
+2.43.0
 
-base-commit: ff2346f33f851bd4e90c8e42ae60abcc7e7f293b

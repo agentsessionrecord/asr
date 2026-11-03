@@ -1,4 +1,4 @@
-From 5a2784564eac45c786e13620ffe82c593dce7908 Mon Sep 17 00:00:00 2001
+From c4edd840f71c50fa6e545db9236f2548c07fc7f5 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:32:40 -0500
 Subject: [PATCH] Wire offline session exports into the CLI
@@ -10,10 +10,10 @@ Subject: [PATCH] Wire offline session exports into the CLI
  3 files changed, 14 insertions(+)
 
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
-index 4373cd7b40..410f54cd3e 100644
+index 5b03e52c77..ee3a5128b8 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
-@@ -2546,6 +2546,7 @@ dependencies = [
+@@ -2554,6 +2554,7 @@ dependencies = [
   "codex-rollout",
   "codex-rollout-trace",
   "codex-sandboxing",
@@ -22,7 +22,7 @@ index 4373cd7b40..410f54cd3e 100644
   "codex-state",
   "codex-stdio-to-uds",
 diff --git a/codex-rs/cli/Cargo.toml b/codex-rs/cli/Cargo.toml
-index 8cc0bce5d8..8dd93e5250 100644
+index ffff79d331..dcd5666358 100644
 --- a/codex-rs/cli/Cargo.toml
 +++ b/codex-rs/cli/Cargo.toml
 @@ -70,6 +70,7 @@ codex-responses-api-proxy = { workspace = true }
@@ -34,21 +34,21 @@ index 8cc0bce5d8..8dd93e5250 100644
  codex-sandboxing = { workspace = true }
  codex-skills-extension = { workspace = true }
 diff --git a/codex-rs/cli/src/main.rs b/codex-rs/cli/src/main.rs
-index 7b167742ad..c7b765d74b 100644
+index fff4dd4656..9da0dba786 100644
 --- a/codex-rs/cli/src/main.rs
 +++ b/codex-rs/cli/src/main.rs
-@@ -148,6 +148,9 @@ struct MultitoolCli {
+@@ -143,6 +143,9 @@ struct MultitoolCli {
  
  #[derive(Debug, clap::Subcommand)]
  enum Subcommand {
 +    /// Export saved sessions as Agent Session Record streams.
 +    Sessions(codex_session_export::SessionsCommand),
 +
-     /// Browse all agent sessions on the shared local app-server daemon.
+     /// Open the agent command center to browse and switch sessions.
      Agents(AgentsCommand),
  
-@@ -1107,6 +1110,14 @@ async fn cli_main(
- 
+@@ -1108,6 +1111,14 @@ async fn dispatch_cli(
+     };
      let open_agents_overview = matches!(&subcommand, Some(Subcommand::Agents(_)));
      match subcommand {
 +        Some(Subcommand::Sessions(command)) => {
@@ -62,7 +62,7 @@ index 7b167742ad..c7b765d74b 100644
          None | Some(Subcommand::Agents(_)) => {
              prepend_config_flags(
                  &mut interactive.config_overrides,
-@@ -2391,6 +2402,7 @@ fn unsupported_subcommand_name_for_strict_config(
+@@ -2386,6 +2397,7 @@ fn unsupported_subcommand_name_for_strict_config(
          Some(Subcommand::StdioToUds(_)) => Some("stdio-to-uds"),
          Some(Subcommand::Features(_)) => Some("features"),
          Some(Subcommand::TcpTunnel(_)) => Some("tcp-tunnel"),
@@ -70,7 +70,6 @@ index 7b167742ad..c7b765d74b 100644
      }
  }
  
+-- 
+2.43.0
 
-base-commit: ff2346f33f851bd4e90c8e42ae60abcc7e7f293b
-prerequisite-patch-id: 2220e2a5515375ff44cc39a18d985dbe59a53dab
-prerequisite-patch-id: 9ede606570b1ef19549e4a07cde3d91f39806499

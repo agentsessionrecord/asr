@@ -1,4 +1,4 @@
-From 34d046cdf67cce73016fb79e21bdc8a41a191e65 Mon Sep 17 00:00:00 2001
+From 36de179d60c6f137a0f1099e07e5434256ef8a1a Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:32:40 -0500
 Subject: [PATCH] Preserve unknown native content in a namespaced ASR wrapper
@@ -126,9 +126,6 @@ index 7564b8112d..ecfde86b60 100644
      assert_eq!(r[1]["content"][0]["visibility"], "encrypted");
      assert_eq!(r[2]["content"][0]["text"], "AGENTS\r\n");
      assert_eq!(r[2]["content"][1]["author"], "human");
+-- 
+2.43.0
 
-base-commit: ff2346f33f851bd4e90c8e42ae60abcc7e7f293b
-prerequisite-patch-id: 2220e2a5515375ff44cc39a18d985dbe59a53dab
-prerequisite-patch-id: 9ede606570b1ef19549e4a07cde3d91f39806499
-prerequisite-patch-id: 2873cd730e18c2964fea610401a685d5702ba928
-prerequisite-patch-id: 8f81977da363c28d0d39d516a0cb962d04049854

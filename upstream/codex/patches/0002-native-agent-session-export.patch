@@ -1,4 +1,4 @@
-From a66bd87f42e866a5538b5baf77dc15daaf463c19 Mon Sep 17 00:00:00 2001
+From 890b170ec2bf67ead66e53c7e8dccf7caa97dabe Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:32:25 -0500
 Subject: [PATCH] Map saved settings, offered tools, and approval decisions
@@ -555,6 +555,6 @@ index 1a35131696..732c22b079 100644
 +    ]);
 +    assert!(!records.iter().any(|r| r.get("tools").is_some()));
 +}
+-- 
+2.43.0
 
-base-commit: ff2346f33f851bd4e90c8e42ae60abcc7e7f293b
-prerequisite-patch-id: 2220e2a5515375ff44cc39a18d985dbe59a53dab

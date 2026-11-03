@@ -1,4 +1,4 @@
-From ab4456f07105f6dc65076940bf9458fd6bac690c Mon Sep 17 00:00:00 2001
+From cb5afa572a12c278b80dd89395e604a86fe3ca46 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:32:40 -0500
 Subject: [PATCH] Add explicit session discovery registration
@@ -130,8 +130,6 @@ index 732c22b079..7564b8112d 100644
  fn a_shrinking_source_ends_with_one_gap() {
      let mut file = tempfile::NamedTempFile::new().unwrap();
      writeln!(file, "{}", line("session_meta", header())).unwrap();
+-- 
+2.43.0
 
-base-commit: ff2346f33f851bd4e90c8e42ae60abcc7e7f293b
-prerequisite-patch-id: 2220e2a5515375ff44cc39a18d985dbe59a53dab
-prerequisite-patch-id: 9ede606570b1ef19549e4a07cde3d91f39806499
-prerequisite-patch-id: 2873cd730e18c2964fea610401a685d5702ba928
