@@ -145,9 +145,11 @@ go_tests() (cd go && go test ./...)
 if has_file go '*.go'; then run 'Go tests' go_tests; else skip 'Go tests' 'no Go source'; fi
 
 
-for agent in astrbot cline codex continue crush deepagents deepseek-harness forgecode fx gemini-cli goose grok-build hermes kilo kimi-code mistral-vibe mux nanoclaw openclaw opencode openhands pi qwen-code roo-code shelley warp zed; do
+for agent in astrbot cline codex crush deepagents deepseek-harness forgecode fx gemini-cli goose grok-build hermes kilo kimi-code mistral-vibe xum nanoclaw openclaw opencode openhands pi qwen-code shelley warp zed; do
   run_file "$agent native export patch" "upstream/$agent/check.mjs" node "upstream/$agent/check.mjs"
 done
+
+run_file 'DeepSeek standalone plugin' upstream/deepseek-harness/check-plugin.sh bash upstream/deepseek-harness/check-plugin.sh
 
 run 'Writing rules' node scripts/check-writing.mjs
 run 'Fixture privacy' node scripts/check-privacy.mjs

@@ -10,7 +10,7 @@ Subject: [PATCH] Preserve unknown native content in a namespaced ASR wrapper
  3 files changed, 60 insertions(+), 6 deletions(-)
 
 diff --git a/codex-rs/session-export/src/content.rs b/codex-rs/session-export/src/content.rs
-index 2e750a012c..f9adfad47e 100644
+index 2e750a012cb513437aeb37a00804940b296459e2..f9adfad47e503c80874b17e95780a99a4b880fc8 100644
 --- a/codex-rs/session-export/src/content.rs
 +++ b/codex-rs/session-export/src/content.rs
 @@ -21,9 +21,8 @@ pub(crate) fn parts(value: &Value, metadata: &Value) -> Vec<Value> {
@@ -25,7 +25,7 @@ index 2e750a012c..f9adfad47e 100644
          let kind = metadata["content_item_kinds"][i].as_str().unwrap_or_default();
          let provenance = &metadata["content_item_metadata"][i]["provenance"];
 diff --git a/codex-rs/session-export/src/mapping/responses.rs b/codex-rs/session-export/src/mapping/responses.rs
-index 00ea04e47d..51ff2fd3d8 100644
+index 00ea04e47d8b583235119990f7d323b4d6699452..51ff2fd3d800424354ecf9c8d8d0527a7e91edda 100644
 --- a/codex-rs/session-export/src/mapping/responses.rs
 +++ b/codex-rs/session-export/src/mapping/responses.rs
 @@ -14,11 +14,15 @@ impl Mapper {
@@ -47,7 +47,7 @@ index 00ea04e47d..51ff2fd3d8 100644
                          json!({"type":"reasoning", "visibility":"summary", "summary":summaries})
                      } else {
 diff --git a/codex-rs/session-export/src/tests.rs b/codex-rs/session-export/src/tests.rs
-index 7564b8112d..ecfde86b60 100644
+index 7564b8112de1efb4f61d58fb75ced3d589d88bcb..ecfde86b608c687cc90622fed6c65224dacf64c0 100644
 --- a/codex-rs/session-export/src/tests.rs
 +++ b/codex-rs/session-export/src/tests.rs
 @@ -14,6 +14,24 @@ const CHILD: &str = "019a3c2e-7b1f-7d40-9e2a-5c8b1d3f6e71";
@@ -126,6 +126,3 @@ index 7564b8112d..ecfde86b60 100644
      assert_eq!(r[1]["content"][0]["visibility"], "encrypted");
      assert_eq!(r[2]["content"][0]["text"], "AGENTS\r\n");
      assert_eq!(r[2]["content"][1]["author"], "human");
--- 
-2.43.0
-

@@ -29,7 +29,7 @@ compatibility with every release of an agent.
 | --- | --- | --- |
 | AstrBot | `conversations.content`, `provider_stats` in `data_v4.db` | Retained messages, calls, results and title |
 | Crush | `sessions`, `messages.parts`, file snapshots | Messages, calls, results, summaries and session counters |
-| Lingma | `chat_record` | Prompt and shortened answer summary |
+| Qoder CN (`lingma`) | `chat_record` | Prompt and shortened answer summary |
 | Shelley | Sequenced `messages` with Go content variants | Messages, tools, per-call usage, copies and parent relationships |
 | DeepAgents | LangGraph SQLite `writes` and `checkpoints` | Root message writes, message revisions, tools and usage |
 | ForgeCode | `conversations.context.messages` | Text and reasoning, tools, output and cache usage subsets |

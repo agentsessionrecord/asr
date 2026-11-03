@@ -15,7 +15,7 @@ need a separate decision about payloads, permissions and delivery.
 6. Invalid source times and unavailable input fail without modifying the database.
 7. Missing tool data, models, usage, settings and approvals remain unknown.
 8. Native files and the existing Markdown export remain usable.
-9. Known secrets are excluded. Exported text remains private until reviewed.
+9. The exporter applies configured upstream redaction rules and built-in redaction patterns to text and reasoning. A match in identity or cwd refuses the export before output. Unknown secrets still require private review.
 10. No account or network request is required to export a local saved conversation.
 
 This draft does not promise lifecycle hooks, cloud traces, conversation replay,

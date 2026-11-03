@@ -217,6 +217,12 @@ pub fn stage(s: &mut Spool, agent: Agent, path: &Path, summary: &mut Summary) ->
     let mut id = first.map(|(id, _)| id);
     let mut namespace = None;
     if agent == Agent::KimiCode {
+        if native["type"] != "metadata" || native["protocol_version"] != "1.5" {
+            return Err(crate::Error::Invalid(
+                "unsupported Kimi wire protocol, expected 1.5".into(),
+            ));
+        }
+        id = None;
         if let Some(dir) = path
             .parent()
             .filter(|p| p.parent().is_some_and(|p| p.ends_with("agents")))
@@ -225,13 +231,28 @@ pub fn stage(s: &mut Spool, agent: Agent, path: &Path, summary: &mut Summary) ->
                 dir.file_name().and_then(|s| s.to_str()),
                 dir.parent().and_then(Path::parent),
             ) {
-                namespace = session
-                    .file_name()
-                    .and_then(|s| s.to_str())
-                    .map(str::to_owned);
-                id = Some(a.into());
-                native["_state"] = document(&session.join("state.json"), s.limit)?;
+                let state_path = if session.join("state.json").is_file() {
+                    session.join("state.json")
+                } else {
+                    session.join("session-meta/state.json")
+                };
+                let state = document(&state_path, s.limit)?;
+                if let Some(session_id) = string(&state["id"]) {
+                    id = Some(if a == "main" {
+                        session_id.to_owned()
+                    } else {
+                        a.to_owned()
+                    });
+                    namespace = (a != "main").then(|| session_id.to_owned());
+                }
+                native["_agentId"] = json!(a);
+                native["_state"] = state;
             }
+        }
+        if id.as_deref().is_none_or(str::is_empty) {
+            return Err(crate::Error::Invalid(
+                "Kimi export requires state.json with a native session ID".into(),
+            ));
         }
     } else if agent == Agent::Junie {
         id = path
@@ -263,6 +284,8 @@ pub fn stage(s: &mut Spool, agent: Agent, path: &Path, summary: &mut Summary) ->
     let mut h = header(agent, &id, &native);
     if let Some(ns) = &namespace {
         h["namespace"] = json!(ns);
+    }
+    if agent == Agent::KimiCode {
         let state = &native["_state"];
         if let Some(cwd) = state["workDir"]
             .as_str()
@@ -272,20 +295,24 @@ pub fn stage(s: &mut Spool, agent: Agent, path: &Path, summary: &mut Summary) ->
             h["cwd"] = json!(cwd);
         }
         crate::repository::capture(&mut h, agent, state);
-        if let Some(p) = state["agents"][&id]["parentAgentId"].as_str() {
-            h["parent"] = json!({"kind":"subagent","session":session_ref(agent.name(),Some(ns),p)});
-        } else if let Some(p) = state["forkedFrom"].as_str() {
-            h["parent"] = json!({"kind":"fork","session":session_ref(agent.name(),Some(p),&id)});
+        let agent_id = native["_agentId"].as_str().unwrap_or("main");
+        if let Some(parent) = state["agents"][agent_id]["labels"]["parentAgentId"]
+            .as_str()
+            .or_else(|| state["agents"][agent_id]["parentAgentId"].as_str())
+        {
+            let session_id = state["id"].as_str().expect("native session ID");
+            h["parent"] = json!({"kind":"subagent","session": if parent == "main" { session_ref(agent.name(),None,session_id) } else { session_ref(agent.name(),Some(session_id),parent) }});
+        } else if agent_id == "main" {
+            if let Some(parent) = state["forkedFrom"].as_str() {
+                h["parent"] =
+                    json!({"kind":"fork","session":session_ref(agent.name(),None,parent)});
+            }
+        }
+        if let Some(fork) = state["agents"][agent_id]["forkedFrom"].as_str() {
+            h["_meta"][agent.domain()]["agentForkedFrom"] = json!(fork);
         }
         if let Some(t) = helpers::time(&native["created_at"]) {
             h["startedAt"] = json!(t);
-        }
-        if state["_asrSidecarLoss"] == true {
-            h["missing"]
-                .as_array_mut()
-                .unwrap()
-                .push(json!("session_metadata"));
-            summary.diagnostic("unparseable_sidecar");
         }
     }
     privacy::questions(s, &native)?;
@@ -354,7 +381,16 @@ pub fn stage(s: &mut Spool, agent: Agent, path: &Path, summary: &mut Summary) ->
                 )?;
                 summary.diagnostic("unparseable_source_line");
             }
-            Line::Incomplete => summary.diagnostic("incomplete_source_tail"),
+            Line::Incomplete => {
+                summary.diagnostic("incomplete_source_tail");
+                if agent == Agent::KimiCode {
+                    s.push(
+                        &key,
+                        &json!({"type":"_gap","record":gap("not_retained")}),
+                        None,
+                    )?;
+                }
+            }
         }
     }
     summary.source_bytes += input.bytes;

@@ -12,6 +12,11 @@ repository = package.parent.parent
 if len(sys.argv) != 2:
     raise SystemExit("usage: reproduce.py PATCHED_CHECKOUT")
 checkout = Path(sys.argv[1]).resolve()
+if not (checkout / "Cargo.toml").is_file():
+    candidates = [child for child in checkout.iterdir() if (child / "Cargo.toml").is_file()]
+    if len(candidates) != 1:
+        raise SystemExit("expected one Goose source checkout")
+    checkout = candidates[0]
 with tempfile.TemporaryDirectory(prefix="asr-native-fixture-") as temporary:
     work = Path(temporary)
     environment = os.environ.copy()

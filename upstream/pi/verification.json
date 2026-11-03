@@ -2,9 +2,74 @@
   "date": "2026-11-03",
   "sourceBase": "8f9446a06027b075bf885189ceb0983565662174",
   "status": "blocked",
-  "reason": "The consolidated project verification lease timed out after 300 seconds while queued for heavy build admission. Earlier focused leases were cancelled after remaining queued.",
+  "checks": [
+    {
+      "command": [
+        "npm",
+        "run",
+        "check"
+      ],
+      "exit": 1,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--test",
+        "packages/coding-agent/test/export-agent-session.test.ts"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "packages/coding-agent/examples/extensions/asr-export/cli.ts",
+        "--session",
+        "{package}samples/native/native.jsonl",
+        "--format",
+        "agent-session"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "{package}/reproduce-native.mjs",
+        "{checkout}"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "tools/validator/bin/asr-validate.js",
+        "--json",
+        "{package}samples/asr/session.jsonl"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": "npm run build:offline",
+      "exit": 2,
+      "status": "failed"
+    },
+    {
+      "command": "node --import ./packages/coding-agent/src/experimental/source-resolver.ts {scratch}/pi-host-smoke.mjs",
+      "exit": 0,
+      "status": "passed"
+    }
+  ],
+  "validator": {
+    "files": 1,
+    "records": 7,
+    "errors": 0,
+    "warnings": 0,
+    "counts": {}
+  },
   "liveTest": "not-run-for-refreshed-source",
-  "nativeSample": "expected synthetic fixture, runtime reproduction not completed for refreshed source",
-  "projectCheckStatus": "not-run",
-  "packageCheckStatus": "The combined check.mjs and reproduce.mjs lease timed out after 120 seconds while queued."
+  "blocker": "Root check and offline build fail at unchanged packages/ai/src/providers/github-copilot.ts:33 with TS2322. Export tests, native fixture and isolated installed extension smoke pass."
 }

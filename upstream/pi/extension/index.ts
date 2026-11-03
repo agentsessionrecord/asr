@@ -1,7 +1,8 @@
 /** Export the current durable session through Pi's public extension API. */
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { exportAgentSessionFile } from "./export.ts";
 
 export default function (pi: ExtensionAPI) {

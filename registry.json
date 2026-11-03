@@ -99,23 +99,23 @@
       "language": "Rust",
       "status": "built",
       "location": "upstream/codex",
-      "revision": "34d046cdf67cce73016fb79e21bdc8a41a191e65",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: Fresh isolated compatible endpoint session exported with the current native owner. One stream and one annotation contain 29 records with zero validator errors. Seven warnings cover the declared extension and six vendor record types. A live run of the current implementation has not been verified.",
-      "notes": "Design feedback with five local reference patches. Codex does not accept external code contributions or pull requests. Five ordered patches, proposal, synthetic sample, checks and revision metadata are in upstream/codex. Current completion order, null clears, optional inference model, effective result input and exact wide values are covered by 34 focused Rust tests. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs. Vendor content wrappers retain native blocks under their owner metadata. Synthetic source tests and samples cover ASR-017."
+      "revision": "f7fb2ef0cb81627ac9ece054921310571ec9ffce",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Six local reference commits. /export --format agent-session PATH adds structured saved-rollout export while Markdown remains the default. Outside code is not accepted."
     },
     {
       "id": "openclaw-export-patch",
-      "name": "OpenClaw native export patch",
-      "kind": "patch",
-      "path": "upstream/openclaw",
+      "name": "OpenClaw ASR export plugin",
+      "kind": "plugin",
+      "path": "upstream/openclaw/plugin",
       "language": "TypeScript",
       "status": "built",
-      "location": "upstream/openclaw",
-      "revision": "f9e3a0aae50713a47a3db75a8f029d6dc2fbbaa9",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Fresh isolated compatible endpoint session exported from native SQLite with the current source owner. Nine records validate with zero errors and zero warnings. The full CLI exporter was not rebuilt for this run.",
-      "notes": "Eight ordered commits separate source layers, fixtures, CLI wiring, regression tests, reasoning summaries and discovery. The final source tree is unchanged. Local patch series, proposal, synthetic sample, checks and revision metadata are in upstream/openclaw. Seven focused tests cover completion order, snapshot approvals, null clears, optional inference model and exact wide values. No independent late-argument observation is available, so result input stays absent. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "location": "upstream/openclaw/plugin",
+      "revision": "9821ba393e50bd11209180ec09dcca32841cc568",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Primary standalone plugin uses public transcript and CLI APIs. The fuller source patch is a secondary reference. Neither supplies a tamper-evident chain."
     },
     {
       "id": "workspace-ci",
@@ -461,7 +461,7 @@
     },
     {
       "id": "lingma-hooks",
-      "name": "Lingma hook recorder",
+      "name": "Qoder CN hook recorder",
       "kind": "plugin",
       "path": "plugins/lingma",
       "language": "Python",
@@ -647,10 +647,10 @@
       "language": "TypeScript",
       "status": "built",
       "location": "upstream/opencode",
-      "revision": "840e70fb11bfc85a76a587f8d3f47f47d582c970",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: Isolated scratch session through a local OpenAI-compatible endpoint. Native export passed the reference validator with 8 records, zero errors and zero warnings. A live run of the current implementation has not been verified.",
-      "notes": "Opt-in durable event history. Single-session export. Fork history is unsupported. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "revision": "5ecdd85463e37bb7915dc342b6b4a653d9a8fadf",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "opencode session export SESSION_ID --format agent-session uses the existing command. OPENCODE_AGENT_SESSION_HISTORY=1 must be enabled before recording. Design approval is required."
     },
     {
       "id": "kilo-native-export-patch",
@@ -660,10 +660,10 @@
       "language": "TypeScript",
       "status": "built",
       "location": "upstream/kilo",
-      "revision": "2f432a05f4260a0357259dc025722a656b55e3bb",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: Isolated scratch session through a local OpenAI-compatible endpoint. Native export passed the reference validator with 10 records, zero errors and zero warnings. A live run of the current implementation has not been verified.",
-      "notes": "Read-only V1 sync-event export. V2 session history is unsupported. Partial approval and settings coverage. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "revision": "7b104668da5a596dd5a58db2235f2b77559f30ec",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "kilo export SESSION_ID --format agent-session uses the existing command. V1 and V2 snapshots have declared capture limits."
     },
     {
       "id": "gemini-cli-native-export-patch",
@@ -673,10 +673,10 @@
       "language": "TypeScript",
       "status": "built",
       "location": "upstream/gemini-cli",
-      "revision": "23f3d8e2fb46a21404cb7f98a956bc115805c388",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Gemini CLI 0.66.0 recorded isolated synthetic message and read-tool sessions through the OpenAI-compatible or Anthropic-compatible endpoint. The focused patched export command produced ASR with zero validation errors or warnings. Full pinned CLI installation and workspace release checks were not run.",
-      "notes": "Local mail patch, proposal, optional discovery template and synthetic native and ASR samples. Patch replay and validation are wired into scripts/ci.sh. No upstream publication. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "revision": "3721b9452ae6f38aca360105ee8ed05e65db8b85",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Local source patch with pinned provenance, synthetic fixtures and explicit capture limits. See the package for current check results."
     },
     {
       "id": "qwen-code-native-export-patch",
@@ -686,10 +686,10 @@
       "language": "TypeScript",
       "status": "built",
       "location": "upstream/qwen-code",
-      "revision": "613c42412ddb98da8b449c552fe17fac99ca9114",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Qwen Code 0.26.5 recorded isolated synthetic message and read-tool sessions through the OpenAI-compatible or Anthropic-compatible endpoint. The focused patched export command produced ASR with zero validation errors or warnings. Full pinned CLI installation and workspace release checks were not run.",
-      "notes": "Local mail patch, proposal, optional discovery template and synthetic native and ASR samples. Patch replay and validation are wired into scripts/ci.sh. No upstream publication. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "revision": "e28107b5be100793d1e711ea32ba90ed86df05bc",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Existing /export agent-session [directory] slash command. Maintainer review and normal contribution gates remain required."
     },
     {
       "id": "goose-export-patch",
@@ -699,10 +699,10 @@
       "language": "Rust",
       "status": "built",
       "location": "upstream/goose",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: An isolated real agent turn used the OpenAI-compatible or Anthropic-compatible endpoint. The real CLI exported persisted history. ASR validation passed with zero errors and warnings. A live run of the current implementation has not been verified.",
-      "notes": "Local native export patch with a synthetic sample, upstream behavior tests, portable CI checks and provenance. The registry schema uses patch for this kind. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs.",
-      "revision": "33d74d5d10c3ecfa4d905a53e9a4f589b3f6ab1e"
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Repository aaif-goose/goose. goose session export --session-id selects the existing format menu. A Ready issue is required before contribution.",
+      "revision": "1df6bd1c2f54dec7c61db494a98a23b4e3b49fed"
     },
     {
       "id": "hermes-export-patch",
@@ -712,10 +712,10 @@
       "language": "Python",
       "status": "built",
       "location": "upstream/hermes",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: An isolated real agent turn used the OpenAI-compatible or Anthropic-compatible endpoint. The real CLI exported persisted history. ASR validation passed with zero errors and warnings. A live run of the current implementation has not been verified.",
-      "notes": "Local native export patch with a synthetic sample, upstream behavior tests, portable CI checks and provenance. The registry schema uses patch for this kind. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs.",
-      "revision": "06146ba228f7c9a757e78f72c58625a63eeb8d5c"
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Existing sessions export format menu uses --session-id and positional output. It reads retained SQLite history. Feature approval remains an upstream gate.",
+      "revision": "fc88f9a0464d394a7876d5bdc625891f545dcc2a"
     },
     {
       "id": "cline-native-export-patch",
@@ -725,36 +725,10 @@
       "language": "TypeScript",
       "status": "built",
       "location": "upstream/cline",
-      "revision": "faac04e8d396046986926438daf0fdbdaaef8df4",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: Source CLI 3.0.74 completed a scratch turn through a compatible endpoint. Its patched history command exported 3 records with zero validation errors or warnings. A live run of the current implementation has not been verified.",
-      "notes": "Local patch only. Applies to 46996c9992d91e57c268091c971cfda52b0da399. Uses the registry schema kind patch for the brief's upstream-patch category. Known capture gaps are documented in PROPOSAL.md. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
-    },
-    {
-      "id": "roo-code-native-export-patch",
-      "name": "Roo Code native export patch",
-      "kind": "patch",
-      "path": "upstream/roo-code",
-      "language": "TypeScript",
-      "status": "built",
-      "location": "upstream/roo-code",
-      "revision": "9b282a236be6897967cc8180efc61682a7fa0474",
+      "revision": "a88a2048ce86849236732f49dd98a357bf0d405f",
       "liveTestStatus": "not-live-tested",
-      "liveTestNotes": "No VS Code executable or configured extension host is available here. Synthetic native fixtures and a focused provider compile were used.",
-      "notes": "Local patch only. Applies to b867ec9145750d0ae1ff7f02d35406e9bf2a0b16. Uses the registry schema kind patch for the brief's upstream-patch category. Known capture gaps are documented in PROPOSAL.md. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
-    },
-    {
-      "id": "continue-native-export-patch",
-      "name": "Continue native export patch",
-      "kind": "patch",
-      "path": "upstream/continue",
-      "language": "TypeScript",
-      "status": "built",
-      "location": "upstream/continue",
-      "revision": "119c489781c8cf5c92f95110b3eebd2442000015",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Continue CLI 1.5.47 completed a scratch turn through a compatible endpoint. The new command function exported its saved session with 4 records and zero validation errors or warnings. The full patched CLI entrypoint was not used.",
-      "notes": "Local patch only. Applies to 5522c6f44ca0ac3528b37244818fbfa39b5af470. Uses the registry schema kind patch for the brief's upstream-patch category. Known capture gaps are documented in PROPOSAL.md. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Local source patch with pinned provenance, synthetic fixtures and explicit capture limits. See the package for current check results."
     },
     {
       "id": "openhands-native-export-patch",
@@ -764,9 +738,10 @@
       "language": "TypeScript",
       "status": "built",
       "location": "upstream/openhands",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "OpenHands SDK 1.42.1 scratch conversation through the verified OpenAI-compatible or Anthropic-compatible endpoint. Four native events exported as five ASR records. Native timezone-free timestamps remain metadata. Canvas dialog has focused coverage. Full local and Cloud UI sessions were not exercised.",
-      "notes": "Local native export patch with synthetic source and ASR samples, upstream tests and proposal. Not published. See PROPOSAL.md for mapping limits. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Canvas 1.35.0 transcript dialog and persisted-history loader. Reconcile pending PR #16174 before submission. A ready-for-dev issue and real Canvas end-to-end evidence remain required.",
+      "revision": "c860ca5d3036f73c4e39a1b85f8ea00002c77cf0"
     },
     {
       "id": "deepagents-native-export-patch",
@@ -776,10 +751,10 @@
       "language": "Python",
       "status": "built",
       "location": "upstream/deepagents",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: Deep Agents Code 0.2.2 model factory and SDK 0.7.32 graph with native SQLite checkpoint persistence through the verified OpenAI-compatible or Anthropic-compatible endpoint. CLI export wrote three valid ASR records. Full headless Code server and interactive TUI were not exercised. A live run of the current implementation has not been verified.",
-      "notes": "Local native export patch with synthetic source and ASR samples, upstream tests and proposal. Not published. See PROPOSAL.md for mapping limits. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs.",
-      "revision": "83eb2ace1e89fce4ecef4654b7b0a127252f56a9"
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "dcode threads export --format agent-session reads a consistent root-namespace message snapshot. Maintainer approval and assignment remain required.",
+      "revision": "ea40d02876a7f9622a1b732739ea5adafbbd2827"
     },
     {
       "id": "astrbot-native-export-patch",
@@ -789,9 +764,10 @@
       "language": "Python",
       "status": "built",
       "location": "upstream/astrbot",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: AstrBot 4.29.3 native provider and conversation manager through the verified OpenAI-compatible or Anthropic-compatible endpoint. CLI export wrote three valid ASR records. No messaging platform was connected. Full ToolLoopAgentRunner was not exercised. A live run of the current implementation has not been verified.",
-      "notes": "Local native export patch with synthetic source and ASR samples, upstream tests and proposal. Not published. See PROPOSAL.md for mapping limits. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Saved ConversationV2 export declares incomplete history. Feature discussion remains required before submission.",
+      "revision": "6109a6bf43a7bda5ec871a0d40e5ca813e977dcc"
     },
     {
       "id": "otel-exporter",
@@ -813,10 +789,10 @@
       "language": "Rust",
       "status": "prototype",
       "location": "upstream/warp",
-      "revision": "1370c8db2f68066fe583c7ce7bceeb055c2804a7",
+      "revision": "53b3217c69051bdd9b6c804c1e50a3ae788c8dac",
       "liveTestStatus": "not-live-tested",
-      "liveTestNotes": "No account-backed app session was started. Native persistence tests and synthetic SQLite export passed.",
-      "notes": "Native upstream patch for single-task retained text and reasoning. Tool execution and context attachments are declared missing. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "AGPL persistence reference exports single-task retained text and reasoning. GH7834 product and technical specs are unaccepted drafts. Product UI and live lifecycle hooks remain outside scope."
     },
     {
       "id": "zed-export-patch",
@@ -826,10 +802,10 @@
       "language": "Rust",
       "status": "prototype",
       "location": "upstream/zed",
-      "revision": "91e0792c5cb0cb44a8e18c772534be11ad1f05ea",
+      "revision": "3cc21573f2f5a2fadfaeea9828da8f0f0e639364",
       "liveTestStatus": "not-live-tested",
-      "liveTestNotes": "No live GUI session was available in the headless environment. Native agent tests and a saved-thread snapshot export passed.",
-      "notes": "Native upstream patch for saved DbThread snapshots. The example accepts the native thread ID separately. No GUI action or database discovery is included. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Saved DbThread snapshot reference. Staff-confirmed feature discussion, human review and CLA remain required."
     },
     {
       "id": "shelley-export-patch",
@@ -839,10 +815,10 @@
       "language": "Go",
       "status": "prototype",
       "location": "upstream/shelley",
-      "revision": "d7d2f835bc5643bccd8306d8c6bce9a14bb59aa6",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: One synthetic turn completed through the native loop and OpenAI-compatible or Anthropic-compatible endpoint using private native provider settings. The native database exporter produced 3 records with zero validator errors and warnings. The web UI was not exercised. A live run of the current implementation has not been verified.",
-      "notes": "Native upstream patch for retained SQLite messages and folded tool results. Export command expects an existing WAL database. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "revision": "16a42d6a5292fd31dfa61ee768e4928eb970ed8c",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Local source patch with pinned provenance, synthetic fixtures and explicit capture limits. See the package for current check results."
     },
     {
       "id": "forgecode-export-patch",
@@ -852,10 +828,10 @@
       "language": "Rust",
       "status": "prototype",
       "location": "upstream/forgecode",
-      "revision": "0f3e30f3608278d9a58bd7f1ad2e35bdee2481de",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: The debug CLI completed one synthetic turn through the OpenAI-compatible or Anthropic-compatible endpoint using private native provider settings. The actual CLI export produced 6 records with zero validator errors and warnings. A live run of the current implementation has not been verified.",
-      "notes": "Native upstream patch for retained conversation context and tool activity. Earlier context and intermediate events are declared missing. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "revision": "c3e5d05e168f3d8440cb0e3a5df869e488107a1b",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Repository tailcallhq/forgecode. conversation dump --format agent-session retains the existing JSON and HTML choices."
     },
     {
       "id": "fx-export-patch",
@@ -865,23 +841,23 @@
       "language": "Zig",
       "status": "prototype",
       "location": "upstream/fx",
-      "revision": "da4bf913813a01340c731d570b407cc630aa7f92",
+      "revision": "0a77d57ef0a5433a54e39856d822eca6cfa8cb5a",
       "liveTestStatus": "not-live-tested",
-      "liveTestNotes": "Native provider auth requires an environment variable name. A live run could not meet the private provider settings file rule. The freshly built binary exported an upstream synthetic session fixture.",
-      "notes": "Native upstream patch for retained durable history and tool steps. Provider replay and recovery checkpoints are excluded. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Repository vercel-labs/fx. Homepage https://fx.sh. Existing sessions export command reads durable state. Exact-head platform CI remains an upstream gate."
     },
     {
       "id": "nanoclaw-export-patch",
-      "name": "NanoClaw native export patch",
-      "kind": "patch",
-      "path": "upstream/nanoclaw",
+      "name": "NanoClaw ASR export skill",
+      "kind": "plugin",
+      "path": "upstream/nanoclaw/skill",
       "language": "TypeScript",
       "status": "prototype",
-      "location": "upstream/nanoclaw",
-      "revision": "2645edf25c02a677e42fc6892945c879e1953eae",
+      "location": "upstream/nanoclaw/skill",
+      "revision": "4025e1a35a5a8e9cde6e26d0d36d3ebf304724fa",
       "liveTestStatus": "not-live-tested",
-      "liveTestNotes": "No live host or agent container was configured. Synthetic native mailboxes, the optional skill utility and focused checks passed.",
-      "notes": "Native upstream patch delivered as an optional skill. Export covers mailbox traffic and declares missing internal model and tool activity. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Utility skill exports one explicitly selected Claude SDK continuation. It retains tools and identified model calls. The operator must confirm the session association. Mailbox delivery, other providers and other continuations remain outside scope."
     },
     {
       "id": "tables-exporter",
@@ -912,13 +888,13 @@
       "name": "Kimi Code native export patch",
       "kind": "patch",
       "path": "upstream/kimi-code",
-      "language": "Python",
+      "language": "TypeScript",
       "status": "built",
       "location": "upstream/kimi-code",
-      "revision": "1a1c083f1d10883182229b0001363a115e8d791f",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: An isolated source CLI run through the local Responses endpoint exported 7 records with zero validator errors or warnings. The installed entry point was also used for export. The retained evidence contains counts and codes only. A live run of the current implementation has not been verified.",
-      "notes": "Local native export patch, pinned base, synthetic source fixture and validated sample. See PROPOSAL.md for capture limits. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "revision": "29fe874f044846f600e3c8fbfda82f001946fe97",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "TypeScript reference patch on MoonshotAI/kimi-code. KIMI_CODE_EXPERIMENTAL_AGENT_SESSION_EXPORT=1 kimi export --format agent-session writes a ZIP containing only a manifest and ASR. Protocol 1.5 only. Maintainer invitation required."
     },
     {
       "id": "grok-build-native-export-patch",
@@ -928,23 +904,22 @@
       "language": "Rust",
       "status": "built",
       "location": "upstream/grok-build",
-      "revision": "1747e0cb3a829d7382ebdb697818da77884ad6bb",
+      "revision": "0d15771614899034064ea6c61ff68fbedfaac313",
       "liveTestStatus": "not-live-tested",
-      "liveTestNotes": "Not live-tested. The affected event crate was built and exercised. No patched full CLI binary was available for a model session within this focused crate build. The source supports per-model credentials, so this is not an account-only limitation. Full CLI inference remains unverified.",
-      "notes": "Local native export patch, pinned base, synthetic source fixture and validated sample. See PROPOSAL.md for capture limits. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Opt-in events.jsonl telemetry reference. ACP updates.jsonl remains a separate transcript stream. No outside PRs are accepted."
     },
     {
-      "id": "deepseek-harness-native-export-patch",
-      "name": "DeepSeek harness native export patch",
-      "kind": "patch",
-      "path": "upstream/deepseek-harness",
+      "id": "deepseek-harness-asr-plugin",
+      "name": "DeepSeek Harness ASR export plugin",
+      "kind": "plugin",
+      "path": "upstream/deepseek-harness/plugin",
       "language": "TypeScript",
       "status": "built",
-      "location": "upstream/deepseek-harness",
-      "revision": "2e2c8b883594ea07a8fbef5559917f7a98c5372b",
+      "location": "upstream/deepseek-harness/plugin",
       "liveTestStatus": "not-live-tested",
-      "liveTestNotes": "Not live-tested. The available Node runtime is 22.22.2. The project requires Node 24.9 or later for the full application and its native runtime was not built. The real Loader test uses the actual authenticated Host connection and query engine, with an in-memory native session observation.",
-      "notes": "Local native export patch, pinned base, synthetic source fixture and validated sample. See PROPOSAL.md for capture limits. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Unofficial dsh-plugin-asr-export community plugin against pinned public APIs. No core patch. Maintainer publication and repository decisions remain separate."
     },
     {
       "id": "crush-native-export-patch",
@@ -954,23 +929,23 @@
       "language": "Go",
       "status": "built",
       "location": "upstream/crush",
-      "revision": "794e53e86087dd945473bb044a57ffeceda9ad50",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: An isolated source binary run through the local Responses endpoint exported 5 records, including one tool call and one result. Validation reported zero errors or warnings. The provider key was read only from a private provider settings file. A live run of the current implementation has not been verified.",
-      "notes": "Local native export patch, pinned base, synthetic source fixture and validated sample. See PROPOSAL.md for capture limits. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "revision": "ca3c5cac1c2324326f64f807eb33bc0c5d4265b3",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Local source patch with pinned provenance, synthetic fixtures and explicit capture limits. See the package for current check results."
     },
     {
-      "id": "mux-native-export-patch",
-      "name": "Mux native export patch",
+      "id": "xum-native-export-patch",
+      "name": "Xum native export patch",
       "kind": "patch",
-      "path": "upstream/mux",
+      "path": "upstream/xum",
       "language": "TypeScript",
       "status": "built",
-      "location": "upstream/mux",
-      "revision": "3e7534eeed9dca589b735c10061b9e14e8392310",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: An isolated source CLI run through the compatible endpoint exported 10 records with zero errors or warnings. This run covered text and segment handling. Tool snapshots are covered by synthetic tests. The source exporter was then refined for native IDs and replacement snapshots and rechecked on the synthetic fixture. A live run of the current implementation has not been verified.",
-      "notes": "Local native export patch, pinned base, synthetic source fixture and validated sample. See PROPOSAL.md for capture limits. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "location": "upstream/xum",
+      "revision": "91327c4ba4f5de62309904aab5393ddc6f998798",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Xum segment export at coder/xum. One selected chat segment has a prefix gap. The converter separately reads archives before active chat and preserves legacy Mux support."
     },
     {
       "id": "mistral-vibe-native-export-patch",
@@ -980,23 +955,23 @@
       "language": "Python",
       "status": "built",
       "location": "upstream/mistral-vibe",
-      "revision": "d51f3bceb46c7fd55fb295ebfb54f9d63b7168af",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: An isolated app-server JSON-RPC session through the compatible endpoint reached completed status. Its public snapshot exported 3 records with zero validator errors or warnings. The server was stopped by its own PID. Native IDs were then retained and the synthetic fixture was rechecked. A live run of the current implementation has not been verified.",
-      "notes": "Local native export patch, pinned base, synthetic source fixture and validated sample. See PROPOSAL.md for capture limits. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "revision": "15e36d0bcb8dcf4a3384ceb08e4d3b99188e69ab",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Public app-server snapshot reference only. The project accepts no community PRs."
     },
     {
       "id": "pi-native-export-patch",
-      "name": "Pi native export patch",
-      "kind": "patch",
-      "path": "upstream/pi",
+      "name": "Pi ASR export extension",
+      "kind": "plugin",
+      "path": "upstream/pi/extension",
       "language": "TypeScript",
       "status": "built",
-      "location": "upstream/pi",
-      "revision": "e39eebeb213f17f715d8d56492b5c628c58aadb8",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: An isolated source CLI run through the compatible endpoint exported 9 records, including 2 inference records, a tool call and a result. Validation reported zero errors or warnings. The provider key was read from private provider settings. The generated model catalog was hydrated locally and is not part of this patch. A live run of the current implementation has not been verified.",
-      "notes": "Local native export patch, pinned base, synthetic source fixture and validated sample. See PROPOSAL.md for capture limits. The package uses manifest.json, an ordered patches directory, synthetic samples, check.mjs and reproduce.mjs."
+      "location": "upstream/pi/extension",
+      "revision": "17d9afb795d6d356d577422bc328e2e17c93e3c5",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "notes": "Installable extension uses the public command API and selected durable v3 session tree. Offline CLI shares the mapper. No core change is required."
     },
     {
       "id": "siem-exporter",
@@ -1594,7 +1569,7 @@
     },
     {
       "id": "converter-lingma",
-      "name": "Lingma database converter",
+      "name": "Qoder CN database converter",
       "kind": "converter",
       "path": "crates/asr-convert/src/lingma.rs",
       "language": "Rust",
@@ -1865,6 +1840,18 @@
       "location": "scripts/check-tool-docs.mjs",
       "liveTestStatus": "not-applicable",
       "notes": "Offline README and site catalog coverage, navigation, local link targets and registry live-test status checks. Synthetic failure cases run with the script tests in CI."
+    },
+    {
+      "id": "converter-xum",
+      "name": "Xum converter",
+      "kind": "converter",
+      "path": "crates/asr-convert/src/mux.rs",
+      "language": "Rust",
+      "status": "built",
+      "location": "crates/asr-convert/src/mux.rs",
+      "liveTestStatus": "not-live-tested",
+      "liveTestNotes": "Synthetic v0.27.0 chat, archive and partial snapshot profile. No local history or new agent run.",
+      "notes": "Current Xum chat history with archive-before-active order. Discovery prefers XUM_ROOT and ~/.xum with legacy roots retained."
     }
   ]
 }

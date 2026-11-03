@@ -1,7 +1,7 @@
-# Native export patches
+# Native export integrations
 
-Each agent directory holds local patches and a short proposal for native ASR
-export. Each package uses the same layout.
+Each agent directory holds a local export integration and a short proposal.
+Source patch packages use this layout.
 
 ```text
 README.md
@@ -42,3 +42,11 @@ status. The Codex package asks for design feedback and includes reference code. 
 Package checks run without a model or service. A passing package check does not
 establish a full upstream release build or a live agent run. The individual
 README and proposal distinguish those results.
+
+## Installable packages
+
+OpenClaw provides a standalone plugin, Pi an extension and NanoClaw a utility
+skill. Their source patches are secondary local references. DeepSeek Harness
+provides the unofficial `dsh-plugin-asr-export` plugin without a core patch.
+Plugin manifests dispatch to their own package checker and pinned API replay.
+Read each package for installation, supported source and checks that ran.

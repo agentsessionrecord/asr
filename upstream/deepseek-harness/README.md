@@ -4,7 +4,9 @@
 
 Source API: https://github.com/deepseek-ai/deepseek-harness at `8bd073392eef6f54e921a093b95076248eb08cbb`. There is no core patch series. DeepSeek Harness does not accept external PRs and supports community plugins tagged `dsh-plugin`.
 
-See [plugin/README.md](plugin/README.md) for local build, installation, and use. The package includes built JavaScript, type declarations, a lockfile, synthetic tests, and a Cordis overlay. Nothing has been published.
+See [plugin/README.md](plugin/README.md) for local build, installation, and use. The package includes built JavaScript, type declarations, a lockfile, synthetic tests, and a Cordis overlay. The consuming profile must apply the documented `zod` 4.6.6 override.
+The plugin build, lint, typecheck, three tests and production audit pass.
+Nothing has been published.
 
 ```sh
 node upstream/deepseek-harness/check.mjs

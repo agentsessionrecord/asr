@@ -1,4 +1,4 @@
-# Structured local session export for Codex
+# Codex structured export design feedback
 
 Keep a machine-readable local record of messages, tool work and recorded decisions.
 Codex's `/export` writes Markdown. This reference adds

@@ -1,19 +1,49 @@
 {
   "date": "2026-11-03",
-  "status": "blocked",
+  "status": "passed",
   "repository": "https://github.com/warpdotdev/warp",
   "base": "3dca8f995cc116814f17fc818ee0c37ec1141eaa",
-  "head": "3581388011b36340bca02a204996d608c4f947fc",
-  "nativeChecks": "Not run. Required build admission remained unavailable and queued attempts were cancelled. No current native compilation, tests, lint or fixture execution is certified.",
-  "blocker": "All 12 required build-governor slots are occupied by other sessions.",
-  "sampleStatus": "Retained synthetic sample. Native regeneration on this base is pending.",
+  "head": "53b3217c69051bdd9b6c804c1e50a3ae788c8dac",
+  "nativeChecks": "Three export tests, type check, Clippy, format and native fixture pass.",
+  "sampleStatus": "Fresh native export matches the packaged synthetic sample. The missing-list order follows the native header.",
   "liveTestStatus": "not-live-tested",
-  "notes": "Spec draft only. Lifecycle hooks and product UI are outside the saved-text patch. The known-secret exclusion invariant in the draft needs implementation and tests before product use.",
+  "notes": "The saved-text exporter applies configured upstream redaction and built-in patterns. Tests cover recognized secrets in text and reasoning, loss markers, unchanged source and identity refusal before output. The GH7834 spec remains a draft. Product UI and lifecycle hooks remain outside scope.",
   "patchReplay": {
     "method": "temporary Git index",
     "result": "matches committed source tree",
     "tree": "657252352977390c77522cadbd25d96175706ec3"
   },
-  "packageChecks": "Not run. The check.mjs and reproduce.mjs commands were queued, then cancelled because build admission remained unavailable.",
-  "validator": "Not rerun. The retained synthetic sample is unchanged. Historical validator results are not current validation."
+  "packageChecks": "Package integrity and temporary-index replay passed.",
+  "validator": {
+    "records": 5,
+    "errors": 0,
+    "warnings": 0
+  },
+  "checks": [
+    {
+      "command": "cargo test -p persistence agent_session --lib",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo clippy -p persistence --all-targets -- -D warnings",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo fmt -p persistence",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo check -p persistence",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "python3 {package-root}/warp/reproduce.py {checkouts}/warp",
+      "exit": 0,
+      "status": "passed"
+    }
+  ]
 }

@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "agent": "kimi-code",
   "base": "444c609e8e6629d43fb7fd571a8db48ce5a41570",
-  "head": "29e58fe741ac6ad692b700e022c928e92497f1e0",
+  "head": "29fe874f044846f600e3c8fbfda82f001946fe97",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "29e58fe741ac6ad692b700e022c928e92497f1e0",
-      "sha256": "53808df917ad0bbfdbf3cbcc91112f044f193b0e820850a1a0a00ddd9b3eb252"
+      "commit": "29fe874f044846f600e3c8fbfda82f001946fe97",
+      "sha256": "3b797ce71cb182bf8507846c2c504e47911a9452ac99a4b35541103815544c95"
     }
   ],
   "checks": [
@@ -20,17 +20,17 @@
   "provenance": {
     "repository": "https://github.com/MoonshotAI/kimi-code",
     "base": "444c609e8e6629d43fb7fd571a8db48ce5a41570",
-    "head": "29e58fe741ac6ad692b700e022c928e92497f1e0",
+    "head": "29fe874f044846f600e3c8fbfda82f001946fe97",
     "branch": "codex/patch-reshape",
     "files": {
       ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
       "PROPOSAL.md": "30d3bb5871b608c1716f29fad7ef4671e8a15086ae6f303e19185d70e12618c3",
       "README.md": "7cd77fe1b0fb5961325dc99aff6ad9cbaca0bfc4e45305ec85d332dd30578cb5",
-      "TESTS.json": "c44c3d8865a0608e40701d7164c55a5133fbaa5d498eb6faf355d01466c8321e",
+      "TESTS.json": "10a114cb8d67b5aabb4ed492ae3a62941e6caef2188da3686b8d0c58e26790f0",
       "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
       "contracts.mjs": "c8dcc15d3acd0db28be4e1b95daf16a650e6a1bdd793abb7295dffd2a0a86602",
       "current-contracts.mjs": "c17753369f704c7ef00ad2f8450970057caf8140450e3ccc1b1ab5bf769c3ac9",
-      "patches/0001-native-agent-session-export.patch": "53808df917ad0bbfdbf3cbcc91112f044f193b0e820850a1a0a00ddd9b3eb252",
+      "patches/0001-native-agent-session-export.patch": "3b797ce71cb182bf8507846c2c504e47911a9452ac99a4b35541103815544c95",
       "reproduce-native.mjs": "a4c4d7bb2adce18643e80deb887fdad4271e42349b33d2da0fec31a4d3d05b2d",
       "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
       "samples/asr/session.jsonl": "27fd5325dcea90f10969bc370eababe8e2a8cc88d2a33a31386810f849d07bae",
@@ -41,11 +41,11 @@
     ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
     "PROPOSAL.md": "30d3bb5871b608c1716f29fad7ef4671e8a15086ae6f303e19185d70e12618c3",
     "README.md": "7cd77fe1b0fb5961325dc99aff6ad9cbaca0bfc4e45305ec85d332dd30578cb5",
-    "TESTS.json": "c44c3d8865a0608e40701d7164c55a5133fbaa5d498eb6faf355d01466c8321e",
+    "TESTS.json": "10a114cb8d67b5aabb4ed492ae3a62941e6caef2188da3686b8d0c58e26790f0",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "contracts.mjs": "c8dcc15d3acd0db28be4e1b95daf16a650e6a1bdd793abb7295dffd2a0a86602",
     "current-contracts.mjs": "c17753369f704c7ef00ad2f8450970057caf8140450e3ccc1b1ab5bf769c3ac9",
-    "patches/0001-native-agent-session-export.patch": "53808df917ad0bbfdbf3cbcc91112f044f193b0e820850a1a0a00ddd9b3eb252",
+    "patches/0001-native-agent-session-export.patch": "3b797ce71cb182bf8507846c2c504e47911a9452ac99a4b35541103815544c95",
     "reproduce-native.mjs": "a4c4d7bb2adce18643e80deb887fdad4271e42349b33d2da0fec31a4d3d05b2d",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
     "samples/asr/session.jsonl": "27fd5325dcea90f10969bc370eababe8e2a8cc88d2a33a31386810f849d07bae",

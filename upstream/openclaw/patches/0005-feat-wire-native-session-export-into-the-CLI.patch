@@ -13,7 +13,7 @@ Subject: [PATCH] feat: wire native session export into the CLI
  create mode 100644 src/commands/sessions-export.ts
 
 diff --git a/src/cli/command-catalog.ts b/src/cli/command-catalog.ts
-index ec9d3ebcb1c..5315328657a 100644
+index ec9d3ebcb1cd1012265072f6d182183ceac3e1a5..5315328657a1511be57d0d03f8b05a107e2ea4f6 100644
 --- a/src/cli/command-catalog.ts
 +++ b/src/cli/command-catalog.ts
 @@ -258,6 +258,11 @@ export const cliCommandCatalog: readonly CliCommandCatalogEntry[] = [
@@ -29,7 +29,7 @@ index ec9d3ebcb1c..5315328657a 100644
      commandPath: ["agents", "list"],
      // Output combines config with shared-state provenance and optional read-only
 diff --git a/src/cli/command-path-policy.test.ts b/src/cli/command-path-policy.test.ts
-index 5cd3006627a..4f8cecd7770 100644
+index 5cd3006627a1ec8622ef91f74bf4043fa9d2f679..4f8cecd7770a96eec89aa062e2aa21f5d56e1139 100644
 --- a/src/cli/command-path-policy.test.ts
 +++ b/src/cli/command-path-policy.test.ts
 @@ -100,6 +100,16 @@ describe("command-path-policy", () => {
@@ -50,7 +50,7 @@ index 5cd3006627a..4f8cecd7770 100644
      ["plugins list|plugins lint", { ...skip, ensureCliPath: false }],
      [
 diff --git a/src/cli/program/register.status-health-sessions.test.ts b/src/cli/program/register.status-health-sessions.test.ts
-index 7cbcb4dbb41..ddc9c3d8e6a 100644
+index 7cbcb4dbb4188a065de49c946b6a7c9830f575c6..ddc9c3d8e6a1b8f8d630d3ca152962865de005cc 100644
 --- a/src/cli/program/register.status-health-sessions.test.ts
 +++ b/src/cli/program/register.status-health-sessions.test.ts
 @@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
@@ -96,7 +96,7 @@ index 7cbcb4dbb41..ddc9c3d8e6a 100644
 +  });
 +});
 diff --git a/src/cli/program/register.status-health-sessions.ts b/src/cli/program/register.status-health-sessions.ts
-index ef76fe350ae..0b72714d4fd 100644
+index ef76fe350ae646af6bc322f8ead385ea333f8ebe..0b72714d4fd67e3823560e7d54aa5039957d817e 100644
 --- a/src/cli/program/register.status-health-sessions.ts
 +++ b/src/cli/program/register.status-health-sessions.ts
 @@ -379,6 +379,32 @@ export function registerStatusHealthSessionsCommands(program: Command) {
@@ -134,7 +134,7 @@ index ef76fe350ae..0b72714d4fd 100644
      .description("Export a redacted trajectory bundle for a stored session")
 diff --git a/src/commands/sessions-export.ts b/src/commands/sessions-export.ts
 new file mode 100644
-index 00000000000..eb3bb099770
+index 0000000000000000000000000000000000000000..eb3bb09977078cfcab9deff907eab140b8946b78
 --- /dev/null
 +++ b/src/commands/sessions-export.ts
 @@ -0,0 +1,79 @@
@@ -217,6 +217,3 @@ index 00000000000..eb3bb099770
 +    );
 +  }
 +}
--- 
-2.43.0
-

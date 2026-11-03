@@ -60,7 +60,8 @@ installations can store history elsewhere. Supply that location explicitly.
 | `lingma` | `~/.lingma` | None |
 | `mimocode` | `$XDG_DATA_HOME/mimocode` | `XDG_DATA_HOME` |
 | `mistral-vibe` | `~/.vibe/logs` | `VIBE_HOME` replaces `~/.vibe` |
-| `mux` | `~/.mux/sessions` | None |
+| `mux` | `~/.mux/sessions` | `MUX_ROOT` |
+| `xum` | `~/.xum/sessions`, legacy `~/.mux` and `~/.cmux` | `XUM_ROOT`, `MUX_ROOT` |
 | `nanoclaw` | `~/nanoclaw`, `~/code/nanoclaw` | None |
 | `openclaw` | `~/.openclaw/agents` | `OPENCLAW_STATE_DIR` replaces `~/.openclaw` |
 | `opencode` | `$XDG_DATA_HOME/opencode` | `XDG_DATA_HOME` |
@@ -127,7 +128,7 @@ The two OpenClaw entries use the same `openclaw` CLI selector.
 | [Kilo database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
 | [kimi-code native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
 | [Kiro database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
-| [Lingma database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Qoder CN database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
 | [MiMoCode database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
 | [Mistral Vibe converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
 | [Mux converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
@@ -144,6 +145,7 @@ The two OpenClaw entries use the same `openclaw` CLI selector.
 | [Shelley database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
 | [tabnine native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
 | [Warp database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Xum converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
 | [Zed database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
 
 Goose needs a stable installation namespace. Legacy Kiro sessions keyed by

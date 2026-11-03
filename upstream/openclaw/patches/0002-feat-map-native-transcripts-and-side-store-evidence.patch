@@ -12,7 +12,7 @@ Subject: [PATCH] feat: map native transcripts and side-store evidence
 
 diff --git a/src/sessions/agent-session-export.evidence.ts b/src/sessions/agent-session-export.evidence.ts
 new file mode 100644
-index 00000000000..a17a9793763
+index 0000000000000000000000000000000000000000..a17a9793763b81412c12baa95742bf3eba66bf23
 --- /dev/null
 +++ b/src/sessions/agent-session-export.evidence.ts
 @@ -0,0 +1,134 @@
@@ -152,7 +152,7 @@ index 00000000000..a17a9793763
 +}
 diff --git a/src/sessions/agent-session-export.transcript.ts b/src/sessions/agent-session-export.transcript.ts
 new file mode 100644
-index 00000000000..0c6786acf66
+index 0000000000000000000000000000000000000000..0c6786acf669c602cbeb95b6452539e6fef1d223
 --- /dev/null
 +++ b/src/sessions/agent-session-export.transcript.ts
 @@ -0,0 +1,599 @@
@@ -755,6 +755,3 @@ index 00000000000..0c6786acf66
 +    return this.records;
 +  }
 +}
--- 
-2.43.0
-

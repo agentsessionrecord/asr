@@ -1,6 +1,7 @@
 {
-  "status": "pending",
+  "status": "passed",
   "sourceBase": "f7440e85f8b2a75b17fc9a08f0cc6aacf723a1e2",
   "nativeFixture": "synthetic",
-  "liveTestStatus": "not-run-for-refreshed-source"
+  "liveTestStatus": "not-run-for-refreshed-source",
+  "checks": "See verification.json for current project and native fixture results."
 }

@@ -7,7 +7,7 @@ use std::{fs::File, io::Read, path::Path};
 pub fn handles(agent: Agent) -> bool {
     matches!(
         agent,
-        Agent::Cursor | Agent::GeminiCli | Agent::MistralVibe | Agent::Mux | Agent::Fx
+        Agent::Cursor | Agent::GeminiCli | Agent::MistralVibe | Agent::Mux | Agent::Xum | Agent::Fx
     )
 }
 pub fn discover(
@@ -58,7 +58,7 @@ fn candidate(p: &Path, a: Agent) -> bool {
                 || name.ends_with(".json") && !p.with_extension("jsonl").is_file()
         }
         Agent::MistralVibe => plain == "messages.jsonl",
-        Agent::Mux => {
+        Agent::Mux | Agent::Xum => {
             matches!(plain, "chat.jsonl" | "chat-archive.jsonl") || name == "partial.json"
         }
         Agent::Fx => name == "events.jsonl",
@@ -84,7 +84,7 @@ pub(crate) fn stage(p: &Path, a: Agent, s: &mut Spool, n: &mut Summary) -> Resul
         Agent::Cursor => crate::cursor::stage(s, p, n),
         Agent::GeminiCli => crate::gemini::stage(s, p, n),
         Agent::MistralVibe => crate::mistral_vibe::stage(s, p, n),
-        Agent::Mux => crate::mux::stage(s, p, n),
+        Agent::Mux | Agent::Xum => crate::mux::stage(s, p, n, a),
         Agent::Fx => crate::fx::stage(s, p, n),
         _ => unreachable!(),
     }

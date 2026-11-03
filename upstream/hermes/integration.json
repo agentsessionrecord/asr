@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-03",
+  "status": "passed",
+  "checks": [
+    {
+      "command": "env HERMES_HOME={scratch}/hermes-home HERMES_RUNTIME_DIR={scratch}/hermes-runtime scripts/run_tests.sh tests/hermes_cli/test_session_export_asr.py tests/hermes_cli/test_session_export.py -q",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "PATH={scratch}/uv-bin:$PATH python3 scripts/check",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "PYTHONPATH=. HERMES_HOME={scratch}/hermes-home HERMES_RUNTIME_DIR={scratch}/hermes-runtime python3 {scratch}/native-python.py hermes",
+      "exit": 0,
+      "status": "passed"
+    }
+  ],
+  "validator": {
+    "files": 1,
+    "records": 9,
+    "errors": 0,
+    "warnings": 0,
+    "counts": {}
+  },
+  "liveTestStatus": "not-live-tested",
+  "liveTestNotes": "No current model run. Earlier live evidence is historical.",
+  "notes": "The project check script passes all 14 checks with its pinned Ruff. The focused export suite passes 10 tests.",
+  "packageCheck": "passed",
+  "patchReplay": "passed"
+}

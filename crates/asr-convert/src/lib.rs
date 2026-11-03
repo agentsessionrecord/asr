@@ -84,6 +84,7 @@ pub enum Agent {
     GeminiCli,
     MistralVibe,
     Mux,
+    Xum,
     Fx,
     Antigravity,
     Tabnine,
@@ -108,7 +109,7 @@ pub enum Agent {
     RovoDev,
 }
 impl Agent {
-    pub const ALL: [Self; 43] = [
+    pub const ALL: [Self; 44] = [
         Self::ClaudeCode,
         Self::Codex,
         Self::AstrBot,
@@ -130,6 +131,7 @@ impl Agent {
         Self::GeminiCli,
         Self::MistralVibe,
         Self::Mux,
+        Self::Xum,
         Self::Fx,
         Self::Antigravity,
         Self::Tabnine,
@@ -193,6 +195,7 @@ impl Agent {
             Self::GeminiCli => "gemini-cli",
             Self::MistralVibe => "mistral-vibe",
             Self::Mux => "mux",
+            Self::Xum => "xum",
             Self::Fx => "fx",
             Self::Antigravity => "antigravity",
             Self::Tabnine => "tabnine",
@@ -240,6 +243,7 @@ impl Agent {
             Self::GeminiCli => "com.google.gemini-cli",
             Self::MistralVibe => "ai.mistral.vibe",
             Self::Mux => "com.coder.mux",
+            Self::Xum => "com.coder.xum",
             Self::Fx => "com.vercel.fx",
             Self::Antigravity => "com.google.antigravity",
             Self::Tabnine => "com.tabnine.cli",
@@ -287,6 +291,7 @@ impl Agent {
             Self::GeminiCli => "gemini-cli-jsonl",
             Self::MistralVibe => "mistral-vibe-session",
             Self::Mux => "mux-chat-jsonl",
+            Self::Xum => "xum-chat-jsonl",
             Self::Fx => "fx-event-log-v1",
             Self::Antigravity => "antigravity-transcript-jsonl",
             Self::Tabnine => "tabnine-chat-jsonl",
@@ -467,7 +472,7 @@ fn convert_impl(
                     Agent::Cursor => cursor::convert(&spool, &mut context, &value)?,
                     Agent::GeminiCli => gemini::convert(&spool, &mut context, &value)?,
                     Agent::MistralVibe => mistral_vibe::convert(&spool, &mut context, &value)?,
-                    Agent::Mux => mux::convert(&spool, &mut context, &value)?,
+                    Agent::Mux | Agent::Xum => mux::convert(&spool, &mut context, &value)?,
                     Agent::Fx => fx::convert(&spool, &mut context, &value)?,
                     Agent::Auggie => auggie::convert(&spool, &mut context, &value)?,
                     Agent::Cline => cline::convert(&spool, &mut context, &value)?,

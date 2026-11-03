@@ -82,8 +82,13 @@ pub fn parts(v: &Value, c: &Context) -> Vec<Value> {
                 common::text(t)
             });
         } else if p["type"] == "think" {
-            if let Some(t) = p["think"].as_str() {
+            if let Some(t) = p["think"].as_str().filter(|t| !t.is_empty()) {
                 out.push(common::reasoning(Some(t), None));
+            }
+            if p["_asrEncrypted"] == true {
+                out.push(json!({"type":"reasoning","visibility":"encrypted"}));
+            } else if p["think"] == "" {
+                out.push(common::reasoning(None, Some("omitted")));
             }
         } else {
             out.extend(common::parts(&json!([p]), c.agent));

@@ -25,7 +25,7 @@ try {
   await writeFile(output, stream, { mode: 0o600 });
   execFileSync('node', [path.resolve(directory, '../../tools/validator/bin/asr-validate.js'), '--summary', output], { stdio: 'inherit' });
   assert.equal(stream, await readFile(path.join(directory, 'samples/asr/session.jsonl'), 'utf8'));
-  
+
   console.log(`${agent}: native fixture export, validator and exact sample replay passed`);
 } finally {
   await rm(scratch, { recursive: true, force: true });

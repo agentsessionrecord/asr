@@ -35,14 +35,18 @@ the committed native sample. No wider release range is claimed for those profile
 | `qwen-code` | Unversioned UUID conversation journal profile | `sessionId`, or sidechain `agentId` |
 | `grok-build` | Build 1.0.3 ACP notification shape and response boundary profile | Notification `params.sessionId` or `sessionId` |
 | `pi` | Session JSONL versions 1 through 3 and mutation journal version 4 | Session header `id` |
-| `kimi-code` | Wire protocol 1.5 event profile | Native session directory as namespace and native agent directory as session ID |
+| `kimi-code` | Wire protocol 1.5 event profile | Main agent uses native state `id`. Children use native agent ID within that session namespace |
 | `deepseek-harness` | Logical session versions 0 and 4 | Session header `id` |
 | `junie` | Unversioned `UserPromptEvent` and `SessionA2uxEvent` profile | Native `session-*` directory containing `events.jsonl` |
 | `openclaw` | Legacy session JSONL archive profile | Session header `id` |
 
 Kimi requires `sessions/<workdir>/<session>/agents/<agent>/wire.jsonl`.
-It reads a bounded `state.json` in that session directory for working directory
-and explicit parent information. A missing state file supplies no extra facts.
+It requires the native session `id` from bounded `state.json` or
+`session-meta/state.json`. Arbitrary directory names never supply identity.
+The main agent uses that ID without a namespace. Child agent IDs use the native
+session ID as their namespace and explicit `parentAgentId` for parent links.
+Main-agent `forkedFrom` names a native fork. Copy boundaries remain unavailable
+and `copies` stays declared missing. Other wire protocol versions are rejected.
 Junie requires its native session directory. Antigravity selects the full
 transcript when both full and partial transcripts exist.
 DeepSeek selects the newest committed `session.vN.jsonl` generation in a directory.
@@ -71,7 +75,10 @@ A reused grant needs explicit policy evidence before it can name a person.
 
 Kimi uses context appends as delivered messages. Prompt acceptance remains vendor
 evidence. Request attempts identify inferences. Step completion folds the last
-attempt with its usage at the completion position. Text deltas concatenate exactly.
+attempt with its usage at the completion position. Completed `content.part` observations retain their own UUID and source position.
+Intervening events remain in order. Readable reasoning stays exact and encrypted
+reasoning produces a separate content-free marker. Malformed complete lines and
+incomplete tails produce positioned gaps.
 Persisted tool output lacks the final model rendering and stays in metadata.
 Explicit origin fields can establish human, hook or harness authorship.
 

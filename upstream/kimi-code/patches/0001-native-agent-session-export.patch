@@ -1,4 +1,4 @@
-From 29e58fe741ac6ad692b700e022c928e92497f1e0 Mon Sep 17 00:00:00 2001
+From 29fe874f044846f600e3c8fbfda82f001946fe97 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Tue, 3 Nov 2026 14:39:21 -0500
 Subject: [PATCH] feat: add Agent Session Record session export
@@ -6,7 +6,7 @@ Subject: [PATCH] feat: add Agent Session Record session export
 ---
  .changeset/agent-session-export.md            |   5 +
  apps/kimi-code/src/cli/sub/export.ts          |  15 +-
- apps/kimi-code/test/cli/export.test.ts        |   7 +
+ apps/kimi-code/test/cli/export.test.ts        |  12 +-
  docs/en/guides/sessions.md                    |   2 +
  docs/zh/guides/sessions.md                    |   2 +
  .../src/app/sessionExport/agent-session.ts    | 175 ++++++++++++++++++
@@ -15,13 +15,13 @@ Subject: [PATCH] feat: add Agent Session Record session export
  .../app/sessionExport/sessionExport.test.ts   |  53 ++++++
  packages/node-sdk/src/sdk-rpc-client-v2.ts    |   1 +
  packages/node-sdk/src/types.ts                |   1 +
- 11 files changed, 283 insertions(+), 4 deletions(-)
+ 11 files changed, 286 insertions(+), 6 deletions(-)
  create mode 100644 .changeset/agent-session-export.md
  create mode 100644 packages/agent-core-v2/src/app/sessionExport/agent-session.ts
 
 diff --git a/.changeset/agent-session-export.md b/.changeset/agent-session-export.md
 new file mode 100644
-index 000000000..0c459fabd
+index 0000000000000000000000000000000000000000..0c459fabd41454478e0d25b1248d13c5fb9b9658
 --- /dev/null
 +++ b/.changeset/agent-session-export.md
 @@ -0,0 +1,5 @@
@@ -31,7 +31,7 @@ index 000000000..0c459fabd
 +
 +Add Agent Session Record export with `kimi export --format agent-session`.
 diff --git a/apps/kimi-code/src/cli/sub/export.ts b/apps/kimi-code/src/cli/sub/export.ts
-index 51093f0bc..80fe4e2c7 100644
+index 51093f0bcc375db4be8360c68f705bb606f29b87..55b1818ef61b96dfded38f5a34017bce51226059 100644
 --- a/apps/kimi-code/src/cli/sub/export.ts
 +++ b/apps/kimi-code/src/cli/sub/export.ts
 @@ -57,6 +57,7 @@ export interface ExportDeps {
@@ -50,7 +50,7 @@ index 51093f0bc..80fe4e2c7 100644
 +    deps.stderr.write('Use --format zip or --format agent-session.\n');
 +    deps.exit(1);
 +  }
-+  const format = opts.format as 'zip' | 'agent-session' | undefined;
++  const format = opts.format;
    const requestedId = normalizeOptionalSessionId(sessionId);
    const previousSummary = requestedId === undefined ? await findPreviousSession(deps) : undefined;
  
@@ -93,10 +93,36 @@ index 51093f0bc..80fe4e2c7 100644
            });
          } finally {
 diff --git a/apps/kimi-code/test/cli/export.test.ts b/apps/kimi-code/test/cli/export.test.ts
-index f732f938b..fcf2bbc54 100644
+index f732f938bb80d0e9ea34a973082ac46248b31725..eaaf40ae22035d93386c1a1d17642baeb7da89f1 100644
 --- a/apps/kimi-code/test/cli/export.test.ts
 +++ b/apps/kimi-code/test/cli/export.test.ts
-@@ -565,3 +565,10 @@ describe('kimi export', () => {
+@@ -350,7 +350,7 @@ describe('kimi export', () => {
+     await program.parseAsync(['node', 'kimi', 'export', '--no-include-global-log', '-y']);
+ 
+     expect(exitCodes).toEqual([]);
+-    expect(exportInputs).toEqual([{ id: 'ses_global_log', version: '1.0.0-test', installSource: 'npm-global', shellEnv: { term: 'xterm-256color', shell: '/bin/zsh' } }]);
++    expect(exportInputs).toEqual([{ id: 'ses_global_log', format: 'zip', version: '1.0.0-test', installSource: 'npm-global', shellEnv: { term: 'xterm-256color', shell: '/bin/zsh' } }]);
+     expect(stdout.join('').trim()).toBe(join(tmp, 'ses_global_log.zip'));
+   });
+ 
+@@ -373,7 +373,7 @@ describe('kimi export', () => {
+ 
+     expect(exitCodes).toEqual([]);
+     expect(exportInputs).toEqual([
+-      { id: 'ses_after_id', outputPath: output, version: '1.0.0-test', installSource: 'npm-global', shellEnv: { term: 'xterm-256color', shell: '/bin/zsh' } },
++      { id: 'ses_after_id', format: 'zip', outputPath: output, version: '1.0.0-test', installSource: 'npm-global', shellEnv: { term: 'xterm-256color', shell: '/bin/zsh' } },
+     ]);
+   });
+ 
+@@ -441,6 +441,7 @@ describe('kimi export', () => {
+     );
+     expect(mocks.harnessExportSession).toHaveBeenCalledWith({
+       id: 'ses_telemetry',
++      format: 'zip',
+       outputPath: output,
+       version: expect.any(String),
+       includeGlobalLog: true,
+@@ -565,3 +566,10 @@ describe('kimi export', () => {
      );
    });
  });
@@ -108,7 +134,7 @@ index f732f938b..fcf2bbc54 100644
 +  expect(exportInputs[0]?.format).toBe('agent-session');
 +});
 diff --git a/docs/en/guides/sessions.md b/docs/en/guides/sessions.md
-index 0798b84f7..3d44abd61 100644
+index 0798b84f75d916ee0ba6099d56c8a3ad81dc3f53..3d44abd6113c20658097c2cb68b5e97b22b59850 100644
 --- a/docs/en/guides/sessions.md
 +++ b/docs/en/guides/sessions.md
 @@ -107,6 +107,8 @@ Omitting `sessionId` exports the most recent session in the current directory (w
@@ -121,7 +147,7 @@ index 0798b84f7..3d44abd61 100644
  
  You can also export from inside the TUI without leaving the interactive session:
 diff --git a/docs/zh/guides/sessions.md b/docs/zh/guides/sessions.md
-index 150579618..fd3d613d5 100644
+index 1505796189e7d19d7c61f874d9823c70a309f462..fd3d613d531335eabf1338fa859a723e479d16a4 100644
 --- a/docs/zh/guides/sessions.md
 +++ b/docs/zh/guides/sessions.md
 @@ -107,6 +107,8 @@ kimi export <sessionId>
@@ -135,7 +161,7 @@ index 150579618..fd3d613d5 100644
  也可以在 TUI 内导出，无需离开交互界面：
 diff --git a/packages/agent-core-v2/src/app/sessionExport/agent-session.ts b/packages/agent-core-v2/src/app/sessionExport/agent-session.ts
 new file mode 100644
-index 000000000..ce8772186
+index 0000000000000000000000000000000000000000..ffae54a4a5d991d5ca99e1b334cfd34c4275e6d0
 --- /dev/null
 +++ b/packages/agent-core-v2/src/app/sessionExport/agent-session.ts
 @@ -0,0 +1,175 @@
@@ -181,7 +207,7 @@ index 000000000..ce8772186
 +      const candidate = record?.['type'] === 'context.append_message'
 +        ? object(record['message'])?.['id'] : object(record?.['event'])?.['uuid'];
 +      if (typeof candidate === 'string' && candidate.length > 0 && candidate.length <= 256
-+        && candidate !== 'header' && !/[\u0000-\u001f\u007f-\u009f]/u.test(candidate)) {
++        && candidate !== 'header' && !/[\u0000-\u001F\u007F-\u009F]/u.test(candidate)) {
 +        nativeIds.set(`wire-${index + 1}`, candidate);
 +        counts.set(candidate, (counts.get(candidate) ?? 0) + 1);
 +      }
@@ -315,7 +341,7 @@ index 000000000..ce8772186
 +  });
 +}
 diff --git a/packages/agent-core-v2/src/app/sessionExport/sessionExport.ts b/packages/agent-core-v2/src/app/sessionExport/sessionExport.ts
-index 1f782dca1..d53430113 100644
+index 1f782dca195186fe2f13bf767922c4857621bcb7..d5343011328524fef19e0a3995b1094c957cbbc6 100644
 --- a/packages/agent-core-v2/src/app/sessionExport/sessionExport.ts
 +++ b/packages/agent-core-v2/src/app/sessionExport/sessionExport.ts
 @@ -9,6 +9,7 @@ export interface ShellEnvironment {
@@ -327,7 +353,7 @@ index 1f782dca1..d53430113 100644
    readonly outputPath?: string | undefined;
    readonly includeGlobalLog?: boolean | undefined;
 diff --git a/packages/agent-core-v2/src/app/sessionExport/sessionExportService.ts b/packages/agent-core-v2/src/app/sessionExport/sessionExportService.ts
-index 55f8f650f..c26b2a718 100644
+index 55f8f650fe269d77be61f6e7201a2df85830a237..c26b2a7184be7b15aa28aa02abdd70ab473755c4 100644
 --- a/packages/agent-core-v2/src/app/sessionExport/sessionExportService.ts
 +++ b/packages/agent-core-v2/src/app/sessionExport/sessionExportService.ts
 @@ -1,4 +1,6 @@
@@ -403,7 +429,7 @@ index 55f8f650f..c26b2a718 100644
    let sessionLogSource: ZipSource | undefined;
    let sessionLogSourceTransferred = false;
 diff --git a/packages/agent-core-v2/test/app/sessionExport/sessionExport.test.ts b/packages/agent-core-v2/test/app/sessionExport/sessionExport.test.ts
-index ffceb2e24..be22dfc04 100644
+index ffceb2e241a2ba3cc37b0a9c3e3984ad687b8c5e..be22dfc04a31276be3bc3b256e1afadb9fd9be64 100644
 --- a/packages/agent-core-v2/test/app/sessionExport/sessionExport.test.ts
 +++ b/packages/agent-core-v2/test/app/sessionExport/sessionExport.test.ts
 @@ -27,6 +27,8 @@ import {
@@ -492,7 +518,7 @@ index ffceb2e24..be22dfc04 100644
 +  });
 +});
 diff --git a/packages/node-sdk/src/sdk-rpc-client-v2.ts b/packages/node-sdk/src/sdk-rpc-client-v2.ts
-index d59ea91aa..cfc598293 100644
+index d59ea91aae833a8725860d74a26835ddf14a6182..cfc598293e145615abc578f0748c1fdbe19f9969 100644
 --- a/packages/node-sdk/src/sdk-rpc-client-v2.ts
 +++ b/packages/node-sdk/src/sdk-rpc-client-v2.ts
 @@ -1974,6 +1974,7 @@ export class SDKRpcClientV2 extends SDKRpcClientBase {
@@ -504,7 +530,7 @@ index d59ea91aa..cfc598293 100644
        includeGlobalLog: input.includeGlobalLog,
        version: input.version,
 diff --git a/packages/node-sdk/src/types.ts b/packages/node-sdk/src/types.ts
-index 8ca843274..62739022a 100644
+index 8ca8432746e0e4923ec8af9cfd7042b8b0ec1d8c..62739022a2695dfc5cb69e45b49e93a59644760f 100644
 --- a/packages/node-sdk/src/types.ts
 +++ b/packages/node-sdk/src/types.ts
 @@ -409,6 +409,7 @@ export interface ForkSessionInput {

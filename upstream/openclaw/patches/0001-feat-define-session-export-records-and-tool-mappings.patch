@@ -14,7 +14,7 @@ Subject: [PATCH] feat: define session export records and tool mappings
 
 diff --git a/src/sessions/agent-session-export.json.ts b/src/sessions/agent-session-export.json.ts
 new file mode 100644
-index 00000000000..9b0b0408972
+index 0000000000000000000000000000000000000000..9b0b04089722c7534abec50ec8af5103afe88f43
 --- /dev/null
 +++ b/src/sessions/agent-session-export.json.ts
 @@ -0,0 +1,207 @@
@@ -227,7 +227,7 @@ index 00000000000..9b0b0408972
 +}
 diff --git a/src/sessions/agent-session-export.tools.ts b/src/sessions/agent-session-export.tools.ts
 new file mode 100644
-index 00000000000..63ab1b9e5e3
+index 0000000000000000000000000000000000000000..63ab1b9e5e3e20afadfe7dc93d6beec5906f5fa4
 --- /dev/null
 +++ b/src/sessions/agent-session-export.tools.ts
 @@ -0,0 +1,294 @@
@@ -527,7 +527,7 @@ index 00000000000..63ab1b9e5e3
 +}
 diff --git a/src/sessions/agent-session-export.types.ts b/src/sessions/agent-session-export.types.ts
 new file mode 100644
-index 00000000000..c7a1c36e436
+index 0000000000000000000000000000000000000000..c7a1c36e43629686144950a0d03ef5feb35e3d70
 --- /dev/null
 +++ b/src/sessions/agent-session-export.types.ts
 @@ -0,0 +1,59 @@
@@ -590,6 +590,3 @@ index 00000000000..c7a1c36e436
 +  leafId?: string;
 +  cold: boolean;
 +};
--- 
-2.43.0
-

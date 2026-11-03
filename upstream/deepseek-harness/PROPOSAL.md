@@ -6,4 +6,6 @@ The plugin uses a detached session-query observation and preserves source order,
 
 Install the local tarball with `dsh plugin --profile web add /path/to/package.tgz` and load the supplied Cordis overlay with `dsh web --patch /path/to/cordis.patch.yml`. An authenticated owner can download the ASR route. Unloading the plugin withdraws it.
 
-The package is self-contained and ready to move to its own repository. [TESTS.json](TESTS.json) records checks against the current public API.
+Use the documented `zod` 4.6.6 override in the consuming profile before installing.
+Package overrides do not propagate into a consumer. The pinned plugin and consumer
+production dependency audits pass with zero vulnerabilities. [TESTS.json](TESTS.json) records checks against the current public API.

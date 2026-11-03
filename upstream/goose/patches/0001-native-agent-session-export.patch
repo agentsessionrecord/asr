@@ -1,4 +1,4 @@
-From f6ea649b9a383ad821f4da9d92f93067ccf0a6df Mon Sep 17 00:00:00 2001
+From 1df6bd1c2f54dec7c61db494a98a23b4e3b49fed Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
 Subject: [PATCH] feat(session): export saved sessions as Agent Session Record
@@ -17,7 +17,7 @@ Subject: [PATCH] feat(session): export saved sessions as Agent Session Record
  create mode 100644 crates/goose/tests/fixtures/agent_session/session.json
 
 diff --git a/crates/goose-cli/src/cli.rs b/crates/goose-cli/src/cli.rs
-index 752d609..8fb702e 100644
+index 752d60991bf45c95af3190bca92cf965f4fec083..8fb702e2e465e5300eeaab813c582c6fe364e4f2 100644
 --- a/crates/goose-cli/src/cli.rs
 +++ b/crates/goose-cli/src/cli.rs
 @@ -566,14 +566,14 @@ enum SessionCommand {
@@ -48,7 +48,7 @@ index 752d609..8fb702e 100644
              let session_identifier = if let Some(id) = identifier {
                  lookup_session_id(id).await?
 diff --git a/crates/goose-cli/src/commands/session.rs b/crates/goose-cli/src/commands/session.rs
-index f46ec84..553ee14 100644
+index f46ec84d8dc08064c48e4043332628d93ff9ba90..553ee14105e15ac07dd9a045c9121766f0fa8795 100644
 --- a/crates/goose-cli/src/commands/session.rs
 +++ b/crates/goose-cli/src/commands/session.rs
 @@ -3,8 +3,9 @@ use anyhow::{Context, Result};
@@ -115,16 +115,16 @@ index f46ec84..553ee14 100644
      Ok(())
 diff --git a/crates/goose/src/session/export_agent_session.rs b/crates/goose/src/session/export_agent_session.rs
 new file mode 100644
-index 0000000..ffaec22
+index 0000000000000000000000000000000000000000..a0fb23f4021acb174671a861c824d5f16cf528e6
 --- /dev/null
 +++ b/crates/goose/src/session/export_agent_session.rs
 @@ -0,0 +1,293 @@
 +use std::collections::{HashMap, HashSet};
 +
-+use anyhow::{Result, anyhow};
++use anyhow::{anyhow, Result};
 +use chrono::DateTime;
 +use rmcp::model::Role;
-+use serde_json::{Value, json};
++use serde_json::{json, Value};
 +use sha2::{Digest, Sha256};
 +
 +use crate::conversation::message::{ActionRequiredData, MessageContent};
@@ -413,7 +413,7 @@ index 0000000..ffaec22
 +    }
 +}
 diff --git a/crates/goose/src/session/mod.rs b/crates/goose/src/session/mod.rs
-index 8396098..dbcb181 100644
+index 8396098bf8f32b97ff2373adb3baf4f27c3d4297..dbcb1819bf795fd1b026ec1aa186302b8af20163 100644
 --- a/crates/goose/src/session/mod.rs
 +++ b/crates/goose/src/session/mod.rs
 @@ -1,5 +1,6 @@
@@ -432,7 +432,7 @@ index 8396098..dbcb181 100644
  pub use export_markdown::{
      export_session_to_markdown, message_to_markdown, user_projected_message_to_markdown,
 diff --git a/crates/goose/src/session/session_manager.rs b/crates/goose/src/session/session_manager.rs
-index bad31ff..4d3c204 100644
+index bad31ff721c14d185f6d6890d93851705da4ce69..4d3c2048b9dc2c5b861c402ad540fa3a73d13dee 100644
 --- a/crates/goose/src/session/session_manager.rs
 +++ b/crates/goose/src/session/session_manager.rs
 @@ -488,6 +488,13 @@ impl SessionManager {
@@ -513,7 +513,7 @@ index bad31ff..4d3c204 100644
              message.metadata = metadata;
 diff --git a/crates/goose/tests/agent_session_export.rs b/crates/goose/tests/agent_session_export.rs
 new file mode 100644
-index 0000000..3d3029d
+index 0000000000000000000000000000000000000000..3d3029d354ed942a4791730f19582a0bbc108525
 --- /dev/null
 +++ b/crates/goose/tests/agent_session_export.rs
 @@ -0,0 +1,201 @@
@@ -720,7 +720,7 @@ index 0000000..3d3029d
 +}
 diff --git a/crates/goose/tests/fixtures/agent_session/session.json b/crates/goose/tests/fixtures/agent_session/session.json
 new file mode 100644
-index 0000000..3a461ec
+index 0000000000000000000000000000000000000000..3a461ec2415adc2ce3dc28d6a164bf4f46220afa
 --- /dev/null
 +++ b/crates/goose/tests/fixtures/agent_session/session.json
 @@ -0,0 +1,147 @@
@@ -871,6 +871,3 @@ index 0000000..3a461ec
 +    }
 +  ]
 +}
--- 
-2.43.0
-

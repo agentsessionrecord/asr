@@ -1,10 +1,72 @@
 {
   "date": "2026-11-03",
   "sourceBase": "e7a69e5cf7da1dace751cfe9038b7a4448e84bcc",
-  "status": "blocked",
-  "reason": "The consolidated project verification lease timed out after 300 seconds while queued for heavy build admission. Earlier focused leases were cancelled after remaining queued.",
-  "liveTest": "not-run-for-refreshed-source",
-  "nativeSample": "expected synthetic fixture, runtime reproduction not completed for refreshed source",
-  "projectCheckStatus": "not-run",
-  "packageCheckStatus": "The combined check.mjs and reproduce.mjs lease timed out after 120 seconds while queued."
+  "status": "passed",
+  "checks": [
+    {
+      "command": [
+        "{zig}",
+        "fmt",
+        "--check",
+        "src/core/session/agent_session.zig",
+        "src/core/cli/cli_surface.zig",
+        "src/builtins/commands.zig",
+        "build.zig"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "{zig}",
+        "build",
+        "test-agent-session"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "{zig}",
+        "build"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "bun",
+        "test",
+        "tests/e2e/sessions.test.ts",
+        "-t",
+        "fx ask saves to v2, resumes by id and by last, and never writes v1"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "python3",
+        "{package}/reproduce.py",
+        "{checkout}"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "tools/validator/bin/asr-validate.js",
+        "--json",
+        "{package}samples/asr/session.jsonl"
+      ],
+      "exit": 0,
+      "error": null
+    }
+  ],
+  "validator": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "liveTest": "not-run-for-refreshed-source"
 }

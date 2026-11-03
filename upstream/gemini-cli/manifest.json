@@ -36,6 +36,6 @@
     "test-support.mjs": "9f73f3efd5cec70a1b14b805609ddd827ce18395ce0918fc40cac493baaf004c",
     "test.mjs": "3848932082a6c08e7d761c6f71cd984a98eb3bd62d9445d642de54e3e9c7ec36",
     "verification.json": "aec594f751d418f8d44bd2d86f436d2119bf0859ee02c021926eb9a30686f503",
-    "verify-native.mjs": "91f978205ddcba729237ed18105c16acb5b0ec2d24131a3f9d276f415f1dd063"
+    "verify-native.mjs": "b0aec2f2d9b7f3d25895fa1b40f86c4e4090f1a9d1e56d8a010e37eab1897f51"
   }
 }

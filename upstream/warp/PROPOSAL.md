@@ -14,6 +14,10 @@ source times, an initial absolute working directory, text and recorded reasoning
 Unsupported messages become gaps. Invalid times fail before output.
 Tools, models, usage, approvals, attachments, settings and session relationships
 are outside this text projection. No session end or human authorship is inferred.
+Configured upstream secret-redaction rules and built-in redaction patterns filter
+text and reasoning. Matching identities and cwd refuse export before output.
+Redaction declares loss and marks changed records. Pattern coverage does not
+discover arbitrary secret answers.
 Output is ASR 0.1. No UI action or discovery manifest is added.
 
 Warp's client is open source. Persistence code is covered by the repository's

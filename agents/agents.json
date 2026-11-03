@@ -91,8 +91,8 @@
   },
   {
     "name": "fx",
-    "displayName": "FX",
-    "homepage": "https://vercel.com/"
+    "displayName": "fx",
+    "homepage": "https://fx.sh/"
   },
   {
     "name": "gemini-cli",
@@ -102,7 +102,7 @@
   {
     "name": "goose",
     "displayName": "Goose",
-    "homepage": "https://block.github.io/goose/"
+    "homepage": "https://aaif-goose.github.io/goose/"
   },
   {
     "name": "grok-build",
@@ -136,8 +136,8 @@
   },
   {
     "name": "lingma",
-    "displayName": "Lingma",
-    "homepage": "https://lingma.aliyun.com/"
+    "displayName": "Qoder CN",
+    "homepage": "https://qoder.cn/"
   },
   {
     "name": "mimocode",
@@ -151,7 +151,7 @@
   },
   {
     "name": "mux",
-    "displayName": "Mux",
+    "displayName": "Mux (legacy)",
     "homepage": "https://mux.coder.com/"
   },
   {
@@ -218,6 +218,11 @@
     "name": "warp",
     "displayName": "Warp",
     "homepage": "https://www.warp.dev/"
+  },
+  {
+    "name": "xum",
+    "displayName": "Xum",
+    "homepage": "https://xum.coder.com/"
   },
   {
     "name": "zed",

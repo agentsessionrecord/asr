@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-03",
+  "status": "passed",
+  "checks": [
+    {
+      "command": "uv sync --all-groups",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "make test TEST_FILE=\"tests/unit_tests/test_session_export.py tests/unit_tests/test_main.py\" PYTEST_EXTRA=\"-n 0\" COV_ARGS=",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "make lint PYTHON_FILES=\"deepagents_code/session_export.py deepagents_code/main.py deepagents_code/ui.py tests/unit_tests/test_session_export.py\"",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "uv build",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "uv run --frozen python {scratch}/native-python.py deepagents",
+      "exit": 0,
+      "status": "passed"
+    }
+  ],
+  "validator": {
+    "files": 1,
+    "records": 6,
+    "errors": 0,
+    "warnings": 0,
+    "counts": {}
+  },
+  "liveTestStatus": "not-live-tested",
+  "liveTestNotes": "No current model run. Earlier live evidence is historical.",
+  "notes": "The package lint target includes Ruff and type checking. The package build and focused unit tests pass.",
+  "packageCheck": "passed",
+  "patchReplay": "passed"
+}

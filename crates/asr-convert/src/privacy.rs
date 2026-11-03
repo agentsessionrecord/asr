@@ -452,6 +452,13 @@ pub(crate) fn scrub_opaque(v: &mut Value, remove_markers: bool) -> bool {
     let mut changed = false;
     match v {
         Value::Object(o) => {
+            if o.get("type").and_then(Value::as_str) == Some("think")
+                && o.get("encrypted")
+                    .and_then(Value::as_str)
+                    .is_some_and(|s| !s.is_empty())
+            {
+                o.insert("_asrEncrypted".into(), Value::Bool(true));
+            }
             let encrypted = o.get("type").and_then(Value::as_str) == Some("redacted_thinking")
                 || o.get("visibility").and_then(Value::as_str) == Some("encrypted")
                 || o.get("type").and_then(Value::as_str) == Some("thinking")
@@ -478,7 +485,8 @@ pub(crate) fn scrub_opaque(v: &mut Value, remove_markers: bool) -> bool {
                         | "reasoning_details"
                         | "codex_reasoning_items"
                         | "provider_state"
-                ) || remove_markers && key == "_asrRedacted");
+                ) || remove_markers
+                    && matches!(key.as_str(), "_asrRedacted" | "_asrEncrypted"));
                 changed |= !keep;
                 keep
             });

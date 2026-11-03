@@ -1,42 +1,46 @@
-From 3581388011b36340bca02a204996d608c4f947fc Mon Sep 17 00:00:00 2001
+From 53b3217c69051bdd9b6c804c1e50a3ae788c8dac Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
 Subject: [PATCH] Export retained conversation text as Agent Session Record
 
 Keep the projection in persistence so local tools can inspect saved text without opening the client.
 ---
- Cargo.lock                                    |   1 +
- crates/persistence/Cargo.toml                 |   4 +-
- .../examples/export_agent_session.rs          |  38 ++++++
- crates/persistence/src/agent_session.rs       | 114 ++++++++++++++++++
- crates/persistence/src/agent_session_tests.rs |  45 +++++++
+ Cargo.lock                                    |   3 +
+ crates/persistence/Cargo.toml                 |   6 +-
+ .../examples/export_agent_session.rs          |  38 ++++
+ crates/persistence/src/agent_session.rs       | 174 ++++++++++++++++++
+ crates/persistence/src/agent_session_tests.rs | 101 ++++++++++
  crates/persistence/src/lib.rs                 |   1 +
- 6 files changed, 202 insertions(+), 1 deletion(-)
+ 6 files changed, 322 insertions(+), 1 deletion(-)
  create mode 100644 crates/persistence/examples/export_agent_session.rs
  create mode 100644 crates/persistence/src/agent_session.rs
  create mode 100644 crates/persistence/src/agent_session_tests.rs
 
 diff --git a/Cargo.lock b/Cargo.lock
-index ec03eb4..99daaec 100644
+index ec03eb4dd1c372521e37021cd5b506936301f6de..6e012d4c45c399c45bbf6fd04be15fb2430e31a7 100644
 --- a/Cargo.lock
 +++ b/Cargo.lock
-@@ -10084,6 +10084,7 @@ dependencies = [
+@@ -10084,6 +10084,9 @@ dependencies = [
   "chrono",
   "diesel",
   "diesel_migrations",
 + "prost",
++ "regex",
++ "secret_redaction",
   "serde",
   "serde_json",
   "warp_multi_agent_api",
 diff --git a/crates/persistence/Cargo.toml b/crates/persistence/Cargo.toml
-index 4dd84a2..1a39c18 100644
+index 4dd84a23d97156312d7e550ffb74722d4cda43ed..29973f6e81d71be0d708391be01b06767062cb65 100644
 --- a/crates/persistence/Cargo.toml
 +++ b/crates/persistence/Cargo.toml
-@@ -21,7 +21,9 @@ diesel = { workspace = true, features = [
+@@ -21,7 +21,11 @@ diesel = { workspace = true, features = [
  diesel_migrations = "2.2.0"
  ai_types.workspace = true
  serde.workspace = true
 +serde_json.workspace = true
++secret_redaction.workspace = true
++regex.workspace = true
  warp_multi_agent_api.workspace = true
  
  [dev-dependencies]
@@ -45,7 +49,7 @@ index 4dd84a2..1a39c18 100644
 +prost.workspace = true
 diff --git a/crates/persistence/examples/export_agent_session.rs b/crates/persistence/examples/export_agent_session.rs
 new file mode 100644
-index 0000000..44f13cb
+index 0000000000000000000000000000000000000000..44f13cbeaddaf2d021691daec476dc3241440ec4
 --- /dev/null
 +++ b/crates/persistence/examples/export_agent_session.rs
 @@ -0,0 +1,38 @@
@@ -89,10 +93,10 @@ index 0000000..44f13cb
 +}
 diff --git a/crates/persistence/src/agent_session.rs b/crates/persistence/src/agent_session.rs
 new file mode 100644
-index 0000000..404fb85
+index 0000000000000000000000000000000000000000..76d4530a6b03c549c68c3e873d3b861a71d6e7a5
 --- /dev/null
 +++ b/crates/persistence/src/agent_session.rs
-@@ -0,0 +1,114 @@
+@@ -0,0 +1,174 @@
 +use std::collections::HashSet;
 +use std::io::{self, Write};
 +
@@ -115,7 +119,7 @@ index 0000000..404fb85
 +        let mut header = json!({"type":"session", "id":"header", "formatVersion":"0.1",
 +            "agent":{"name":"warp"}, "sessionId":self.conversation.conversation_id,
 +            "producer":{"name":"warp-agent-session", "version":"0.1.0", "method":"native", "source":"warp-agent-task-protobuf"},
-+            "missing":["tool_calls", "tool_output", "usage", "model", "approvals", "agent_settings", "tools", "file_changes", "commits", "subagents", "copies", "context", "provider_state"]});
++            "missing":["tool_calls", "tool_output", "usage", "model", "approvals", "agent_settings", "tools", "file_changes", "commits", "subagents", "copies", "context", "provider_state", "secrets"]});
 +        if let Some(cwd) = api_task_initial_working_directory(task)
 +            .filter(|cwd| std::path::Path::new(cwd).is_absolute())
 +        {
@@ -186,6 +190,35 @@ index 0000000..404fb85
 +            }
 +            records.push(record);
 +        }
++        for record in &mut records {
++            let object = record.as_object_mut().expect("record");
++            for key in ["sessionId", "id", "cwd"] {
++                if let Some(value) = object.get(key).and_then(serde_json::Value::as_str)
++                    && redact_text(value) != value
++                {
++                    return Err(io::Error::new(
++                        io::ErrorKind::InvalidData,
++                        "secret in export identity or path",
++                    ));
++                }
++            }
++            if let Some(parts) = object
++                .get_mut("content")
++                .and_then(serde_json::Value::as_array_mut)
++            {
++                let mut changed = false;
++                for part in parts {
++                    for key in ["text", "summary"] {
++                        if let Some(value) = part.get_mut(key) {
++                            changed |= redact_content(value);
++                        }
++                    }
++                }
++                if changed {
++                    object.insert("truncated".into(), json!(true));
++                }
++            }
++        }
 +        for record in records {
 +            serde_json::to_writer(&mut output, &record)?;
 +            output.write_all(b"\n")?;
@@ -193,10 +226,6 @@ index 0000000..404fb85
 +        Ok(())
 +    }
 +}
-+
-+#[cfg(test)]
-+#[path = "agent_session_tests.rs"]
-+mod tests;
 +
 +fn asr_reasoning(text: &str, summary: bool) -> serde_json::Value {
 +    if text.is_empty() {
@@ -207,12 +236,47 @@ index 0000000..404fb85
 +        serde_json::json!({"type":"reasoning", "text":text})
 +    }
 +}
++
++fn redact_text(text: &str) -> String {
++    static PATTERNS: std::sync::OnceLock<Vec<regex::Regex>> = std::sync::OnceLock::new();
++    let patterns = PATTERNS.get_or_init(|| {
++        secret_redaction::regexes::DEFAULT_REGEXES_WITH_NAMES
++            .iter()
++            .map(|pattern| regex::Regex::new(pattern.pattern).expect("built-in secret pattern"))
++            .collect()
++    });
++    let mut redacted = text.to_owned();
++    secret_redaction::redact_secrets(&mut redacted);
++    for pattern in patterns {
++        redacted = pattern.replace_all(&redacted, "[REDACTED]").into_owned();
++    }
++    redacted
++}
++
++fn redact_content(value: &mut serde_json::Value) -> bool {
++    match value {
++        serde_json::Value::String(text) => {
++            let redacted = redact_text(text);
++            let changed = redacted != *text;
++            *text = redacted;
++            changed
++        }
++        serde_json::Value::Array(values) => values
++            .iter_mut()
++            .fold(false, |changed, value| redact_content(value) | changed),
++        _ => false,
++    }
++}
++
++#[cfg(test)]
++#[path = "agent_session_tests.rs"]
++mod tests;
 diff --git a/crates/persistence/src/agent_session_tests.rs b/crates/persistence/src/agent_session_tests.rs
 new file mode 100644
-index 0000000..f60d0a6
+index 0000000000000000000000000000000000000000..a1670ee88e403f40c260164e378634029ec6a1b9
 --- /dev/null
 +++ b/crates/persistence/src/agent_session_tests.rs
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,101 @@
 +use super::*;
 +use warp_multi_agent_api::{Task, message};
 +
@@ -258,8 +322,64 @@ index 0000000..f60d0a6
 +    assert!(fixture.write_agent_session(&mut output).is_err());
 +    assert!(output.is_empty());
 +}
++
++#[test]
++fn native_export_excludes_recognized_secrets_from_text_and_reasoning() {
++    let secret = format!("ghp_{}", "A".repeat(36));
++    let mut conversation = AgentConversation::default();
++    conversation.conversation.conversation_id = "synthetic-warp".into();
++    conversation.tasks.push(Task {
++        id: "task-1".into(),
++        messages: vec![
++            warp_multi_agent_api::Message {
++                id: "prompt".into(),
++                message: Some(Message::UserQuery(message::UserQuery {
++                    query: format!("Before {secret} after\n"),
++                    ..Default::default()
++                })),
++                ..Default::default()
++            },
++            warp_multi_agent_api::Message {
++                id: "reasoning".into(),
++                message: Some(Message::AgentReasoning(message::AgentReasoning {
++                    reasoning: secret.clone(),
++                    ..Default::default()
++                })),
++                ..Default::default()
++            },
++        ],
++        ..Default::default()
++    });
++    let mut output = Vec::new();
++    conversation.write_agent_session(&mut output).unwrap();
++    let text = String::from_utf8(output).unwrap();
++    assert!(!text.contains(&secret));
++    let records: Vec<serde_json::Value> = text
++        .lines()
++        .map(|line| serde_json::from_str(line).unwrap())
++        .collect();
++    assert_eq!(
++        records[1]["content"][0]["text"],
++        "Before [REDACTED] after\n"
++    );
++    assert_eq!(records[1]["truncated"], true);
++    assert_eq!(records[2]["truncated"], true);
++    assert!(
++        records[0]["missing"]
++            .as_array()
++            .unwrap()
++            .contains(&json!("secrets"))
++    );
++    assert!(
++        matches!(&conversation.tasks[0].messages[0].message, Some(Message::UserQuery(query)) if query.query.contains(&secret))
++    );
++    conversation.conversation.conversation_id = secret;
++    let mut output = Vec::new();
++    assert!(conversation.write_agent_session(&mut output).is_err());
++    assert!(output.is_empty());
++}
 diff --git a/crates/persistence/src/lib.rs b/crates/persistence/src/lib.rs
-index e40ceb2..57f207a 100644
+index e40ceb29684689802c53f04d3b025cbd3a550bd7..57f207a4e7bc492b5331b0f08a14f55cca324d4f 100644
 --- a/crates/persistence/src/lib.rs
 +++ b/crates/persistence/src/lib.rs
 @@ -1,3 +1,4 @@
@@ -267,6 +387,3 @@ index e40ceb2..57f207a 100644
  pub mod model;
  pub mod schema;
  
--- 
-2.43.0
-

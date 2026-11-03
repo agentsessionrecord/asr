@@ -1,12 +1,11 @@
 {
   "date": "2026-11-03",
-  "status": "blocked",
+  "status": "passed",
   "repository": "https://github.com/aaif-goose/goose",
   "base": "0aa212e61d43e35ee2875ca5aa23c28ebac882c7",
-  "head": "f6ea649b9a383ad821f4da9d92f93067ccf0a6df",
-  "nativeChecks": "Not run. Required build admission remained unavailable and queued attempts were cancelled. No current native compilation, tests, lint or fixture execution is certified.",
-  "blocker": "All 12 required build-governor slots are occupied by other sessions.",
-  "sampleStatus": "Retained synthetic sample. Native regeneration on this base is pending.",
+  "head": "1df6bd1c2f54dec7c61db494a98a23b4e3b49fed",
+  "nativeChecks": "Seven export tests, CLI binary build, type check, Clippy and format pass.",
+  "sampleStatus": "Fresh native export matches the packaged synthetic sample.",
   "liveTestStatus": "not-live-tested",
   "notes": "Local exploratory patch. Upstream submission requires a Ready issue. ASR import is separate work.",
   "patchReplay": {
@@ -14,6 +13,42 @@
     "result": "matches committed source tree",
     "tree": "c2d1938f41fb57984e8916daf46495823c492c54"
   },
-  "packageChecks": "Not run. The check.mjs and reproduce.mjs commands were queued, then cancelled because build admission remained unavailable.",
-  "validator": "Not rerun. The retained synthetic sample is unchanged. Historical validator results are not current validation."
+  "packageChecks": "Package integrity and temporary-index replay passed.",
+  "validator": {
+    "records": 9,
+    "errors": 0,
+    "warnings": 0
+  },
+  "checks": [
+    {
+      "command": "cargo check -p goose -p goose-cli",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo clippy -p goose -p goose-cli --all-targets -- -D warnings",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo build -p goose-cli",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo fmt -p goose -p goose-cli --check",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo test -p goose --test agent_session_export",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "python3 {package-root}/goose/reproduce.py {checkouts}/goose",
+      "exit": 0,
+      "status": "passed"
+    }
+  ]
 }

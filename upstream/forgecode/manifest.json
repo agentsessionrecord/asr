@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "agent": "forgecode",
   "base": "a22b49288856d5b3f3ca57e8532683d54a662c8c",
-  "head": "5628f1e95826a35557b2bf37bd6199507c962293",
+  "head": "c3e5d05e168f3d8440cb0e3a5df869e488107a1b",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "5628f1e95826a35557b2bf37bd6199507c962293",
-      "sha256": "73df27484fd584f7357a02407585fb70f577fd5628f83fc4ee2cb443800213af"
+      "commit": "c3e5d05e168f3d8440cb0e3a5df869e488107a1b",
+      "sha256": "7dbe57eb033713c0cec5369cf95bd60b89a45f99ad32682d19357eba14d82ac0"
     }
   ],
   "checks": [
@@ -20,35 +20,35 @@
   "provenance": {
     "agent": "forgecode",
     "base": "a22b49288856d5b3f3ca57e8532683d54a662c8c",
-    "commit": "5628f1e95826a35557b2bf37bd6199507c962293",
+    "commit": "c3e5d05e168f3d8440cb0e3a5df869e488107a1b",
     "patch": "patches/0001-native-agent-session-export.patch",
     "files": {
       ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
-      "PROPOSAL.md": "e3a6bd0973d0645d535ca1cf91c8ab3c099f5cb33fec27a31285299368616d3a",
+      "PROPOSAL.md": "c2e881cecc19dabeffd61fe63240d2ae5eb2081121d8922ed0c06009a0bfec18",
       "README.md": "9153877e037c5b82c8acba5115990f2b0a290a120aac61babef4ec87d271ad2e",
       "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
       "contracts.mjs": "5c01b8aa3b167c9ace70eb09ea39b2b37343381ed63ecec3d1f68d640efc268d",
       "evidence.json": "e3bd9de1c90b1b169f1cb33ad277ba73462796df78db5d4be0fdac5535929da7",
-      "patches/0001-native-agent-session-export.patch": "73df27484fd584f7357a02407585fb70f577fd5628f83fc4ee2cb443800213af",
-      "refresh.json": "78176ed9abfbc08dbd040d7d423d0cc53f75e9e51580ba9ed8711819d3d87da9",
+      "patches/0001-native-agent-session-export.patch": "7dbe57eb033713c0cec5369cf95bd60b89a45f99ad32682d19357eba14d82ac0",
+      "refresh.json": "37dedf152ac302c2eff8d1f1a98fbc6b74f306dba08c6f458c4c94b5113aa46b",
       "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
       "reproduce.py": "8e6fc51e429db5e663c3255cf34ba98f9e943f9556ba61933d86dd9255ff8ade",
       "samples/asr/session.jsonl": "58198837d1c673c00a2332c25551307e27c2a8951be34ea3bdc9da2ba1c256c4",
       "samples/native/conversation.json": "ec6ce2ae9cc16e58fff24328b290145ff5103f1d8e4bed410d360035fc503e19"
     },
     "repository": "https://github.com/tailcallhq/forgecode",
-    "head": "5628f1e95826a35557b2bf37bd6199507c962293",
+    "head": "c3e5d05e168f3d8440cb0e3a5df869e488107a1b",
     "branch": "codex/patch-rust"
   },
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
-    "PROPOSAL.md": "e3a6bd0973d0645d535ca1cf91c8ab3c099f5cb33fec27a31285299368616d3a",
+    "PROPOSAL.md": "c2e881cecc19dabeffd61fe63240d2ae5eb2081121d8922ed0c06009a0bfec18",
     "README.md": "9153877e037c5b82c8acba5115990f2b0a290a120aac61babef4ec87d271ad2e",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "contracts.mjs": "5c01b8aa3b167c9ace70eb09ea39b2b37343381ed63ecec3d1f68d640efc268d",
     "evidence.json": "e3bd9de1c90b1b169f1cb33ad277ba73462796df78db5d4be0fdac5535929da7",
-    "patches/0001-native-agent-session-export.patch": "73df27484fd584f7357a02407585fb70f577fd5628f83fc4ee2cb443800213af",
-    "refresh.json": "78176ed9abfbc08dbd040d7d423d0cc53f75e9e51580ba9ed8711819d3d87da9",
+    "patches/0001-native-agent-session-export.patch": "7dbe57eb033713c0cec5369cf95bd60b89a45f99ad32682d19357eba14d82ac0",
+    "refresh.json": "37dedf152ac302c2eff8d1f1a98fbc6b74f306dba08c6f458c4c94b5113aa46b",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
     "reproduce.py": "8e6fc51e429db5e663c3255cf34ba98f9e943f9556ba61933d86dd9255ff8ade",
     "samples/asr/session.jsonl": "58198837d1c673c00a2332c25551307e27c2a8951be34ea3bdc9da2ba1c256c4",

@@ -1,24 +1,24 @@
-From 4dfb5620b8dece95c20475647acf3853d277f550 Mon Sep 17 00:00:00 2001
+From 91327c4ba4f5de62309904aab5393ddc6f998798 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
 Subject: [PATCH] feat: export Xum chat segments as ASR
 
 ---
- src/cli/agentSessionExport.test.ts | 108 ++++++++++++++++
- src/cli/agentSessionExport.ts      | 192 +++++++++++++++++++++++++++++
- src/cli/index.ts                   |  14 ++-
+ src/cli/agentSessionExport.test.ts | 126 +++++++++++++++++
+ src/cli/agentSessionExport.ts      | 210 +++++++++++++++++++++++++++++
+ src/cli/index.ts                   |  14 +-
  src/cli/sessions.ts                |  23 ++++
- 4 files changed, 336 insertions(+), 1 deletion(-)
+ 4 files changed, 372 insertions(+), 1 deletion(-)
  create mode 100644 src/cli/agentSessionExport.test.ts
  create mode 100644 src/cli/agentSessionExport.ts
  create mode 100644 src/cli/sessions.ts
 
 diff --git a/src/cli/agentSessionExport.test.ts b/src/cli/agentSessionExport.test.ts
 new file mode 100644
-index 0000000..2869fc2
+index 0000000000000000000000000000000000000000..4e3528f72c5ee3529b412a4ad6bce3cf1ffd04e0
 --- /dev/null
 +++ b/src/cli/agentSessionExport.test.ts
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,126 @@
 +import { describe, expect, test } from "bun:test";
 +import { exportAgentSession } from "./agentSessionExport";
 +
@@ -118,21 +118,39 @@ index 0000000..2869fc2
 +  });
 +});
 +
-+
 +test("removes credential fields from tool data and marks the loss", () => {
-+  const source = JSON.stringify({ id: "a", role: "assistant", parts: [{ type: "dynamic-tool", toolCallId: "c", toolName: "read", input: { credentials: "synthetic-excluded-value", path: "fixture" }, state: "output-available", output: { password: "synthetic-excluded-value", text: "done" } }] }) + "\n";
++  const source =
++    JSON.stringify({
++      id: "a",
++      role: "assistant",
++      parts: [
++        {
++          type: "dynamic-tool",
++          toolCallId: "c",
++          toolName: "read",
++          input: { credentials: "synthetic-excluded-value", path: "fixture" },
++          state: "output-available",
++          output: { password: "synthetic-excluded-value", text: "done" },
++        },
++      ],
++    }) + "\n";
 +  const output = exportAgentSession("synthetic", source);
 +  expect(output).not.toContain("synthetic-excluded-value");
-+  const rows = output.trimEnd().split("\n").map(line => JSON.parse(line));
-+  expect(rows.find(row => row.type === "tool_call").truncated).toBe(true);
-+  expect(rows.find(row => row.type === "tool_result")._meta["com.coder.xum"].output).toEqual({ text: "done" });
++  const rows = output
++    .trimEnd()
++    .split("\n")
++    .map((line) => JSON.parse(line));
++  expect(rows.find((row) => row.type === "tool_call").truncated).toBe(true);
++  expect(rows.find((row) => row.type === "tool_result")._meta["com.coder.xum"].output).toEqual({
++    text: "done",
++  });
 +});
 diff --git a/src/cli/agentSessionExport.ts b/src/cli/agentSessionExport.ts
 new file mode 100644
-index 0000000..e14aa45
+index 0000000000000000000000000000000000000000..41f971a167f5911b42defb269dbf928ed1138b3b
 --- /dev/null
 +++ b/src/cli/agentSessionExport.ts
-@@ -0,0 +1,192 @@
+@@ -0,0 +1,210 @@
 +/** Offline export of one explicitly selected native chat.jsonl segment. */
 +import type { MuxMessage } from "@/common/types/message";
 +import { MuxMessageSchema } from "@/common/orpc/schemas/message";
@@ -140,9 +158,23 @@ index 0000000..e14aa45
 +type Row = Record<string, unknown>;
 +
 +function clean(value: unknown): unknown {
-+  if (typeof value === "string") return value.replace(/\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g, "[redacted]");
++  if (typeof value === "string")
++    return value.replace(
++      /\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g,
++      "[redacted]"
++    );
 +  if (Array.isArray(value)) return value.map(clean);
-+  if (value !== null && typeof value === "object") return Object.fromEntries(Object.entries(value).filter(([key]) => !/^(?:api[_-]?key|authorization|password|access[_-]?token|refresh[_-]?token|credentials|signature|thinkingSignature)$/i.test(key)).map(([key, item]) => [key, clean(item)]));
++  if (value !== null && typeof value === "object")
++    return Object.fromEntries(
++      Object.entries(value)
++        .filter(
++          ([key]) =>
++            !/^(?:api[_-]?key|authorization|password|access[_-]?token|refresh[_-]?token|credentials|signature|thinkingSignature)$/i.test(
++              key
++            )
++        )
++        .map(([key, item]) => [key, clean(item)])
++    );
 +  return value;
 +}
 +
@@ -320,13 +352,17 @@ index 0000000..e14aa45
 +  return `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`;
 +}
 +
-+function asrReasoning(text: unknown, summary = false): { type: string; visibility?: string; text?: string; summary?: string[] } {
-+  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
++function asrReasoning(
++  text: unknown,
++  summary = false
++): { type: string; visibility?: string; text?: string; summary?: string[] } {
++  if (typeof text !== "string" || text.length === 0)
++    return { type: "reasoning", visibility: "omitted" };
 +  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
 +  return { type: "reasoning", text };
 +}
 diff --git a/src/cli/index.ts b/src/cli/index.ts
-index 0ccb3ea..105e508 100644
+index 0ccb3ea4935665b2db3c228b6938f0f2a7ff80a5..105e508c46748a412a5d8714b50446c56536c61f 100644
 --- a/src/cli/index.ts
 +++ b/src/cli/index.ts
 @@ -66,7 +66,18 @@ function startCli(): void {
@@ -359,7 +395,7 @@ index 0ccb3ea..105e508 100644
          .command("desktop")
 diff --git a/src/cli/sessions.ts b/src/cli/sessions.ts
 new file mode 100644
-index 0000000..71f664f
+index 0000000000000000000000000000000000000000..71f664f0bdd7a4db690ffc21f2a7894b54d98905
 --- /dev/null
 +++ b/src/cli/sessions.ts
 @@ -0,0 +1,23 @@
@@ -386,6 +422,3 @@ index 0000000..71f664f
 +  await command.parseAsync(process.argv, getParseOptions());
 +  return 0;
 +}
--- 
-2.43.0
-

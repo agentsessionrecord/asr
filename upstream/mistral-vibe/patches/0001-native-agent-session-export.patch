@@ -1,19 +1,19 @@
-From e039fdaad6989f8c19cb0245ebe12e286d256d76 Mon Sep 17 00:00:00 2001
+From 15e36d0bcb8dcf4a3384ceb08e4d3b99188e69ab Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
 Subject: [PATCH] feat: add session snapshot export
 
 ---
  tests/app_server/test_agent_session_export.py |  70 +++++++
- vibe/app_server/agent_session_export.py       | 175 ++++++++++++++++++
+ vibe/app_server/agent_session_export.py       | 185 ++++++++++++++++++
  .../builtins/vibe/skills/vibe/SKILL.md        |  13 ++
- 3 files changed, 258 insertions(+)
+ 3 files changed, 268 insertions(+)
  create mode 100644 tests/app_server/test_agent_session_export.py
  create mode 100644 vibe/app_server/agent_session_export.py
 
 diff --git a/tests/app_server/test_agent_session_export.py b/tests/app_server/test_agent_session_export.py
 new file mode 100644
-index 00000000..c9d158e5
+index 0000000000000000000000000000000000000000..c9d158e5b772a90e3b07940f8064e6e43c6da207
 --- /dev/null
 +++ b/tests/app_server/test_agent_session_export.py
 @@ -0,0 +1,70 @@
@@ -89,10 +89,10 @@ index 00000000..c9d158e5
 +    assert rows[2]["truncated"] is True
 diff --git a/vibe/app_server/agent_session_export.py b/vibe/app_server/agent_session_export.py
 new file mode 100644
-index 00000000..dc9e4164
+index 0000000000000000000000000000000000000000..636f95ed69266ef829a0f4cfaf1ab277966067d0
 --- /dev/null
 +++ b/vibe/app_server/agent_session_export.py
-@@ -0,0 +1,175 @@
+@@ -0,0 +1,185 @@
 +"""Offline ASR export at the public app-server snapshot boundary.
 +
 +Run with ``uv run python -m vibe.app_server.agent_session_export``. The input is
@@ -169,14 +169,12 @@ index 00000000..dc9e4164
 +    if state.session.cwd is not None:
 +        rows[0]["cwd"] = state.session.cwd
 +    if state.history is None or state.history_before_cursor is not None:
-+        rows.append(
-+            {
-+                "type": "gap",
-+                "id": "history-prefix",
-+                "reason": "not_recorded",
-+                "detail": "The snapshot does not include the complete history prefix.",
-+            }
-+        )
++        rows.append({
++            "type": "gap",
++            "id": "history-prefix",
++            "reason": "not_recorded",
++            "detail": "The snapshot does not include the complete history prefix.",
++        })
 +    reserved = {"header", "history-prefix"}
 +    native_ids = {entry.id for entry in state.history or []}
 +    used = set(reserved)
@@ -196,20 +194,7 @@ index 00000000..dc9e4164
 +        used.add(identity)
 +        row: dict[str, Any] = {"id": identity}
 +        if isinstance(entry, PublicMessageEntry):
-+            content = [
-+                {"type": "text", "text": block.text}
-+                for block in entry.content
-+                if isinstance(block, TextContentBlock)
-+            ]
-+            row.update(type="message", role=entry.role, content=content)
-+            if len(content) != len(entry.content):
-+                row["truncated"] = True
-+            if entry.role == "assistant":
-+                row["author"] = "model"
-+            elif entry.role == "system":
-+                row.update(author="harness", origin="instructions")
-+            elif entry.source == "harness":
-+                row.update(author="harness", origin="injected")
++            row.update(_message_row(entry))
 +        elif isinstance(entry, PublicReasoningEntry):
 +            # The public text is readable. No encrypted replay state is copied.
 +            row.update(
@@ -228,8 +213,37 @@ index 00000000..dc9e4164
 +            row["truncated"] = True
 +        # Legacy projections can synthesize created_at. Do not claim those times.
 +        rows.append(row)
++    redacted = _redact_rows(rows[1:])
++    if redacted:
++        rows[0]["missing"].append("secrets")
++    return "".join(
++        json.dumps(row, ensure_ascii=False, allow_nan=False) + "\n" for row in rows
++    )
++
++
++def _message_row(entry: PublicMessageEntry) -> dict[str, Any]:
++    row: dict[str, Any] = {}
++    content = [
++        {"type": "text", "text": block.text}
++        for block in entry.content
++        if isinstance(block, TextContentBlock)
++    ]
++    row.update(type="message", role=entry.role, content=content)
++    if len(content) != len(entry.content):
++        row["truncated"] = True
++    if entry.role == "assistant":
++        row["author"] = "model"
++    elif entry.role == "system":
++        row.update(author="harness", origin="instructions")
++    elif entry.source == "harness":
++        row.update(author="harness", origin="injected")
++    return row
++
++
++def _redact_rows(rows: list[dict[str, Any]]) -> bool:
++    """Filter recognized credentials without changing the source snapshot."""
 +    redacted = False
-+    for row in rows[1:]:
++    for row in rows:
 +        for part in row.get("content", []):
 +            text = part.get("text")
 +            if isinstance(text, str):
@@ -238,11 +252,7 @@ index 00000000..dc9e4164
 +                    part["text"] = cleaned
 +                    row["truncated"] = True
 +                    redacted = True
-+    if redacted:
-+        rows[0]["missing"].append("secrets")
-+    return "".join(
-+        json.dumps(row, ensure_ascii=False, allow_nan=False) + "\n" for row in rows
-+    )
++    return redacted
 +
 +
 +def main() -> None:
@@ -269,7 +279,7 @@ index 00000000..dc9e4164
 +if __name__ == "__main__":
 +    main()
 diff --git a/vibe/plugins/builtins/vibe/skills/vibe/SKILL.md b/vibe/plugins/builtins/vibe/skills/vibe/SKILL.md
-index 4bad9023..6a5495f9 100644
+index 4bad9023c99982432da0f552ebd4c3ffc7c0df4e..6a5495f9f7f44b2e0a574e11085be39a66faaa5b 100644
 --- a/vibe/plugins/builtins/vibe/skills/vibe/SKILL.md
 +++ b/vibe/plugins/builtins/vibe/skills/vibe/SKILL.md
 @@ -73,6 +73,19 @@ lazily: when `read_file` reads a file below the project root, any `AGENTS.md`
@@ -292,6 +302,3 @@ index 4bad9023..6a5495f9 100644
  ## Lifecycle: Exit, Update, Version, Resume
  
  ### Exit
--- 
-2.43.0
-

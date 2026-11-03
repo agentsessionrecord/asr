@@ -3,22 +3,32 @@
   "upstreamChecks": [
     {
       "command": "go test ./internal/asr ./internal/cmd",
-      "status": "blocked",
-      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+      "exit": 0,
+      "status": "passed"
     },
     {
       "command": "go vet ./internal/asr ./internal/cmd",
-      "status": "blocked",
-      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+      "exit": 0,
+      "status": "passed"
     },
     {
-      "command": "go build .",
-      "status": "blocked",
-      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+      "command": "test -z \"$(gofmt -l internal/asr internal/cmd/session.go internal/cmd/session_test.go)\"",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "go build -o {scratch}/crush .",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "python3 {package-root}/crush/reproduce-native.py {scratch}/crush",
+      "exit": 0,
+      "status": "passed"
     }
   ],
-  "formatting": "gofmt applied to changed command files",
-  "nativeFixture": "blocked until native build admission",
+  "formatting": "passed for changed files",
+  "nativeFixture": "passed with the current native exporter",
   "packageCheck": "passed",
   "patchReplay": "passed",
   "sampleRecords": 5,

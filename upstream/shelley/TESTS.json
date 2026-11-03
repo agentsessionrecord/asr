@@ -3,22 +3,32 @@
   "upstreamChecks": [
     {
       "command": "go test ./db ./cmd/shelley-export",
-      "status": "blocked",
-      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+      "exit": 0,
+      "status": "passed"
     },
     {
       "command": "go vet ./db ./cmd/shelley-export",
-      "status": "blocked",
-      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+      "exit": 0,
+      "status": "passed"
     },
     {
-      "command": "go build ./cmd/shelley-export",
-      "status": "blocked",
-      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+      "command": "test -z \"$(gofmt -l db/agent_session.go db/agent_session_test.go cmd/shelley-export/main.go)\"",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "go build -o {scratch}/shelley-export ./cmd/shelley-export",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "python3 {package-root}/shelley/reproduce.py {checkouts}/shelley",
+      "exit": 0,
+      "status": "passed"
     }
   ],
-  "formatting": "existing Go formatting retained",
-  "nativeFixture": "blocked until native build admission",
+  "formatting": "passed for changed files",
+  "nativeFixture": "passed with the current native exporter",
   "packageCheck": "passed",
   "patchReplay": "passed",
   "sampleRecords": 8,

@@ -1,4 +1,4 @@
-From 5628f1e95826a35557b2bf37bd6199507c962293 Mon Sep 17 00:00:00 2001
+From c3e5d05e168f3d8440cb0e3a5df869e488107a1b Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
 Subject: [PATCH] feat(conversation): add Agent Session Record dump format
@@ -15,7 +15,7 @@ Subject: [PATCH] feat(conversation): add Agent Session Record dump format
 
 diff --git a/crates/forge_domain/examples/export_agent_session.rs b/crates/forge_domain/examples/export_agent_session.rs
 new file mode 100644
-index 0000000..7f5cd61
+index 0000000000000000000000000000000000000000..7f5cd6198da8f1de68a71386dd95bee7280e07b2
 --- /dev/null
 +++ b/crates/forge_domain/examples/export_agent_session.rs
 @@ -0,0 +1,13 @@
@@ -34,7 +34,7 @@ index 0000000..7f5cd61
 +}
 diff --git a/crates/forge_domain/src/agent_session.rs b/crates/forge_domain/src/agent_session.rs
 new file mode 100644
-index 0000000..7d19500
+index 0000000000000000000000000000000000000000..ca8615a4b1c8879f5d78621cfa01b96183e9e7dd
 --- /dev/null
 +++ b/crates/forge_domain/src/agent_session.rs
 @@ -0,0 +1,269 @@
@@ -143,6 +143,16 @@ index 0000000..7d19500
 +            output.write_all(b"\n")?;
 +        }
 +        Ok(())
++    }
++}
++
++fn asr_reasoning(text: &str, summary: bool) -> serde_json::Value {
++    if text.is_empty() {
++        serde_json::json!({"type":"reasoning", "visibility":"omitted"})
++    } else if summary {
++        serde_json::json!({"type":"reasoning", "visibility":"summary", "summary":[text]})
++    } else {
++        serde_json::json!({"type":"reasoning", "text":text})
 +    }
 +}
 +
@@ -297,18 +307,8 @@ index 0000000..7d19500
 +        );
 +    }
 +}
-+
-+fn asr_reasoning(text: &str, summary: bool) -> serde_json::Value {
-+    if text.is_empty() {
-+        serde_json::json!({"type":"reasoning", "visibility":"omitted"})
-+    } else if summary {
-+        serde_json::json!({"type":"reasoning", "visibility":"summary", "summary":[text]})
-+    } else {
-+        serde_json::json!({"type":"reasoning", "text":text})
-+    }
-+}
 diff --git a/crates/forge_domain/src/lib.rs b/crates/forge_domain/src/lib.rs
-index 5ae3fca..375fbd0 100644
+index 5ae3fca85dd42ae3daba565cc4a602b6a8b8ef56..375fbd00d892fd8e4afdb5d335c3ad3460cb78c5 100644
 --- a/crates/forge_domain/src/lib.rs
 +++ b/crates/forge_domain/src/lib.rs
 @@ -1,4 +1,5 @@
@@ -318,7 +318,7 @@ index 5ae3fca..375fbd0 100644
  mod auth;
  mod chat_request;
 diff --git a/crates/forge_main/src/cli.rs b/crates/forge_main/src/cli.rs
-index 1068f77..29de8d0 100644
+index 1068f77590ee175371ea2932d2186a07b0e45f7f..29de8d0166cddab952c2590d3996f63cf2fc17fa 100644
 --- a/crates/forge_main/src/cli.rs
 +++ b/crates/forge_main/src/cli.rs
 @@ -726,14 +726,18 @@ pub enum ConversationCommand {
@@ -397,7 +397,7 @@ index 1068f77..29de8d0 100644
              },
              _ => (ConversationId::default(), true),
 diff --git a/crates/forge_main/src/ui.rs b/crates/forge_main/src/ui.rs
-index f1b516c..508859e 100644
+index f1b516cc5b196d121acdf7abd4447e802e31b995..508859e82a4f761628ac6c3b7e39fd06afd04756 100644
 --- a/crates/forge_main/src/ui.rs
 +++ b/crates/forge_main/src/ui.rs
 @@ -922,8 +922,12 @@ impl<A: API + ConsoleWriter + 'static, F: Fn(ForgeConfig) -> A + Send + Sync> UI
@@ -415,6 +415,3 @@ index f1b516c..508859e 100644
  
                  let original_id = self.state.conversation_id;
                  self.state.conversation_id = Some(id);
--- 
-2.43.0
-

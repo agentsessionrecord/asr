@@ -175,3 +175,13 @@ test('endpoint wording catches qualifiers and wrapped prose with source line num
   ]);
   assert.deepEqual(checkWriting('A local endpoint.\nA remote proxy.', 'README.md'), []);
 });
+
+
+test('writing distinguishes relative documentation paths and upstream context', () => {
+  assert.deepEqual(checkWriting('docs/users/features/commands.md', 'manifest.json'), []);
+  assert.equal(checkWriting('/ho' + 'me/person/file', 'README.md')[0].code, 'local-path');
+  const parameter = ['c', 'tx'].join('');
+  const file = 'upstream/example/patches/0001-change.patch';
+  assert.deepEqual(checkWriting(`@@ function(${parameter})\n const ${parameter} = existing;`, file), []);
+  assert.equal(checkWriting(`+const ${parameter} = added;`, file)[0].code, 'internal-name');
+});

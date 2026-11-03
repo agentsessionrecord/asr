@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-03",
+  "status": "passed",
+  "checks": [
+    {
+      "command": "npm ci --ignore-scripts",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "npm run build",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "npm run build:lib",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "npm exec -- esbuild src/utils/transcript-export/agent-session.ts --bundle --platform=node --format=esm --alias:#=./src --outfile={scratch}/openhands-export.mjs",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "npm test -- src/utils/transcript-export __tests__/components/features/conversation/transcript-export-modal.test.tsx src/api/no-direct-agent-server-calls.test.ts",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "npm exec -- prettier --check __tests__/components/features/conversation/transcript-export-modal.test.tsx",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "npm exec -- prettier --write src/components/features/conversation/transcript-export-modal.tsx __tests__/components/features/conversation/transcript-export-modal.test.tsx",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "npm run lint",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "node --input-type=module - <<'JS'\nimport { readFileSync, writeFileSync } from 'node:fs';\nimport assert from 'node:assert/strict';\nimport { eventsToAgentSession } from '{scratch}/openhands-export.mjs';\nconst p='{package-root}/openhands/';\nconst f=JSON.parse(readFileSync(p+'samples/native/native.json','utf8'));\nconst text=eventsToAgentSession(f.events,f.sessionId);\nassert.equal(typeof text,'string');\nassert.deepEqual(text.trim().split('\\n').map(JSON.parse),readFileSync(p+'samples/asr/session.jsonl','utf8').trim().split('\\n').map(JSON.parse));\nwriteFileSync(p+'samples/asr/session.jsonl',text);\nJS",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "node {repository}/tools/validator/bin/asr-validate.js --json {package-root}/openhands/samples/asr/session.jsonl",
+      "exit": 0,
+      "status": "passed"
+    }
+  ],
+  "validator": {
+    "files": 1,
+    "records": 4,
+    "errors": 0,
+    "warnings": 0,
+    "counts": {}
+  },
+  "liveTestStatus": "not-live-tested",
+  "liveTestNotes": "No current model run. Earlier live evidence is historical.",
+  "notes": "Focused tests pass 37 cases in five files. App and library builds pass. Full lint includes type checking. Actual Canvas end-to-end execution remains a contribution gate.",
+  "packageCheck": "passed",
+  "patchReplay": "passed"
+}

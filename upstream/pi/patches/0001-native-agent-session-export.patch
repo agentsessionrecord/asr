@@ -1,4 +1,4 @@
-From f55689b51e86bd1ab17ec995def675ea1384342a Mon Sep 17 00:00:00 2001
+From 17d9afb795d6d356d577422bc328e2e17c93e3c5 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
 Subject: [PATCH] feat(coding-agent): add installable ASR export extension
@@ -7,10 +7,10 @@ Subject: [PATCH] feat(coding-agent): add installable ASR export extension
  .../examples/extensions/asr-export/README.md  |  19 ++
  .../examples/extensions/asr-export/cli.ts     |  23 ++
  .../examples/extensions/asr-export/export.ts  | 244 ++++++++++++++++++
- .../examples/extensions/asr-export/index.ts   |  20 ++
+ .../examples/extensions/asr-export/index.ts   |  21 ++
  .../extensions/asr-export/package.json        |  11 +
- .../test/export-agent-session.test.ts         | 189 ++++++++++++++
- 6 files changed, 506 insertions(+)
+ .../test/export-agent-session.test.ts         | 193 ++++++++++++++
+ 6 files changed, 511 insertions(+)
  create mode 100644 packages/coding-agent/examples/extensions/asr-export/README.md
  create mode 100644 packages/coding-agent/examples/extensions/asr-export/cli.ts
  create mode 100644 packages/coding-agent/examples/extensions/asr-export/export.ts
@@ -20,7 +20,7 @@ Subject: [PATCH] feat(coding-agent): add installable ASR export extension
 
 diff --git a/packages/coding-agent/examples/extensions/asr-export/README.md b/packages/coding-agent/examples/extensions/asr-export/README.md
 new file mode 100644
-index 0000000..e2ce7d8
+index 0000000000000000000000000000000000000000..e2ce7d810eddb0a730661df9da6462839e9cd8cf
 --- /dev/null
 +++ b/packages/coding-agent/examples/extensions/asr-export/README.md
 @@ -0,0 +1,19 @@
@@ -45,7 +45,7 @@ index 0000000..e2ce7d8
 +commits, lineage and other unsupported evidence. Review content before sharing it.
 diff --git a/packages/coding-agent/examples/extensions/asr-export/cli.ts b/packages/coding-agent/examples/extensions/asr-export/cli.ts
 new file mode 100644
-index 0000000..008b453
+index 0000000000000000000000000000000000000000..008b453f6dde29a4b21eec2655f579127c74c048
 --- /dev/null
 +++ b/packages/coding-agent/examples/extensions/asr-export/cli.ts
 @@ -0,0 +1,23 @@
@@ -74,7 +74,7 @@ index 0000000..008b453
 +}
 diff --git a/packages/coding-agent/examples/extensions/asr-export/export.ts b/packages/coding-agent/examples/extensions/asr-export/export.ts
 new file mode 100644
-index 0000000..846e1e1
+index 0000000000000000000000000000000000000000..846e1e1254b8c60ccc5cde03d555e1470d2a5773
 --- /dev/null
 +++ b/packages/coding-agent/examples/extensions/asr-export/export.ts
 @@ -0,0 +1,244 @@
@@ -324,14 +324,15 @@ index 0000000..846e1e1
 +}
 diff --git a/packages/coding-agent/examples/extensions/asr-export/index.ts b/packages/coding-agent/examples/extensions/asr-export/index.ts
 new file mode 100644
-index 0000000..39a9c2b
+index 0000000000000000000000000000000000000000..3cb88d0055738bde469da4a8cc788ab836782776
 --- /dev/null
 +++ b/packages/coding-agent/examples/extensions/asr-export/index.ts
-@@ -0,0 +1,20 @@
+@@ -0,0 +1,21 @@
 +/** Export the current durable session through Pi's public extension API. */
-+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
++
 +import { readFileSync, writeFileSync } from "node:fs";
 +import { resolve } from "node:path";
++import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 +import { exportAgentSessionFile } from "./export.ts";
 +
 +export default function (pi: ExtensionAPI) {
@@ -350,7 +351,7 @@ index 0000000..39a9c2b
 +}
 diff --git a/packages/coding-agent/examples/extensions/asr-export/package.json b/packages/coding-agent/examples/extensions/asr-export/package.json
 new file mode 100644
-index 0000000..ee26ec0
+index 0000000000000000000000000000000000000000..ee26ec0fb1d571af8b6c384afed72337b597035b
 --- /dev/null
 +++ b/packages/coding-agent/examples/extensions/asr-export/package.json
 @@ -0,0 +1,11 @@
@@ -367,18 +368,18 @@ index 0000000..ee26ec0
 +}
 diff --git a/packages/coding-agent/test/export-agent-session.test.ts b/packages/coding-agent/test/export-agent-session.test.ts
 new file mode 100644
-index 0000000..c98be7c
+index 0000000000000000000000000000000000000000..c3049bdd7e959863b7bec917ab8e1574765db2cb
 --- /dev/null
 +++ b/packages/coding-agent/test/export-agent-session.test.ts
-@@ -0,0 +1,189 @@
+@@ -0,0 +1,193 @@
 +import assert from "node:assert/strict";
 +import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 +import { tmpdir } from "node:os";
 +import { join } from "node:path";
 +import { test } from "node:test";
-+import type { ExtensionAPI, ExtensionCommandContext } from "../src/index.ts";
-+import registerExport from "../examples/extensions/asr-export/index.ts";
 +import { exportAgentSessionFile } from "../examples/extensions/asr-export/export.ts";
++import registerExport from "../examples/extensions/asr-export/index.ts";
++import type { ExtensionAPI, ExtensionCommandContext } from "../src/index.ts";
 +
 +const header = {
 +	type: "session",
@@ -458,7 +459,11 @@ index 0000000..c98be7c
 +		const destination = join(directory, "output.jsonl");
 +		writeFileSync(nativeFile, source);
 +		let command: Parameters<ExtensionAPI["registerCommand"]>[1] | undefined;
-+		registerExport({ registerCommand: (_name, registered) => { command = registered; } } as ExtensionAPI);
++		registerExport({
++			registerCommand: (_name, registered) => {
++				command = registered;
++			},
++		} as ExtensionAPI);
 +		assert.ok(command);
 +		const context = {
 +			cwd: directory,
@@ -545,7 +550,7 @@ index 0000000..c98be7c
 +			{ type: "thinking", thinking: "Exact\r\n" },
 +			{ type: "thinking", thinking: "" },
 +		];
-+		const records = exportAgentSessionFile(native.map((entry) => JSON.stringify(entry)).join("\n") + "\n")
++		const records = exportAgentSessionFile(`${native.map((entry) => JSON.stringify(entry)).join("\n")}\n`)
 +			.trimEnd()
 +			.split("\n")
 +			.map((line) => JSON.parse(line));
@@ -560,6 +565,3 @@ index 0000000..c98be7c
 +		);
 +	}
 +});
--- 
-2.43.0
-

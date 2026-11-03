@@ -32,7 +32,7 @@ Focused verification commands:
 
 ```sh
 cargo test -p forge_domain agent_session --lib
-cargo test -p forge_main test_conversation_dump --bin forge
+cargo test -p forge_main dump --lib
 cargo check -p forge_main
 cargo clippy -p forge_domain -p forge_main --all-targets -- -D warnings
 cargo fmt -p forge_domain -p forge_main --check

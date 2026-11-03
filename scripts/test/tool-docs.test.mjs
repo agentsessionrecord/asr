@@ -86,6 +86,7 @@ test('each integration route has a job and samples need no tool row', t => {
   for (const [kind, job] of Object.entries({ converter: 'convert', plugin: 'record', recorder: 'record', library: 'record', importer: 'import', exporter: 'export', app: 'view', patch: 'patch', tool: 'index' })) {
     assert.equal(toolJob({ kind }), job);
   }
+  assert.equal(toolJob({ kind: 'plugin', path: 'upstream/example/plugin' }), 'patch');
   assert.equal(toolJob({ id: 'asr-collect', kind: 'tool' }), 'collect');
   assert.equal(toolJob({ id: 'asr-receive', kind: 'tool' }), 'collect');
   assert.equal(toolJob({ id: 'asr-convert', kind: 'library' }), 'convert');

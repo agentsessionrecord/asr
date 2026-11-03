@@ -1,67 +1,86 @@
 ---
-title: "Apply native export patches"
-description: "Review local patches that add ASR export to pinned agent source revisions."
+title: "Native export integrations"
+description: "Review local export plugins, extensions, skills and source patches."
 ---
 
-Each package contains local source patches and a proposal. Nothing in this
-catalog implies an upstream release or an accepted patch. Choose the exact
-source base in the package's manifest and use a separate writable checkout.
+These integrations are local review candidates. Use each pinned source base and
+read its README for installation, source contracts, checks and known losses.
+OpenClaw uses a plugin, Pi an extension and NanoClaw a utility skill. DeepSeek
+Harness has an unofficial plugin with pinned public API evidence. Source patch
+replay compares trees and does not establish a successful upstream build.
 
-Each README gives installation, native export usage, recorded facts, losses and
-test evidence. Package checks validate digests, patch syntax, synthetic source
-contracts and ASR samples. The reproduction command replays the ordered series
-through a temporary Git index. It does not build the upstream agent or run a
-model session.
-
-Test status comes from the [repository registry](https://github.com/agentsessionrecord/asr/blob/main/registry.json).
-`passed` names a tested path. `partial` means only part of the host path ran.
-`not-live-tested` means no qualifying host or service run is recorded.
-`not-applicable` applies to offline tools and shared libraries.
-Read each README for the version, test scope and remaining limits.
+No current model run was performed for the refreshed source. Earlier live runs
+are historical. Synthetic fixture validation and focused project checks are
+reported separately in each package.
 
 | Tool README | Live-test status |
 | --- | --- |
-| [AstrBot ASR export](https://github.com/agentsessionrecord/asr/blob/main/upstream/astrbot/README.md) | `partial` |
-| [Cline native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/cline/README.md) | `partial` |
-| [Codex native export design feedback](https://github.com/agentsessionrecord/asr/blob/main/upstream/codex/README.md) | `partial` |
-| [Continue native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/continue/README.md) | `partial` |
-| [Crush native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/crush/README.md) | `partial` |
-| [Deep Agents Code ASR export](https://github.com/agentsessionrecord/asr/blob/main/upstream/deepagents/README.md) | `partial` |
-| [DeepSeek harness native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/deepseek-harness/README.md) | `not-live-tested` |
-| [ForgeCode native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/forgecode/README.md) | `partial` |
-| [fx native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/fx/README.md) | `not-live-tested` |
-| [Gemini CLI native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/gemini-cli/README.md) | `partial` |
-| [Goose native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/goose/README.md) | `partial` |
-| [Grok Build native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/grok-build/README.md) | `not-live-tested` |
-| [Hermes native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/hermes/README.md) | `partial` |
-| [Kilo Code native ASR export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/kilo/README.md) | `partial` |
-| [Kimi Code native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/kimi-code/README.md) | `partial` |
-| [Mistral Vibe native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/mistral-vibe/README.md) | `partial` |
-| [Mux native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/mux/README.md) | `partial` |
-| [NanoClaw native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/nanoclaw/README.md) | `not-live-tested` |
-| [OpenClaw native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/openclaw/README.md) | `partial` |
-| [OpenCode native ASR export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/opencode/README.md) | `partial` |
-| [OpenHands Canvas ASR export](https://github.com/agentsessionrecord/asr/blob/main/upstream/openhands/README.md) | `partial` |
-| [Pi native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/pi/README.md) | `partial` |
-| [Qwen Code native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/qwen-code/README.md) | `partial` |
-| [Roo Code native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/roo-code/README.md) | `not-live-tested` |
-| [Shelley native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/shelley/README.md) | `partial` |
+| [Codex native export design feedback](https://github.com/agentsessionrecord/asr/blob/main/upstream/codex/README.md) | `not-live-tested` |
+| [OpenClaw ASR export plugin](https://github.com/agentsessionrecord/asr/blob/main/upstream/openclaw/README.md) | `not-live-tested` |
+| [OpenCode native ASR export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/opencode/README.md) | `not-live-tested` |
+| [Kilo Code native ASR export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/kilo/README.md) | `not-live-tested` |
+| [Gemini CLI native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/gemini-cli/README.md) | `not-live-tested` |
+| [Qwen Code native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/qwen-code/README.md) | `not-live-tested` |
+| [Goose native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/goose/README.md) | `not-live-tested` |
+| [Hermes native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/hermes/README.md) | `not-live-tested` |
+| [Cline native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/cline/README.md) | `not-live-tested` |
+| [OpenHands Canvas ASR export](https://github.com/agentsessionrecord/asr/blob/main/upstream/openhands/README.md) | `not-live-tested` |
+| [Deep Agents Code ASR export](https://github.com/agentsessionrecord/asr/blob/main/upstream/deepagents/README.md) | `not-live-tested` |
+| [AstrBot ASR export](https://github.com/agentsessionrecord/asr/blob/main/upstream/astrbot/README.md) | `not-live-tested` |
 | [Warp native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/warp/README.md) | `not-live-tested` |
 | [Zed native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/zed/README.md) | `not-live-tested` |
+| [Shelley native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/shelley/README.md) | `not-live-tested` |
+| [ForgeCode native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/forgecode/README.md) | `not-live-tested` |
+| [fx native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/fx/README.md) | `not-live-tested` |
+| [NanoClaw ASR export skill](https://github.com/agentsessionrecord/asr/blob/main/upstream/nanoclaw/README.md) | `not-live-tested` |
+| [Kimi Code native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/kimi-code/README.md) | `not-live-tested` |
+| [Grok Build native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/grok-build/README.md) | `not-live-tested` |
+| [DeepSeek Harness ASR export plugin](https://github.com/agentsessionrecord/asr/blob/main/upstream/deepseek-harness/plugin/README.md) | `not-live-tested` |
+| [Crush native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/crush/README.md) | `not-live-tested` |
+| [Xum native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/xum/README.md) | `not-live-tested` |
+| [Mistral Vibe native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/mistral-vibe/README.md) | `not-live-tested` |
+| [Pi ASR export extension](https://github.com/agentsessionrecord/asr/blob/main/upstream/pi/extension/README.md) | `not-live-tested` |
 
-## Capture and host limits
+## Commands and capture limits
 
-Most packages add offline export of retained native history. Grok Build adds
-an opt-in event sidecar. OpenHands and Roo Code add export choices in their
-existing interfaces. Other packages expose CLI commands, examples or an
-authenticated route. Read the selected package's usage before applying it.
+OpenCode uses `opencode session export SESSION_ID --format agent-session`.
+Enable `OPENCODE_AGENT_SESSION_HISTORY=1` before recording and restart an existing
+server. Kilo uses `kilo export SESSION_ID --format agent-session`. Its V1 and V2
+snapshot paths declare incomplete capture. Qwen Code uses
+`/export agent-session [directory]`.
 
-Stored history can lack approval decisions, final model inputs, usage, file
-changes, commits or session relationships. The patch preserves supported facts
-and declares known losses. A valid export does not establish complete capture.
+Codex has six reference commits. `/export --format agent-session PATH` exports
+saved local rollout history. Markdown remains the default. Goose now lives at
+`aaif-goose/goose` and uses `goose session export --session-id`.
+ForgeCode lives at `tailcallhq/forgecode` and uses
+`conversation dump --format agent-session`.
 
-Gemini CLI, Qwen Code, OpenClaw, Continue and OpenHands have `partial` status for
-limited host paths. Their READMEs state which command, export function or SDK
-boundary ran. Zed retains an upstream human review marker. The package check
-does not remove that requirement. Review and build an upstream candidate using
-its own instructions before using the patch beyond its tested scope.
+Xum lives at `coder/xum`. Its native patch exports one selected chat segment
+with a prefix gap. The converter reads archives before active chat and preserves
+legacy Mux names and roots. Pi lives at `earendil-works/pi`. NanoClaw lives at
+`nanocoai/nanoclaw`. Its skill exports one selected Claude SDK continuation,
+including retained tools and identified model calls. The operator confirms the
+session association. It does not capture mailbox delivery or other providers.
+fx lives at `vercel-labs/fx` with homepage [fx.sh](https://fx.sh).
+
+Kimi Code targets the current TypeScript repository and protocol 1.5 store.
+Use `KIMI_CODE_EXPERIMENTAL_AGENT_SESSION_EXPORT=1 kimi export --format agent-session`.
+The ZIP contains only its manifest and ASR. Hermes uses the existing
+`--session-id` selector and positional output in its sessions export command.
+
+OpenHands targets Canvas 1.35.0. Pending PR #16174 touches the same dialog and
+loader. A ready-for-dev issue and real Canvas end-to-end evidence are required
+before submission. Historical SDK-only evidence does not satisfy that gate.
+Mistral Vibe is reference code because community PRs are not accepted.
+
+Warp covers the AGPL persistence crate. Its GH7834 product and technical specs
+are unaccepted drafts. Product UI and lifecycle hooks remain outside scope.
+Zed requires staff-confirmed discussion, human review and a CLA. Grok Build's
+`events.jsonl` telemetry and `updates.jsonl` ACP stream are separate sources.
+DeepSeek Harness accepts community plugins rather than external core PRs.
+
+Stored history can lack approvals, model inputs, usage, file changes, commits
+and relationships. Each integration declares those losses. Successful
+validation does not establish complete capture or suitability for sharing.
+Continue and Roo Code native patch packages have been retired. Their converters
+remain available for saved logs.

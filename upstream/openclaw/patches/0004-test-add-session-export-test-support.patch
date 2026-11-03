@@ -10,7 +10,7 @@ Subject: [PATCH] test: add synthetic session export fixtures
 
 diff --git a/src/sessions/agent-session-export.test-support.ts b/src/sessions/agent-session-export.test-support.ts
 new file mode 100644
-index 00000000000..6e4b6b90eb5
+index 0000000000000000000000000000000000000000..6e4b6b90eb52bd612f52a467279cf2778644976e
 --- /dev/null
 +++ b/src/sessions/agent-session-export.test-support.ts
 @@ -0,0 +1,658 @@
@@ -672,6 +672,3 @@ index 00000000000..6e4b6b90eb5
 +  }
 +  return { agentId: "main", env, path: resolveOpenClawAgentSqlitePath({ agentId: "main", env }) };
 +}
--- 
-2.43.0
-

@@ -33,8 +33,11 @@ cargo run -p persistence --example export_agent_session -- \
 
 One task in a native SQLite conversation supplies IDs, timestamps, the initial absolute working directory, user and assistant text and retained reasoning.
 
-Output uses ASR 0.1 with `producer.method: native`. The projection excludes opaque provider state. It does not provide a general
-secret-redaction service. Keep exports private and review content before sharing.
+Output uses ASR 0.1 with `producer.method: native`. The projection excludes opaque provider state. It applies configured upstream
+redaction rules and built-in redaction patterns to text and reasoning. Changed
+records carry truncation markers and the header declares the loss. A match in
+identity or cwd refuses output before any bytes are written. Unknown secrets
+still require private review before sharing.
 
 ## Limits
 

@@ -181,9 +181,10 @@ pub fn source_dependencies(agent: Agent, path: &Path) -> Result<Vec<PathBuf>> {
                 .and_then(Path::parent)
             {
                 tree(&session.join("state.json"), &mut paths)?;
+                tree(&session.join("session-meta/state.json"), &mut paths)?;
             }
         }
-        Agent::Mux => {
+        Agent::Mux | Agent::Xum => {
             for name in ["metadata.json", "subagent-transcripts.json", "partial.json"] {
                 tree(&parent.join(name), &mut paths)?;
             }

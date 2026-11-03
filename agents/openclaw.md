@@ -96,3 +96,10 @@ The ASR stream keeps those identities and the recorded input and output:
 {"type":"tool_call","id":"entry-1","inferenceId":"response-1","callId":"read-1","name":"read","kind":"read","requestedBy":"model","input":{"path":"/work/app/hello.txt"}}
 {"type":"tool_result","id":"entry-2","callId":"read-1","status":"completed","content":[{"type":"text","text":"hello ASR\n"}]}
 ```
+
+## Local native reference
+
+The primary local integration is the standalone plugin under
+`upstream/openclaw/plugin`. It uses public transcript and CLI APIs. The fuller
+SQLite source patch remains a secondary reference. The transcript projection
+does not provide complete history, all side stores or a tamper-evident chain.

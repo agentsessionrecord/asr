@@ -1,19 +1,54 @@
 {
   "date": "2026-11-03",
-  "status": "blocked",
+  "status": "passed",
   "repository": "https://github.com/tailcallhq/forgecode",
   "base": "a22b49288856d5b3f3ca57e8532683d54a662c8c",
-  "head": "5628f1e95826a35557b2bf37bd6199507c962293",
-  "nativeChecks": "Not run. Required build admission remained unavailable and queued attempts were cancelled. No current native compilation, tests, lint or fixture execution is certified.",
-  "blocker": "All 12 required build-governor slots are occupied by other sessions.",
-  "sampleStatus": "Retained synthetic sample. Native regeneration on this base is pending.",
+  "head": "c3e5d05e168f3d8440cb0e3a5df869e488107a1b",
+  "nativeChecks": "Focused build, tests, type check, Clippy and format pass.",
+  "sampleStatus": "Fresh native export matches the packaged synthetic sample.",
   "liveTestStatus": "not-live-tested",
-  "notes": "Existing dump command extended. CLI parser and dispatch checks need execution.",
+  "notes": "Four domain export tests and six CLI dump tests pass. Focused formatting of every changed Rust file passes. Whole-crate cargo fmt reports an unchanged trailing-space documentation line in crates/forge_main/src/info.rs:75. No unrelated source change was made.",
   "patchReplay": {
     "method": "temporary Git index",
     "result": "matches committed source tree",
     "tree": "352ec7e2fdefd3bac2390ca2c2fbc7767649e526"
   },
-  "packageChecks": "Not run. The check.mjs and reproduce.mjs commands were queued, then cancelled because build admission remained unavailable.",
-  "validator": "Not rerun. The retained synthetic sample is unchanged. Historical validator results are not current validation."
+  "packageChecks": "Package integrity and temporary-index replay passed.",
+  "validator": {
+    "records": 7,
+    "errors": 0,
+    "warnings": 0
+  },
+  "checks": [
+    {
+      "command": "cargo check -p forge_domain -p forge_main",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo test -p forge_main dump --lib",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo test -p forge_domain agent_session --lib",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo clippy -p forge_domain -p forge_main --all-targets -- -D warnings",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "rustfmt --edition 2024 --config skip_children=true crates/forge_domain/examples/export_agent_session.rs crates/forge_domain/src/agent_session.rs crates/forge_domain/src/lib.rs crates/forge_main/src/cli.rs crates/forge_main/src/ui.rs",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "python3 {package-root}/forgecode/reproduce.py {checkouts}/forgecode",
+      "exit": 0,
+      "status": "passed"
+    }
+  ]
 }

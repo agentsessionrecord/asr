@@ -10,7 +10,7 @@ Subject: [PATCH] test: cover native session export boundaries
 
 diff --git a/src/sessions/agent-session-export.test.ts b/src/sessions/agent-session-export.test.ts
 new file mode 100644
-index 00000000000..01c4b32c40c
+index 0000000000000000000000000000000000000000..01c4b32c40ce65a8a3b9174f169bb21dddd5245e
 --- /dev/null
 +++ b/src/sessions/agent-session-export.test.ts
 @@ -0,0 +1,544 @@
@@ -558,6 +558,3 @@ index 00000000000..01c4b32c40c
 +    expect(records[0]!.missing).toContain("model");
 +  });
 +});
--- 
-2.43.0
-

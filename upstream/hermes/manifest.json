@@ -28,12 +28,13 @@
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
     "PROPOSAL.md": "2bf94ee976489acf6f9c9dcd7933a5c5cacf4b970ac751be8ff0f2bcdb42b22d",
     "README.md": "ce548cd0781bc921b8980ce6d1fcc33c994df3931e9dc8c72dadf34bf29d6195",
-    "TEST-RESULTS.md": "2e0d8b4509b75790a625609c301b03996a89e1c563389f605e0e702a241f1e34",
+    "TEST-RESULTS.md": "3f08f39834c271ca95f0e082c24fcbad50e03ecf8ff02c020c1bc0343d9cc3bd",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "check.test.mjs": "1ea0a59dded17c00d3c64de31ea2b44d6cb92aadfdc4a69735116e1b67b59ca4",
+    "integration.json": "9b62b7a70dc6382aa71ae0052f280e232cb423e34c7088ab1d3ad7ff2b59fff7",
     "patches/0001-native-agent-session-export.patch": "b7607ff1547a1b630910678de5760b6ee9b46ce2630cebae8752f8db42cf09a7",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
-    "samples/asr/session.jsonl": "2eac55fbc2cda4a056d0dab10e09761fec661dec74951f005d1f7473c337723b",
+    "samples/asr/session.jsonl": "0c3609a0d921c0019f79183d27b0ac3acd8822a98c11295f02a676b9afc373b9",
     "samples/native/native.json": "506ade39a5bf94c0ddd9e617ef0e76f22d47cb9fb191529f4b0fa86ed2cdd068"
   }
 }

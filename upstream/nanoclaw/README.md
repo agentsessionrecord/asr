@@ -3,13 +3,7 @@
 Source: [https://github.com/nanocoai/nanoclaw](https://github.com/nanocoai/nanoclaw).
 Pinned base: `f7440e85f8b2a75b17fc9a08f0cc6aacf723a1e2`.
 
-The refreshed standalone draft is in `skill/`. Its source changes and tests are
-staged in the upstream clone. The hook-protected source commit is awaiting build
-admission. `draft-source.diff` records the changes after the rebased mailbox patch.
-The manifest patch series still pins that mailbox implementation. It does not yet
-reproduce the Claude transcript sample. Do not treat this package as passing.
-
-The intended patch adds only `.claude/skills/export-agent-session/`. It installs no core
+The patch adds only `.claude/skills/export-agent-session/`. It installs no core
 code or configuration. Select a NanoClaw session and verify which Claude provider
 continuation belongs to it. Select that continuation's SDK JSONL file explicitly.
 
@@ -52,7 +46,9 @@ The second command checks replay in a temporary Git index. It preserves the
 checkout and requires the pinned commits. It does not build the agent.
 Native fixture reproduction is a separate check described below.
 
-The refreshed project checks and fixture regeneration are awaiting execution.
+The root build and focused formatting, lint, TypeScript and unit checks pass.
+The native synthetic continuation export matches the packaged sample and passes
+the reference validator with zero errors and warnings.
 See [verification.json](verification.json) for the current status. Existing
 live evidence is historical and does not validate this revision. No live model
 request was made for this refresh.

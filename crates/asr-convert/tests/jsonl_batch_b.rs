@@ -182,16 +182,17 @@ fn tabnine_uses_last_snapshot_and_keeps_raw_output_out_of_content() {
     assert!(!r.iter().any(|r| r["type"] == "inference"));
 }
 #[test]
-fn kimi_joins_deltas_and_folds_request_usage_at_completion() {
+fn kimi_keeps_completed_parts_and_folds_request_usage_at_completion() {
     let r = one(Agent::KimiCode);
-    assert_eq!(r[0]["sessionId"], "main");
-    assert_eq!(r[0]["namespace"], "synthetic-session");
+    assert_eq!(r[0]["sessionId"], "synthetic-session");
+    assert!(r[0].get("namespace").is_none());
     assert_eq!(r[0]["cwd"], "/work/app");
     let msg = r
         .iter()
         .find(|r| r["type"] == "message" && r["role"] == "assistant")
         .unwrap();
-    assert_eq!(msg["content"][0]["text"], "a b");
+    assert_eq!(msg["content"][0]["text"], "a ");
+    assert!(r.iter().any(|r| r["content"][0]["text"] == "b"));
     assert_eq!(r.iter().filter(|r| r["type"] == "inference").count(), 1);
     let inf = find(&r, "inference");
     assert_eq!(inf["model"]["requested"], "requested");
@@ -467,4 +468,129 @@ fn openclaw_injected_and_inter_session_messages_override_human_sender_metadata()
         assert_eq!(message["author"], author);
         assert_eq!(message["origin"], origin);
     }
+}
+
+#[test]
+fn kimi_protocol_15_uses_native_state_identity_and_completed_part_order() {
+    let tmp = tempfile::tempdir().unwrap();
+    let session = tmp.path().join("arbitrary-directory");
+    let agent = session.join("agents/main");
+    fs::create_dir_all(&agent).unwrap();
+    fs::write(
+        session.join("state.json"),
+        r#"{"id":"native-kimi","forkedFrom":"prior-kimi","cwd":"/work/app"}"#,
+    )
+    .unwrap();
+    let fixture = root().join("../../../upstream/kimi-code/samples/native/native.jsonl");
+    let mut wire = fs::read_to_string(fixture).unwrap();
+    wire.push_str("{broken}\n{partial");
+    fs::write(agent.join("wire.jsonl"), &wire).unwrap();
+    let (_out, streams) = run(Agent::KimiCode, session.clone());
+    let rows = streams.into_values().next().unwrap();
+    assert_eq!(rows[0]["sessionId"], "native-kimi");
+    assert!(rows[0].get("namespace").is_none());
+    assert_eq!(rows[0]["parent"]["session"], "kimi-code:prior-kimi");
+    assert_eq!(rows[0]["startedAt"], "2026-10-30T12:00:00.000Z");
+    assert_eq!(
+        rows.iter().find(|r| r["id"] == "prompt-1").unwrap()["content"][0]["text"],
+        "Exact\r\n"
+    );
+    assert!(rows
+        .iter()
+        .any(|r| r["content"][0]["visibility"] == "encrypted"));
+    assert!(!serde_json::to_string(&rows)
+        .unwrap()
+        .contains("SYNTHETIC-OPAQUE"));
+    let call = find(&rows, "tool_call");
+    assert_eq!(call["input"]["n"], "9007199254740993");
+    assert!(rows
+        .iter()
+        .any(|r| r["type"] == "gap" && r["reason"] == "unparseable"));
+    assert!(rows
+        .iter()
+        .any(|r| r["type"] == "gap" && r["reason"] == "not_retained"));
+    fs::write(agent.join("wire.jsonl"), wire.replace("\"1.5\"", "\"1.4\"")).unwrap();
+    assert!(convert(&Options::new(
+        Agent::KimiCode,
+        session.clone(),
+        tmp.path().join("unsupported")
+    ))
+    .is_err());
+    fs::write(agent.join("wire.jsonl"), "{\"type\":\"metadata\",\"protocol_version\":\"1.5\"}\n{\"type\":\"context.append_loop_event\",\"event\":{\"type\":\"content.part\",\"uuid\":\"completed-a\",\"stepUuid\":\"same-step\",\"part\":{\"type\":\"text\",\"text\":\"first\"}}}\n{\"type\":\"context.append_message\",\"message\":{\"id\":\"notice\",\"role\":\"user\",\"origin\":{\"kind\":\"injection\"},\"content\":\"notice\"}}\n{\"type\":\"context.append_loop_event\",\"event\":{\"type\":\"content.part\",\"uuid\":\"completed-b\",\"stepUuid\":\"same-step\",\"part\":{\"type\":\"text\",\"text\":\"last\"}}}\n").unwrap();
+    let (_out, streams) = run(Agent::KimiCode, session);
+    let rows = streams.into_values().next().unwrap();
+    let messages: Vec<_> = rows.iter().filter(|r| r["type"] == "message").collect();
+    assert_eq!(
+        messages
+            .iter()
+            .map(|r| r["id"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        ["completed-a", "notice", "completed-b"]
+    );
+    assert_eq!(messages[1]["origin"], "injected");
+}
+
+#[test]
+fn kimi_child_identity_and_result_folding_keep_native_relationships() {
+    let tmp = tempfile::tempdir().unwrap();
+    let session = tmp.path().join("unrelated-directory");
+    let child = session.join("agents/child");
+    fs::create_dir_all(&child).unwrap();
+    fs::write(
+        session.join("state.json"),
+        r#"{"id":"session-native","agents":{"child":{"labels":{"parentAgentId":"main"}}}}"#,
+    )
+    .unwrap();
+    let wire = [
+        json!({"type":"metadata","protocol_version":"1.5"}),
+        json!({"type":"context.append_loop_event","time":1793361600001u64,"event":{"type":"tool.call","uuid":"native-call","toolCallId":"c","name":"read","args":{}}}),
+        json!({"type":"context.append_loop_event","time":1793361600002u64,"event":{"type":"tool.result","toolCallId":"c","result":{"output":"old","isError":false}}}),
+        json!({"type":"context.append_message","message":{"id":"intervening","role":"user","content":"notice"}}),
+        json!({"type":"context.append_loop_event","time":1793361600003u64,"event":{"type":"tool.result","toolCallId":"c","result":{"output":"final","isError":true}}}),
+    ].iter().map(|row| format!("{row}\n")).collect::<String>();
+    fs::write(child.join("wire.jsonl"), wire).unwrap();
+    let (_out, streams) = run(Agent::KimiCode, session);
+    let rows = streams.into_values().next().unwrap();
+    assert_eq!(rows[0]["sessionId"], "child");
+    assert_eq!(rows[0]["namespace"], "session-native");
+    assert_eq!(rows[0]["parent"]["session"], "kimi-code:session-native");
+    assert_eq!(find(&rows, "tool_call")["id"], "native-call");
+    let results: Vec<_> = rows.iter().filter(|r| r["type"] == "tool_result").collect();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0]["status"], "failed");
+    assert_eq!(results[0]["ts"], "2026-10-30T12:00:00.003Z");
+    assert!(
+        rows.iter().position(|r| r["id"] == "intervening").unwrap()
+            < rows
+                .iter()
+                .position(|r| r["type"] == "tool_result")
+                .unwrap()
+    );
+    assert!(rows[0]["missing"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("copies")));
+}
+
+#[test]
+fn kimi_rejects_a_store_without_native_session_identity() {
+    let temporary = tempfile::tempdir().unwrap();
+    let session = temporary.path().join("directory-is-not-an-id");
+    let agent = session.join("agents/main");
+    fs::create_dir_all(&agent).unwrap();
+    fs::write(
+        agent.join("wire.jsonl"),
+        "{\"type\":\"metadata\",\"protocol_version\":\"1.5\"}\n",
+    )
+    .unwrap();
+    let output = temporary.path().join("output");
+    let error = convert(&Options::new(Agent::KimiCode, session, output.clone())).unwrap_err();
+    assert!(error.to_string().contains("source_staging_failed"));
+    assert!(!fs::read_dir(output).unwrap().any(|entry| {
+        entry
+            .unwrap()
+            .path()
+            .extension()
+            .is_some_and(|extension| extension == "jsonl")
+    }));
 }

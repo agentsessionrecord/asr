@@ -1,4 +1,4 @@
-//! Mux message snapshots and staged partial selection.
+//! Xum and legacy Mux message snapshots and staged partial selection.
 use crate::{
     batch_a as b,
     common::{self, Context},
@@ -8,7 +8,7 @@ use crate::{
 use serde_json::{json, Value};
 use std::path::Path;
 
-pub fn stage(s: &mut Spool, p: &Path, n: &mut Summary) -> Result<()> {
+pub fn stage(s: &mut Spool, p: &Path, n: &mut Summary, agent: Agent) -> Result<()> {
     let dir = p.parent().unwrap();
     let companion = |name: &str| {
         [
@@ -73,11 +73,11 @@ pub fn stage(s: &mut Spool, p: &Path, n: &mut Summary) -> Result<()> {
         n.diagnostic("unidentified_source");
         return Ok(());
     };
-    let mut h = b::header(Agent::Mux, &id);
+    let mut h = b::header(agent, &id);
     if let Some(cwd) = meta["projectPath"].as_str().filter(|p| common::absolute(p)) {
         h["cwd"] = json!(cwd);
     }
-    crate::repository::capture(&mut h, Agent::Mux, &meta);
+    crate::repository::capture(&mut h, agent, &meta);
     s.session(&id, &h)?;
     if let Some(archive) = archive.as_ref().filter(|path| path.as_path() != p) {
         b::lines(s, archive, &id, n)?;

@@ -45,7 +45,7 @@ The second command checks replay in a temporary Git index. It preserves the
 checkout and requires the pinned commits. It does not build the agent.
 Native fixture reproduction is a separate check described below.
 
-The refreshed project checks and fixture regeneration are awaiting execution.
+Focused project checks and synthetic native fixture reproduction pass.
 See [verification.json](verification.json) for the current status. Existing
 live evidence is historical and does not validate this revision. No live model
 request was made for this refresh.

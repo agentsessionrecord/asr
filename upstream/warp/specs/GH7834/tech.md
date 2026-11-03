@@ -36,7 +36,11 @@ For 2, 3 and 5, compare native IDs, times, text and gaps with the synthetic expo
 then validate every record with the ASR validator.
 For 4 and 6, cover multiple tasks and invalid times in persistence unit tests.
 For 7, assert declared losses and absent invented fields.
-For 9, test secret exclusion before adding the product export action.
+For 9, use the upstream secret-redaction facility and built-in redaction patterns.
+Test text and reasoning removal, truncation markers, declared loss, unchanged
+source data and rejection before output for an identity or cwd match.
+This policy excludes recognized secrets and does not discover arbitrary private
+answers. A product export action still requires an accepted privacy policy.
 
 Run persistence tests and targeted Clippy, then format the touched crate.
 The example and packaged fixture must reproduce the same records.

@@ -35,7 +35,7 @@
     "samples/native/native.jsonl": "0496bbe9beefe2fc3ca9f53a6797d663be47e9997e6d7af0c8553261fcb5bd5f",
     "test.mjs": "c7bec76aecac591c3ef6f0ad873a45d909d7735dd303b0d4cc28ccd5e1283f5f",
     "verification.json": "a879ddcd12d0c2747b117d7bf709c7bf87bec36b8b54bbdc61bc0e679a73f65d",
-    "verify-native.mjs": "91f978205ddcba729237ed18105c16acb5b0ec2d24131a3f9d276f415f1dd063"
+    "verify-native.mjs": "b0aec2f2d9b7f3d25895fa1b40f86c4e4090f1a9d1e56d8a010e37eab1897f51"
   },
   "privacyExceptions": {
     "patches/0001-native-agent-session-export.patch": [

@@ -10,7 +10,7 @@ Output remains private and uses one file per native session.
 | `cursor` | Cursor CLI 2026.06.24 agent transcripts | [Cursor](tests/fixtures/w1-conv-a/cursor) |
 | `gemini-cli` | Unversioned chat journal metadata and message objects, `$set`, `$rewindTo`, and legacy whole-document JSON | [Gemini CLI](tests/fixtures/w1-conv-a/gemini-cli) |
 | `mistral-vibe` | Legacy v1 `meta.json` and `messages.jsonl`, plus `mistral.vibe.unified-session-store/v1` through minor 10 | [Mistral Vibe](tests/fixtures/w1-conv-a/mistral-vibe) |
-| `mux` | Mux v0.27.0 chat messages, archives and partial files | [Mux](tests/fixtures/w1-conv-a/mux) |
+| `xum`, `mux` | Mux v0.27.0 chat messages, archives and partial files | [Mux](tests/fixtures/w1-conv-a/mux) |
 | `fx` | `event_log_v1` with envelope schema 1 and history tool snapshots | [fx](tests/fixtures/w1-conv-a/fx) |
 
 Source compatibility is limited to these contracts and their tested fields.
@@ -91,7 +91,13 @@ Prompt totals whose cache inclusion is unknown stay in vendor metadata.
 Recorded completion totals and cache components can supply session totals.
 These snapshots do not create per-call inference records.
 
-## Mux
+## Xum and legacy Mux
+
+Xum uses agent `xum` and metadata domain `com.coder.xum`. Legacy `mux`
+keeps its name and metadata domain. Discovery prefers `XUM_ROOT`, then
+`MUX_ROOT`, then the first existing `~/.xum`, `~/.mux` or `~/.cmux` root.
+The full-history converter reads archives before active chat. The native
+reference patch exports one selected segment and declares its missing prefix.
 
 Recorded `workspaceId` or the native `sessions/WORKSPACE` storage key supplies identity.
 Conflicting recorded identities are rejected with `ambiguous_source_identity`.

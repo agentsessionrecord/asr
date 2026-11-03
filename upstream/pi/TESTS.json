@@ -1,5 +1,6 @@
 {
-  "status": "pending",
+  "status": "blocked",
   "checks": "See verification.json and PROPOSAL.md",
-  "liveTestStatus": "not-run-for-refreshed-source"
+  "liveTestStatus": "not-run-for-refreshed-source",
+  "reason": "Unchanged Copilot provider TS2322 blocks root check and offline build. Export checks and installed extension smoke pass."
 }

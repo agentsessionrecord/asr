@@ -7,8 +7,8 @@ const require = createRequire(resolve(checkout, 'package.json'));
 const { createJiti } = require('jiti');
 const { Command } = require('commander');
 const jiti = createJiti(import.meta.url, { alias: {
-  'openclaw/plugin-sdk/plugin-entry': resolve(checkout, 'src/plugin-sdk/plugin-entry.ts'),
-  'openclaw/plugin-sdk/session-transcript-runtime': resolve(checkout, 'src/plugin-sdk/session-transcript-runtime.ts'),
+  'openclaw/plugin-sdk/plugin-entry': resolve(checkout, 'dist/plugin-sdk/plugin-entry.js'),
+  'openclaw/plugin-sdk/session-transcript-runtime': resolve(checkout, 'dist/plugin-sdk/session-transcript-runtime.js'),
 } });
 const plugin = await jiti.import(fileURLToPath(new URL('./index.ts', import.meta.url)), { default: true });
 assert.equal(plugin.id, 'asr-export');

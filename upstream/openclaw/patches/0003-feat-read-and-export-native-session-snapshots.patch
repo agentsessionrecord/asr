@@ -12,7 +12,7 @@ Subject: [PATCH] feat: read and export native session snapshots
 
 diff --git a/src/sessions/agent-session-export.source.ts b/src/sessions/agent-session-export.source.ts
 new file mode 100644
-index 00000000000..d6c8c0d8a19
+index 0000000000000000000000000000000000000000..d6c8c0d8a19e92d7145b0c9fda5b6585003a02f5
 --- /dev/null
 +++ b/src/sessions/agent-session-export.source.ts
 @@ -0,0 +1,311 @@
@@ -329,7 +329,7 @@ index 00000000000..d6c8c0d8a19
 +}
 diff --git a/src/sessions/agent-session-export.ts b/src/sessions/agent-session-export.ts
 new file mode 100644
-index 00000000000..ca879d6d28a
+index 0000000000000000000000000000000000000000..ca879d6d28ad8c971d8ab1a20897fae9efffee3d
 --- /dev/null
 +++ b/src/sessions/agent-session-export.ts
 @@ -0,0 +1,145 @@
@@ -478,6 +478,3 @@ index 00000000000..ca879d6d28a
 +  );
 +  return { output: destination, sessions: sessions.length, records: recordCount, bytes };
 +}
--- 
-2.43.0
-

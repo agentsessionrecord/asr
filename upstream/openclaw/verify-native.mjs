@@ -27,9 +27,8 @@ const commands = [
   ],
   [
     "pnpm",
-    "exec",
-    "tsgo",
-    "--noEmit"
+    "run",
+    "tsgo:core"
   ],
   [
     "node",

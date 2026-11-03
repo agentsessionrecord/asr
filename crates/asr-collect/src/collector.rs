@@ -582,7 +582,19 @@ fn roots(args: &CollectArgs) -> Result<Vec<(Agent, PathBuf)>> {
             );
         }
     }
+    if args.sources.is_empty() && args.agents.is_empty() {
+        prefer_current_alias_root(&mut roots);
+    }
     Ok(roots)
+}
+
+fn prefer_current_alias_root(roots: &mut Vec<(Agent, PathBuf)>) {
+    let current: Vec<_> = roots
+        .iter()
+        .filter(|(agent, _)| *agent == Agent::Xum)
+        .map(|(_, path)| path.clone())
+        .collect();
+    roots.retain(|(agent, path)| *agent != Agent::Mux || !current.contains(path));
 }
 
 #[cfg(test)]
@@ -593,6 +605,23 @@ mod tests {
     struct TestArgs {
         #[command(flatten)]
         args: CollectArgs,
+    }
+
+    #[test]
+    fn default_discovery_visits_a_shared_legacy_xum_root_once() {
+        let mut roots = vec![
+            (Agent::Mux, PathBuf::from("/legacy/sessions")),
+            (Agent::Xum, PathBuf::from("/legacy/sessions")),
+            (Agent::Mux, PathBuf::from("/separate/sessions")),
+        ];
+        prefer_current_alias_root(&mut roots);
+        assert_eq!(
+            roots,
+            vec![
+                (Agent::Xum, PathBuf::from("/legacy/sessions")),
+                (Agent::Mux, PathBuf::from("/separate/sessions")),
+            ]
+        );
     }
 
     #[test]

@@ -10,7 +10,7 @@ Subject: [PATCH] Wire offline session exports into the CLI
  3 files changed, 14 insertions(+)
 
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
-index 5b03e52c77..ee3a5128b8 100644
+index 5b03e52c77295e92c81dab8ae1370cd141ec394b..ee3a5128b8f1407f31922246ec0b649434a1b244 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
 @@ -2554,6 +2554,7 @@ dependencies = [
@@ -22,7 +22,7 @@ index 5b03e52c77..ee3a5128b8 100644
   "codex-state",
   "codex-stdio-to-uds",
 diff --git a/codex-rs/cli/Cargo.toml b/codex-rs/cli/Cargo.toml
-index ffff79d331..dcd5666358 100644
+index ffff79d3312d781d02b959ec36902822c4cb87da..dcd566635855eb6b48a2b7dc2b619fd05fe10319 100644
 --- a/codex-rs/cli/Cargo.toml
 +++ b/codex-rs/cli/Cargo.toml
 @@ -70,6 +70,7 @@ codex-responses-api-proxy = { workspace = true }
@@ -34,7 +34,7 @@ index ffff79d331..dcd5666358 100644
  codex-sandboxing = { workspace = true }
  codex-skills-extension = { workspace = true }
 diff --git a/codex-rs/cli/src/main.rs b/codex-rs/cli/src/main.rs
-index fff4dd4656..9da0dba786 100644
+index fff4dd4656f0dee9ccbb3fe6df66357b96eea689..9da0dba786daf6da46c90182e2d615a25034f033 100644
 --- a/codex-rs/cli/src/main.rs
 +++ b/codex-rs/cli/src/main.rs
 @@ -143,6 +143,9 @@ struct MultitoolCli {
@@ -70,6 +70,3 @@ index fff4dd4656..9da0dba786 100644
      }
  }
  
--- 
-2.43.0
-

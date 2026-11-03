@@ -5,10 +5,11 @@ Pinned base: `05a73c2679f5c7bb660e5f391ee89dd5e618f565`.
 
 The primary implementation is the independently installable [plugin](plugin/).
 It uses only public plugin SDK entry points. No core source patch is needed.
-From this package directory, install the local plugin using OpenClaw's plugin CLI:
+Review the local plugin source. From this package directory, install it using
+OpenClaw's plugin CLI. The flags acknowledge local source review and consent to the plugin capabilities:
 
 ```sh
-openclaw plugins install ./plugin
+openclaw plugins install --force --accept-capabilities ./plugin
 openclaw asr-export --agent main --session-key SELECTED_KEY \
   --session NATIVE_SESSION_ID --output session.asr.jsonl
 ```
@@ -36,7 +37,7 @@ The public projection fixture is `samples/native/plugin-projection.json`.
 The secondary fixture remains `samples/native/source.json`.
 Run `node --test upstream/openclaw/plugin/transcript.test.mjs` for plugin mapping,
 and `node upstream/openclaw/plugin/check-entry.mjs /path/to/upstream-checkout`
-to check registration against the public SDK sources.
+to check registration against the built public SDK.
 
 ## Package checks
 
@@ -55,7 +56,12 @@ The second command checks replay in a temporary Git index. It preserves the
 checkout and requires the pinned commits. It does not build the agent.
 Native fixture reproduction is a separate check described below.
 
-The refreshed project checks and fixture regeneration are awaiting execution.
+The full build, focused tests, source lint, core type check, format check and
+synthetic native exports pass. Local plugin installation and selected-session
+export also pass with isolated configuration.
+The full project check passes its preflight and type checks. Full lint is blocked
+by 20 line-limit errors in unchanged upstream files. See `verification.json`
+for the exact paths.
 See [verification.json](verification.json) for the current status. Existing
 live evidence is historical and does not validate this revision. No live model
 request was made for this refresh.

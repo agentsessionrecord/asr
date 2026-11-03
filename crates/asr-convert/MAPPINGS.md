@@ -31,7 +31,7 @@ a person's input. The converter leaves human authorship absent. Explicit native
 | `cursor` | Unknown in agent transcript role | Recorded session metadata when supplied |
 | `gemini-cli` | Unknown in saved `user` messages | Recording metadata when supplied |
 | `mistral-vibe` | Unknown in saved user role | Legacy `origin_directory` or `environment.working_directory`, `git_branch`, `git_commit`. Unified `session_metadata` |
-| `mux` | Unknown in chat messages | Recorded `metadata.projectPath`, no inferred Git branch from its name |
+| `xum`, `mux` | Unknown in chat messages | Recorded `metadata.projectPath`, no inferred Git branch from its name |
 | `fx` | Unknown in turn snapshots | `session_started.payload.workspace_root` |
 | `antigravity` | Unknown in rendered transcript entries | Recorded header metadata when supplied |
 | `tabnine` | Unknown in saved messages | Recorded header metadata when supplied |

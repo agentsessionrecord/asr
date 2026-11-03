@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "agent": "nanoclaw",
   "base": "f7440e85f8b2a75b17fc9a08f0cc6aacf723a1e2",
-  "head": "e229991cc0273b10d866d5b765a82733deceff60",
+  "head": "4025e1a35a5a8e9cde6e26d0d36d3ebf304724fa",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "e229991cc0273b10d866d5b765a82733deceff60",
-      "sha256": "11040098ab916bc968781ad1969e33412e1c2721136a9034fe9fc85458fe0767"
+      "commit": "4025e1a35a5a8e9cde6e26d0d36d3ebf304724fa",
+      "sha256": "b1a269d701ea76a9a4c1aff86f09822b35464b6b66c0193bcfce6a39df0fd736"
     }
   ],
   "checks": [
@@ -21,50 +21,47 @@
     "repository": "https://github.com/nanocoai/nanoclaw",
     "agent": "nanoclaw",
     "base": "f7440e85f8b2a75b17fc9a08f0cc6aacf723a1e2",
-    "head": "e229991cc0273b10d866d5b765a82733deceff60",
-    "commit": "e229991cc0273b10d866d5b765a82733deceff60",
+    "head": "4025e1a35a5a8e9cde6e26d0d36d3ebf304724fa",
+    "commit": "4025e1a35a5a8e9cde6e26d0d36d3ebf304724fa",
     "branch": "codex/patch-js-b",
     "patch": "patches/0001-native-agent-session-export.patch",
     "files": {
       ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
       "PROPOSAL.md": "fafe24666780bc1aad479c267037cc9070e925182c371465c8026a448ddcda55",
-      "README.md": "ff46d900d60240b7ae89bd22435affd67066527938d26dafea298906f9d33546",
+      "README.md": "79953b8d737c7a5d0e786de28faf1adf44eb56e0d0dac8e10f9d0832247fa743",
       "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
       "contracts.mjs": "2c00585f88b032a9a33e67901bcc585819ae9771d81da3cfe03e9e1e20e6cf9b",
-      "draft-source.diff": "e6a095a8cb5382614a83964574acf519a37585d26b50ba7de231593cb20f3282",
-      "evidence.json": "eaae42f6c1ddaefd146fc3d6e74699233caf1eef5b1819357a21f3dc5867fa6d",
-      "patches/0001-native-agent-session-export.patch": "11040098ab916bc968781ad1969e33412e1c2721136a9034fe9fc85458fe0767",
+      "evidence.json": "aa5fb6ea680786f5e10609dcf943bdd8380c3d8890f2d3a364171f14bc298a8e",
+      "patches/0001-native-agent-session-export.patch": "b1a269d701ea76a9a4c1aff86f09822b35464b6b66c0193bcfce6a39df0fd736",
       "reproduce-native.mjs": "75f621e81fdb9561fdbf10299f79d7cbdaf15e020005fae4ac1333b28ae2618e",
       "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
       "samples/asr/session.jsonl": "44103863b82d613ae2f683b96d625a8f0129bda1cae449494c1281e8fb33d935",
       "samples/native/transcript.jsonl": "1902e60f9d3853628a62f17556d9059ab594f8cef67b5ee47da3555996559c4c",
       "skill/SKILL.md": "a94f89b22e66fbaa6aa4a9b59840673dccd00d09ebf1bf4a2274295e1e2c1478",
-      "skill/scripts/export-agent-session.test.ts": "ab0e35dca465d48ebb8c4ac65eaf7077bd5f73662c279937d571b2fe47a2e6b5",
-      "skill/scripts/export-agent-session.ts": "8be685c307cb8679a51cbe6b512ed9b7b3d3d0118f3da1402a29b027d9f699d3",
+      "skill/scripts/export-agent-session.test.ts": "162c5861761a37864f4deba316f524ee8bf2367103f45bd94ddf9be30447018c",
+      "skill/scripts/export-agent-session.ts": "ed8e3d30fd6ee74de59eb180514771cdd44031fff7d7f9e6089670fa3df59b0f",
       "skill/tsconfig.json": "4b5ddb29c6adc3fe823f279d844dc187b62a3c6bff573d941e18fbdaf5711c07",
-      "verification.json": "93586a307f739345577aae66165208859f46e128df7602326c0d3f46d8ed23dc",
+      "verification.json": "84e00be56bed0f9380ce3ba3e97266c85bea9482b2063c57029328ae598ef1f4",
       "verify-native.mjs": "7d342e27af30368caab31f4f0023e303a6b9e1ecc3b7512e7c0f55d9e8c2782e"
-    },
-    "draftStatus": "Claude transcript skill is staged but its hook-protected commit is blocked by build admission. The replayed series remains the rebased mailbox skill. Use skill/ for the refreshed standalone draft."
+    }
   },
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
     "PROPOSAL.md": "fafe24666780bc1aad479c267037cc9070e925182c371465c8026a448ddcda55",
-    "README.md": "ff46d900d60240b7ae89bd22435affd67066527938d26dafea298906f9d33546",
+    "README.md": "79953b8d737c7a5d0e786de28faf1adf44eb56e0d0dac8e10f9d0832247fa743",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "contracts.mjs": "2c00585f88b032a9a33e67901bcc585819ae9771d81da3cfe03e9e1e20e6cf9b",
-    "draft-source.diff": "e6a095a8cb5382614a83964574acf519a37585d26b50ba7de231593cb20f3282",
-    "evidence.json": "eaae42f6c1ddaefd146fc3d6e74699233caf1eef5b1819357a21f3dc5867fa6d",
-    "patches/0001-native-agent-session-export.patch": "11040098ab916bc968781ad1969e33412e1c2721136a9034fe9fc85458fe0767",
+    "evidence.json": "aa5fb6ea680786f5e10609dcf943bdd8380c3d8890f2d3a364171f14bc298a8e",
+    "patches/0001-native-agent-session-export.patch": "b1a269d701ea76a9a4c1aff86f09822b35464b6b66c0193bcfce6a39df0fd736",
     "reproduce-native.mjs": "75f621e81fdb9561fdbf10299f79d7cbdaf15e020005fae4ac1333b28ae2618e",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
     "samples/asr/session.jsonl": "44103863b82d613ae2f683b96d625a8f0129bda1cae449494c1281e8fb33d935",
     "samples/native/transcript.jsonl": "1902e60f9d3853628a62f17556d9059ab594f8cef67b5ee47da3555996559c4c",
     "skill/SKILL.md": "a94f89b22e66fbaa6aa4a9b59840673dccd00d09ebf1bf4a2274295e1e2c1478",
-    "skill/scripts/export-agent-session.test.ts": "ab0e35dca465d48ebb8c4ac65eaf7077bd5f73662c279937d571b2fe47a2e6b5",
-    "skill/scripts/export-agent-session.ts": "8be685c307cb8679a51cbe6b512ed9b7b3d3d0118f3da1402a29b027d9f699d3",
+    "skill/scripts/export-agent-session.test.ts": "162c5861761a37864f4deba316f524ee8bf2367103f45bd94ddf9be30447018c",
+    "skill/scripts/export-agent-session.ts": "ed8e3d30fd6ee74de59eb180514771cdd44031fff7d7f9e6089670fa3df59b0f",
     "skill/tsconfig.json": "4b5ddb29c6adc3fe823f279d844dc187b62a3c6bff573d941e18fbdaf5711c07",
-    "verification.json": "93586a307f739345577aae66165208859f46e128df7602326c0d3f46d8ed23dc",
+    "verification.json": "84e00be56bed0f9380ce3ba3e97266c85bea9482b2063c57029328ae598ef1f4",
     "verify-native.mjs": "7d342e27af30368caab31f4f0023e303a6b9e1ecc3b7512e7c0f55d9e8c2782e"
   }
 }

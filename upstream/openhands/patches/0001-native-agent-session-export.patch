@@ -1,12 +1,12 @@
-From 1d0b4552feed1eeb635f04b1fdac02d02e7f6fd3 Mon Sep 17 00:00:00 2001
+From c860ca5d3036f73c4e39a1b85f8ea00002c77cf0 Mon Sep 17 00:00:00 2001
 From: ASR contributors <contributors@agentsessionrecord.org>
 Date: Sun, 1 Nov 2026 12:54:12 -0500
 Subject: [PATCH] feat(transcript-export): add Agent Session Record format
 
 ---
- .../transcript-export-modal.test.tsx          |  32 +++
+ .../transcript-export-modal.test.tsx          |  35 +++
  scripts/check-translation-completeness.cjs    |   1 +
- .../conversation/transcript-export-modal.tsx  |  45 ++-
+ .../conversation/transcript-export-modal.tsx  |  42 ++-
  src/hooks/use-tracking.ts                     |   4 +-
  src/i18n/translation.json                     |  18 ++
  .../transcript-export/agent-session.test.ts   | 172 ++++++++++++
@@ -14,12 +14,12 @@ Subject: [PATCH] feat(transcript-export): add Agent Session Record format
  src/utils/transcript-export/index.ts          |   2 +-
  .../load-complete-events.test.ts              |  12 +
  .../transcript-export/load-complete-events.ts |   6 +-
- 10 files changed, 536 insertions(+), 17 deletions(-)
+ 10 files changed, 538 insertions(+), 15 deletions(-)
  create mode 100644 src/utils/transcript-export/agent-session.test.ts
  create mode 100644 src/utils/transcript-export/agent-session.ts
 
 diff --git a/__tests__/components/features/conversation/transcript-export-modal.test.tsx b/__tests__/components/features/conversation/transcript-export-modal.test.tsx
-index e17ff54..6d013bc 100644
+index e17ff54b54fb6eecde933b75927f36bf84471b1f..e24b4cd11e57789e8b94092011c818a343a65eae 100644
 --- a/__tests__/components/features/conversation/transcript-export-modal.test.tsx
 +++ b/__tests__/components/features/conversation/transcript-export-modal.test.tsx
 @@ -175,6 +175,38 @@ function renderExportModal({
@@ -61,8 +61,32 @@ index e17ff54..6d013bc 100644
    it("exports the current transcript as Markdown with accessible defaults", async () => {
      const scenario = renderExportModal();
      const markdownRadio = screen.getByRole("radio", {
+@@ -208,6 +240,7 @@ describe("transcript export modal", () => {
+       scenario.loadedEvents,
+       expect.any(Function),
+       1,
++      false,
+     );
+     expect(eventsToMarkdownMock).toHaveBeenCalledWith(scenario.completeEvents, {
+       includeToolDetails: true,
+@@ -275,6 +308,7 @@ describe("transcript export modal", () => {
+       [],
+       expect.any(Function),
+       1,
++      false,
+     );
+     expect(searchEventsMock).toHaveBeenCalledWith(
+       "conversation-1",
+@@ -308,6 +342,7 @@ describe("transcript export modal", () => {
+       scenario.loadedEvents,
+       expect.any(Function),
+       undefined,
++      false,
+     );
+     expect(displayErrorToastMock).not.toHaveBeenCalled();
+   });
 diff --git a/scripts/check-translation-completeness.cjs b/scripts/check-translation-completeness.cjs
-index 823d541..e97c1ff 100755
+index 823d5413ed133657f0dd6d5dfd750a74a03226fd..e97c1ffd30489388b6be2a3cc1d540584d8e2698 100755
 --- a/scripts/check-translation-completeness.cjs
 +++ b/scripts/check-translation-completeness.cjs
 @@ -13,6 +13,7 @@ const path = require('path');
@@ -74,7 +98,7 @@ index 823d541..e97c1ff 100755
    'API$TAVILY_KEY_EXAMPLE',
    'API$TVLY_KEY_EXAMPLE',
 diff --git a/src/components/features/conversation/transcript-export-modal.tsx b/src/components/features/conversation/transcript-export-modal.tsx
-index 0adaa24..03ce96a 100644
+index 0adaa24d8e27523ec0eea0e96190815560dd4ee5..efc5aeb6fbc28008dd84e8317effade23caac540 100644
 --- a/src/components/features/conversation/transcript-export-modal.tsx
 +++ b/src/components/features/conversation/transcript-export-modal.tsx
 @@ -21,6 +21,8 @@ import EventService from "#/api/event-service/event-service.api";
@@ -86,17 +110,7 @@ index 0adaa24..03ce96a 100644
  const TRANSCRIPT_FORMAT_RADIO_NAME = "transcript-export-format";
  
  interface TranscriptExportModalProps {
-@@ -42,8 +44,7 @@ export function TranscriptExportModal({
- }: TranscriptExportModalProps) {
-   const { t } = useTranslation("openhands");
-   const { trackConversationExported } = useTracking();
--  const [format, setFormat] =
--    React.useState<TranscriptExportFormat>("markdown");
-+  const [format, setFormat] = React.useState<TranscriptExportFormat>("markdown");
-   const [includeToolDetails, setIncludeToolDetails] = React.useState(true);
-   const [includeTimestamps, setIncludeTimestamps] = React.useState(true);
-   const [isExporting, setIsExporting] = React.useState(false);
-@@ -83,7 +84,8 @@ export function TranscriptExportModal({
+@@ -83,7 +85,8 @@ export function TranscriptExportModal({
  
        const eventStore = useEventStore.getState();
        const loadedEvents =
@@ -106,7 +120,7 @@ index 0adaa24..03ce96a 100644
            ? eventStore.events
            : [];
        const events = await loadCompleteTranscriptEvents(
-@@ -96,6 +98,7 @@ export function TranscriptExportModal({
+@@ -96,6 +99,7 @@ export function TranscriptExportModal({
              searchOptions,
            ),
          expectedEventCount,
@@ -114,7 +128,7 @@ index 0adaa24..03ce96a 100644
        );
        if (isCancelledRef.current) return;
  
-@@ -106,13 +109,20 @@ export function TranscriptExportModal({
+@@ -106,13 +110,20 @@ export function TranscriptExportModal({
          model,
        };
        const isMarkdown = format === "markdown";
@@ -142,7 +156,7 @@ index 0adaa24..03ce96a 100644
  
        downloadBlob(
          new Blob([content], { type: mimeType }),
-@@ -177,13 +187,24 @@ export function TranscriptExportModal({
+@@ -177,13 +188,24 @@ export function TranscriptExportModal({
              />
              {t(I18nKey.TRANSCRIPT_EXPORT$HTML)}
            </label>
@@ -168,7 +182,7 @@ index 0adaa24..03ce96a 100644
                checked={includeToolDetails}
                onChange={(event) => setIncludeToolDetails(event.target.checked)}
              />
-@@ -192,7 +213,7 @@ export function TranscriptExportModal({
+@@ -192,7 +214,7 @@ export function TranscriptExportModal({
            <label className="flex cursor-pointer items-center gap-3">
              <input
                type="checkbox"
@@ -178,7 +192,7 @@ index 0adaa24..03ce96a 100644
                onChange={(event) => setIncludeTimestamps(event.target.checked)}
              />
 diff --git a/src/hooks/use-tracking.ts b/src/hooks/use-tracking.ts
-index 03a94dc..bf96e78 100644
+index 03a94dc76edc1d7fad81c7adc1ef9dbe62e56358..bf96e788315a8aa4de2f0684dcbe07c97962fe0a 100644
 --- a/src/hooks/use-tracking.ts
 +++ b/src/hooks/use-tracking.ts
 @@ -274,7 +274,9 @@ export const useTracking = () => {
@@ -193,7 +207,7 @@ index 03a94dc..bf96e78 100644
    };
  
 diff --git a/src/i18n/translation.json b/src/i18n/translation.json
-index 7f35147..00946b5 100644
+index 7f3514771e313b63456141554ad037b3a86ef6eb..00946b51f7f263de2d96fe109e0f9ef74a144450 100644
 --- a/src/i18n/translation.json
 +++ b/src/i18n/translation.json
 @@ -15587,6 +15587,24 @@
@@ -223,7 +237,7 @@ index 7f35147..00946b5 100644
      "ja": "スタンドアロン Web ページ（.html）",
 diff --git a/src/utils/transcript-export/agent-session.test.ts b/src/utils/transcript-export/agent-session.test.ts
 new file mode 100644
-index 0000000..1aa203f
+index 0000000000000000000000000000000000000000..1aa203f0254ab550a814c71c06ff4036b8f0c325
 --- /dev/null
 +++ b/src/utils/transcript-export/agent-session.test.ts
 @@ -0,0 +1,172 @@
@@ -401,7 +415,7 @@ index 0000000..1aa203f
 +});
 diff --git a/src/utils/transcript-export/agent-session.ts b/src/utils/transcript-export/agent-session.ts
 new file mode 100644
-index 0000000..3e3c8a2
+index 0000000000000000000000000000000000000000..3e3c8a25c698bf9af2d2ff6ce890d025eaaabf66
 --- /dev/null
 +++ b/src/utils/transcript-export/agent-session.ts
 @@ -0,0 +1,261 @@
@@ -667,7 +681,7 @@ index 0000000..3e3c8a2
 +  return records.map((record) => JSON.stringify(record)).join("\n") + "\n";
 +}
 diff --git a/src/utils/transcript-export/index.ts b/src/utils/transcript-export/index.ts
-index 8624533..3cb3a58 100644
+index 8624533a402030e103996c04b1ee968961ed0dfb..3cb3a58a992f2f57f516a326962a06bfbe2cde7f 100644
 --- a/src/utils/transcript-export/index.ts
 +++ b/src/utils/transcript-export/index.ts
 @@ -38,7 +38,7 @@ import {
@@ -680,7 +694,7 @@ index 8624533..3cb3a58 100644
  export interface TranscriptExportOptions {
    includeToolDetails: boolean;
 diff --git a/src/utils/transcript-export/load-complete-events.test.ts b/src/utils/transcript-export/load-complete-events.test.ts
-index e9df1fc..bcccc2a 100644
+index e9df1fcd962611b9754d9d7df676d62ca42cf1c0..bcccc2aa092d0ad6887e376a636b92ac1e211c92 100644
 --- a/src/utils/transcript-export/load-complete-events.test.ts
 +++ b/src/utils/transcript-export/load-complete-events.test.ts
 @@ -149,3 +149,15 @@ describe("loadCompleteTranscriptEvents", () => {
@@ -700,7 +714,7 @@ index e9df1fc..bcccc2a 100644
 +  ]);
 +});
 diff --git a/src/utils/transcript-export/load-complete-events.ts b/src/utils/transcript-export/load-complete-events.ts
-index 185dc97..54396be 100644
+index 185dc97aa99ec81a87d4e8b469b9822288034a83..54396be4056c1de46239ab57aacd9ded9a6c7a07 100644
 --- a/src/utils/transcript-export/load-complete-events.ts
 +++ b/src/utils/transcript-export/load-complete-events.ts
 @@ -34,6 +34,7 @@ export const loadCompleteTranscriptEvents = async (
@@ -723,6 +737,3 @@ index 185dc97..54396be 100644
    if (
      expectedEventCount !== undefined &&
      fetchedEventIds.size + idLessPersisted < expectedEventCount
--- 
-2.43.0
-

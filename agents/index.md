@@ -39,19 +39,19 @@ Start with a converter note below. The other rows reserve a short name only.
 | Droid | `droid` | [factory.ai](https://factory.ai/) | No |
 | Firebender | `firebender` | [firebender.com](https://firebender.com/) | No |
 | ForgeCode | `forgecode` | [forgecode.dev](https://forgecode.dev/) | No |
-| FX | `fx` | [vercel.com](https://vercel.com/) | No |
+| fx | `fx` | [fx.sh](https://fx.sh/) | No |
 | [Gemini CLI](gemini-cli.md) | `gemini-cli` | [geminicli.com](https://geminicli.com/) | [Yes](gemini-cli.md) |
-| Goose | `goose` | [block.github.io/goose](https://block.github.io/goose/) | No |
+| Goose | `goose` | [aaif-goose.github.io/goose](https://aaif-goose.github.io/goose/) | No |
 | Grok Build | `grok-build` | [grok.com](https://grok.com/) | No |
 | Hermes Agent | `hermes` | [hermes-agent.nousresearch.com](https://hermes-agent.nousresearch.com/) | No |
 | Junie | `junie` | [www.jetbrains.com/junie](https://www.jetbrains.com/junie/) | No |
 | Kilo | `kilo` | [kilo.ai](https://kilo.ai/) | No |
 | Kimi Code | `kimi-code` | [www.kimi.com/code](https://www.kimi.com/code) | No |
 | Kiro | `kiro` | [kiro.dev](https://kiro.dev/) | No |
-| Lingma | `lingma` | [lingma.aliyun.com](https://lingma.aliyun.com/) | No |
+| Qoder CN | `lingma` | [qoder.cn](https://qoder.cn/) | No |
 | MiMoCode | `mimocode` | [mimo.xiaomi.com](https://mimo.xiaomi.com/) | No |
 | Mistral Vibe | `mistral-vibe` | [github.com/mistralai/mistral-vibe](https://github.com/mistralai/mistral-vibe) | No |
-| Mux | `mux` | [mux.coder.com](https://mux.coder.com/) | No |
+| Mux (legacy) | `mux` | [mux.coder.com](https://mux.coder.com/) | No |
 | NanoClaw | `nanoclaw` | [nanoclaw.dev](https://nanoclaw.dev/) | No |
 | [OpenClaw](openclaw.md) | `openclaw` | [openclaw.ai](https://openclaw.ai/) | [Yes](openclaw.md) |
 | [OpenCode](opencode.md) | `opencode` | [opencode.ai](https://opencode.ai/) | [Yes](opencode.md) |
@@ -65,6 +65,7 @@ Start with a converter note below. The other rows reserve a short name only.
 | T3 Code | `t3-code` | [t3.codes](https://t3.codes/) | No |
 | Tabnine | `tabnine` | [www.tabnine.com](https://www.tabnine.com/) | No |
 | Warp | `warp` | [www.warp.dev](https://www.warp.dev/) | No |
+| Xum | `xum` | [xum.coder.com](https://xum.coder.com/) | No |
 | Zed | `zed` | [zed.dev](https://zed.dev/) | No |
 
 ## Converter notes template
@@ -87,3 +88,6 @@ Converter notes add no requirements. Use the following headings in order and kee
 Native fields without a core home can go in `_meta` under the agent's reverse-DNS key, at the converter's choice. Do not retain known secrets or opaque provider state. For every converter and recorder mapping, publish synthetic native inputs, the ASR they produce and the source versions supported. Recorder inputs can be hook payloads or connection messages. A valid example alone does not establish native behavior.
 
 [Conformance](../spec/conformance.md) defines writer and reader behavior. [Missing data](../spec/missing-data.md) explains how to represent a source's limits.
+
+The `mux` short name remains available for legacy logs. Xum uses `xum`.
+Qoder CN keeps `lingma` for compatibility with its recorded logs.

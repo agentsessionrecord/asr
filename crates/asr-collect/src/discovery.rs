@@ -9,6 +9,32 @@ fn configured(name: &str, fallback: PathBuf) -> PathBuf {
         .unwrap_or(fallback)
 }
 
+fn xum_root(home: &Path) -> PathBuf {
+    xum_root_with(
+        home,
+        std::env::var_os("XUM_ROOT"),
+        std::env::var_os("MUX_ROOT"),
+    )
+}
+
+fn xum_root_with(
+    home: &Path,
+    current: Option<std::ffi::OsString>,
+    legacy: Option<std::ffi::OsString>,
+) -> PathBuf {
+    current
+        .filter(|v| !v.is_empty())
+        .or_else(|| legacy.filter(|v| !v.is_empty()))
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            [".xum", ".mux", ".cmux"]
+                .into_iter()
+                .map(|name| home.join(name))
+                .find(|path| path.is_dir())
+                .unwrap_or_else(|| home.join(".xum"))
+        })
+}
+
 pub(crate) fn default_roots(agent: Agent, home: &Path, cwd: &Path) -> Vec<PathBuf> {
     let data = configured("XDG_DATA_HOME", home.join(".local/share"));
     let config = configured("XDG_CONFIG_HOME", home.join(".config"));
@@ -23,7 +49,8 @@ pub(crate) fn default_roots(agent: Agent, home: &Path, cwd: &Path) -> Vec<PathBu
         Agent::Cursor => vec![home.join(".cursor/projects")],
         Agent::GeminiCli => vec![home.join(".gemini/tmp")],
         Agent::MistralVibe => vec![configured("VIBE_HOME", home.join(".vibe")).join("logs")],
-        Agent::Mux => vec![home.join(".mux/sessions")],
+        Agent::Mux => vec![configured("MUX_ROOT", home.join(".mux")).join("sessions")],
+        Agent::Xum => vec![xum_root(home).join("sessions")],
         Agent::Fx => vec![home.join(".fx/sessions")],
         Agent::Antigravity => vec![home.join(".gemini/antigravity")],
         Agent::Tabnine => vec![home.join(".tabnine/agent")],
@@ -110,6 +137,26 @@ pub(crate) fn default_roots(agent: Agent, home: &Path, cwd: &Path) -> Vec<PathBu
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn xum_root_precedence_and_legacy_homes() {
+        let temporary = tempfile::tempdir().unwrap();
+        let home = temporary.path();
+        assert_eq!(xum_root_with(home, None, None), home.join(".xum"));
+        std::fs::create_dir(home.join(".cmux")).unwrap();
+        assert_eq!(xum_root_with(home, None, None), home.join(".cmux"));
+        std::fs::create_dir(home.join(".mux")).unwrap();
+        assert_eq!(xum_root_with(home, None, None), home.join(".mux"));
+        std::fs::create_dir(home.join(".xum")).unwrap();
+        assert_eq!(xum_root_with(home, None, None), home.join(".xum"));
+        assert_eq!(
+            xum_root_with(home, None, Some("/legacy".into())),
+            Path::new("/legacy")
+        );
+        assert_eq!(
+            xum_root_with(home, Some("/current".into()), Some("/legacy".into())),
+            Path::new("/current")
+        );
+    }
     #[test]
     fn every_registered_converter_has_default_roots() {
         for agent in Agent::ALL {

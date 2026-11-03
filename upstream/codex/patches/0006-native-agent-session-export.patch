@@ -1,34 +1,36 @@
-From b87b460c5dee927a7bb4c82a2e0ce0bc2125d350 Mon Sep 17 00:00:00 2001
+From f7fb2ef0cb81627ac9ece054921310571ec9ffce Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Tue, 3 Nov 2026 14:25:19 -0500
 Subject: [PATCH] Extend transcript export with a structured local format
 
 ---
  codex-rs/Cargo.lock                           |  1 +
- codex-rs/session-export/src/export.rs         | 13 ++++++--
- codex-rs/session-export/src/lib.rs            | 32 +++++++++++++++++++
- codex-rs/session-export/src/tests.rs          | 29 +++++++++++++++++
+ codex-rs/session-export/src/export.rs         | 13 +++-
+ codex-rs/session-export/src/lib.rs            | 32 +++++++++
+ codex-rs/session-export/src/mapping/mod.rs    |  1 +
+ codex-rs/session-export/src/source.rs         |  4 +-
+ codex-rs/session-export/src/tests.rs          | 68 +++++++++++++++++++
  codex-rs/tui/Cargo.toml                       |  1 +
- codex-rs/tui/src/app/transcript_export.rs     | 20 ++++++++++++
+ codex-rs/tui/src/app/transcript_export.rs     | 20 ++++++
  codex-rs/tui/src/app_event.rs                 |  1 +
- codex-rs/tui/src/chatwidget/slash_dispatch.rs | 25 ++++++++++++---
- .../tests/copy_export_picker_tests.rs         | 12 +++++++
- 9 files changed, 127 insertions(+), 7 deletions(-)
+ codex-rs/tui/src/chatwidget/slash_dispatch.rs | 25 +++++--
+ .../tests/copy_export_picker_tests.rs         | 12 ++++
+ 11 files changed, 169 insertions(+), 9 deletions(-)
 
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
-index ee3a5128b8..61c02f2f66 100644
+index ee3a5128b8f1407f31922246ec0b649434a1b244..599b6c30e460b43ee8ab709c4c100384311ee285 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
-@@ -5139,6 +5139,7 @@ dependencies = [
-  "codex-protocol-test-support",
+@@ -5140,6 +5140,7 @@ dependencies = [
   "codex-realtime-webrtc",
   "codex-rollout",
-+ "codex-session-export",
   "codex-sandboxing",
++ "codex-session-export",
   "codex-shell-command",
   "codex-state",
+  "codex-terminal-detection",
 diff --git a/codex-rs/session-export/src/export.rs b/codex-rs/session-export/src/export.rs
-index 1bd7aaf0af..58598799c1 100644
+index 1bd7aaf0af01ed75b398bdad2302a0970d317c55..58598799c1fd820be5a5b0288353317e954a0a7b 100644
 --- a/codex-rs/session-export/src/export.rs
 +++ b/codex-rs/session-export/src/export.rs
 @@ -35,7 +35,16 @@ pub(crate) struct Stats {
@@ -59,7 +61,7 @@ index 1bd7aaf0af..58598799c1 100644
                  eprintln!("later metadata requires --out for annotation sidecars");
              }
 diff --git a/codex-rs/session-export/src/lib.rs b/codex-rs/session-export/src/lib.rs
-index 6de4a80e39..43b4e20202 100644
+index 6de4a80e39980336e3cb666be8b7760823dbbd9a..43b4e2020268ac2692c3d9b5af41648f9a218014 100644
 --- a/codex-rs/session-export/src/lib.rs
 +++ b/codex-rs/session-export/src/lib.rs
 @@ -83,5 +83,37 @@ impl SessionsCommand {
@@ -100,11 +102,39 @@ index 6de4a80e39..43b4e20202 100644
 +
  #[cfg(test)]
  mod tests;
+diff --git a/codex-rs/session-export/src/mapping/mod.rs b/codex-rs/session-export/src/mapping/mod.rs
+index 1250001af0084ff26ee45864a2f59eb495d11ab2..5d307c522344a4ab0f185a37586d72839ac56b37 100644
+--- a/codex-rs/session-export/src/mapping/mod.rs
++++ b/codex-rs/session-export/src/mapping/mod.rs
+@@ -109,6 +109,7 @@ impl Mapper {
+         let kind = match codex_rollout::decode_rollout_line(line.clone()) {
+             Ok(typed) => match typed.item {
+                 RolloutItem::SessionMeta(_) => "session_meta",
++                RolloutItem::DynamicToolsUpdated { .. } => "dynamic_tools_updated",
+                 RolloutItem::ResponseItem(_) => "response_item",
+                 RolloutItem::InterAgentCommunication(_) => "inter_agent_communication",
+                 RolloutItem::InterAgentCommunicationMetadata { .. } => {
+diff --git a/codex-rs/session-export/src/source.rs b/codex-rs/session-export/src/source.rs
+index f9d02a68287b78eed915ceadf0a9568713c70556..65047ed5e78a802729f7ca4571406d59d2405603 100644
+--- a/codex-rs/session-export/src/source.rs
++++ b/codex-rs/session-export/src/source.rs
+@@ -165,9 +165,9 @@ pub(crate) fn inventory(
+                 }
+             }
+         }
+-        if !candidate
++        if candidate
+             .as_ref()
+-            .is_some_and(|(id, _)| hint == Some(id.as_str()))
++            .is_none_or(|(id, _)| hint != Some(id.as_str()))
+         {
+             let mut reader = Source::open(&path, max_line_bytes)?;
+             while let Some(value) = reader.next()? {
 diff --git a/codex-rs/session-export/src/tests.rs b/codex-rs/session-export/src/tests.rs
-index ecfde86b60..d230619bb5 100644
+index ecfde86b608c687cc90622fed6c65224dacf64c0..f8579f8de7496e463aae2e372d882e263d59f48e 100644
 --- a/codex-rs/session-export/src/tests.rs
 +++ b/codex-rs/session-export/src/tests.rs
-@@ -890,3 +890,32 @@ fn unresolved_native_tool_removals_do_not_leave_stale_offered_tools() {
+@@ -890,3 +890,71 @@ fn unresolved_native_tool_removals_do_not_leave_stale_offered_tools() {
      ]);
      assert!(!records.iter().any(|r| r.get("tools").is_some()));
  }
@@ -137,8 +167,47 @@ index ecfde86b60..d230619bb5 100644
 +        );
 +    }
 +}
++
++#[test]
++fn dynamic_tool_catalog_replacements_remain_positioned_native_events() {
++    let payload = json!({"thread_id":THREAD,"tools":[{"type":"function","name":"lookup","description":"Synthetic lookup","inputSchema":{"type":"object"}}]});
++    let update = line("dynamic_tools_updated", payload.clone());
++    assert!(matches!(
++        codex_rollout::decode_rollout_line(update.clone())
++            .unwrap()
++            .item,
++        codex_rollout::RolloutItem::DynamicToolsUpdated { .. }
++    ));
++    let (header, records) = mapped(vec![
++        update,
++        line(
++            "dynamic_tools_updated",
++            json!({"thread_id":THREAD,"tools":[]}),
++        ),
++    ]);
++    assert_eq!(records.len(), 2);
++    assert_eq!(
++        records[0]["_meta"]["com.openai.codex"]["event"]["payload"],
++        payload
++    );
++    assert_eq!(
++        records[1]["_meta"]["com.openai.codex"]["event"]["payload"]["tools"],
++        json!([])
++    );
++    assert!(
++        header["missing"]
++            .as_array()
++            .unwrap()
++            .contains(&json!("native_event_normalization"))
++    );
++    assert!(
++        records
++            .iter()
++            .all(|record| record["type"] == "com.openai.codex/event")
++    );
++}
 diff --git a/codex-rs/tui/Cargo.toml b/codex-rs/tui/Cargo.toml
-index 47968b8694..aee602a5dc 100644
+index 47968b86946d94be3b72d3dc2f817ec18cf82f55..aee602a5dc9fd4c1bce82dea0c0a4297df843c9d 100644
 --- a/codex-rs/tui/Cargo.toml
 +++ b/codex-rs/tui/Cargo.toml
 @@ -59,6 +59,7 @@ codex-protocol = { workspace = true }
@@ -150,7 +219,7 @@ index 47968b8694..aee602a5dc 100644
  codex-shell-command = { workspace = true }
  codex-state = { workspace = true }
 diff --git a/codex-rs/tui/src/app/transcript_export.rs b/codex-rs/tui/src/app/transcript_export.rs
-index 00775bba50..8d2194ec2c 100644
+index 00775bba50a642025f173fd679f7116b21c81bd9..8d2194ec2c7914c545ce53476c8f61a74b0c27cf 100644
 --- a/codex-rs/tui/src/app/transcript_export.rs
 +++ b/codex-rs/tui/src/app/transcript_export.rs
 @@ -39,6 +39,23 @@ impl App {
@@ -188,7 +257,7 @@ index 00775bba50..8d2194ec2c 100644
                  let result = tui.copy_transcript_selection(
                      &markdown,
 diff --git a/codex-rs/tui/src/app_event.rs b/codex-rs/tui/src/app_event.rs
-index 3444d65bd0..2c8af0f476 100644
+index 3444d65bd0d0ea02a53e860e33f9b426d92f86c1..2c8af0f476cab8f59a5e35dc49cc7cf41fa8d94b 100644
 --- a/codex-rs/tui/src/app_event.rs
 +++ b/codex-rs/tui/src/app_event.rs
 @@ -259,6 +259,7 @@ pub(crate) enum KeymapCaptureMode {
@@ -200,7 +269,7 @@ index 3444d65bd0..2c8af0f476 100644
  
  /// Deliver a generated title to its originating automatic rename or editable prompt.
 diff --git a/codex-rs/tui/src/chatwidget/slash_dispatch.rs b/codex-rs/tui/src/chatwidget/slash_dispatch.rs
-index 2774779fa6..2db581770e 100644
+index 2774779fa6a1a5763e4f89f31c8974d23aeb2d81..2db581770edce072546835876dec0dc8be9a078c 100644
 --- a/codex-rs/tui/src/chatwidget/slash_dispatch.rs
 +++ b/codex-rs/tui/src/chatwidget/slash_dispatch.rs
 @@ -828,11 +828,26 @@ impl ChatWidget {
@@ -236,7 +305,7 @@ index 2774779fa6..2db581770e 100644
              SlashCommand::Cd => self.request_working_directory_change(trimmed),
              SlashCommand::Pwd => {
 diff --git a/codex-rs/tui/src/chatwidget/tests/copy_export_picker_tests.rs b/codex-rs/tui/src/chatwidget/tests/copy_export_picker_tests.rs
-index 4c2cab5b58..a07fc50076 100644
+index 4c2cab5b584a40a315773784c65b67f677b8044d..528df597a247696ec24a4572173f1d7b7ca4a478 100644
 --- a/codex-rs/tui/src/chatwidget/tests/copy_export_picker_tests.rs
 +++ b/codex-rs/tui/src/chatwidget/tests/copy_export_picker_tests.rs
 @@ -168,3 +168,15 @@ async fn completed_copy_source_survives_replay_and_stream_consolidation() {
@@ -253,8 +322,5 @@ index 4c2cab5b58..a07fc50076 100644
 +        Vec::new(),
 +    );
 +    assert!(std::iter::from_fn(|| rx.try_recv().ok()).any(|event| matches!(event,
-+        AppEvent::ExportTranscript { destination: TranscriptExportDestination::AgentSessionFile(path) } if path == PathBuf::from("record.jsonl"))));
++        AppEvent::ExportTranscript { destination: TranscriptExportDestination::AgentSessionFile(path) } if path.as_path() == std::path::Path::new("record.jsonl"))));
 +}
--- 
-2.43.0
-

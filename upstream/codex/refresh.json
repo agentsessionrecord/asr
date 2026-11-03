@@ -1,19 +1,54 @@
 {
   "date": "2026-11-03",
-  "status": "blocked",
+  "status": "passed",
   "repository": "https://github.com/openai/codex",
   "base": "6b2a2757de696c2506ee460c49c66a8e2bed65e0",
-  "head": "b87b460c5dee927a7bb4c82a2e0ce0bc2125d350",
-  "nativeChecks": "Not run. Required build admission remained unavailable and queued attempts were cancelled. No current native compilation, tests, lint or fixture execution is certified.",
-  "blocker": "All 12 required build-governor slots are occupied by other sessions.",
-  "sampleStatus": "Retained synthetic sample. Native regeneration on this base is pending.",
+  "head": "f7fb2ef0cb81627ac9ece054921310571ec9ffce",
+  "nativeChecks": "Focused build, tests, type check, Clippy and format pass.",
+  "sampleStatus": "Fresh native export matches the packaged synthetic sample.",
   "liveTestStatus": "not-live-tested",
-  "notes": "Reference code only. New TUI integration needs compilation and tests.",
+  "notes": "The current exporter handles DynamicToolsUpdated without losing its native position. The 36 exporter tests and existing-command TUI regression pass. The two Clippy style fixes do not change export behavior. Native fixture output remains exact. Reference code only.",
   "patchReplay": {
     "method": "temporary Git index",
     "result": "matches committed source tree",
     "tree": "6d7f1465c8cdcc5cff17ff431194bce3ea8062e8"
   },
-  "packageChecks": "Not run. The check.mjs and reproduce.mjs commands were queued, then cancelled because build admission remained unavailable.",
-  "validator": "Not rerun. The retained synthetic sample is unchanged. Historical validator results are not current validation."
+  "packageChecks": "Package integrity and temporary-index replay passed.",
+  "validator": {
+    "records": 8,
+    "errors": 0,
+    "warnings": 1
+  },
+  "checks": [
+    {
+      "command": "cargo test -p codex-session-export",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo check -p codex-session-export -p codex-tui",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "python3 {package-root}/codex/reproduce.py {checkouts}/codex",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo test -p codex-tui structured_export_uses_the_existing_export_command --lib",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo clippy -p codex-session-export -p codex-tui --all-targets -- -D warnings",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "cargo fmt -p codex-session-export -p codex-tui --check",
+      "exit": 0,
+      "status": "passed"
+    }
+  ]
 }

@@ -3,15 +3,15 @@
 Export recorded OpenCode sessions in a format that search and audit tools can
 read.
 
+Adds ASR to the existing `session export` format selector. Capture requires
+`OPENCODE_AGENT_SESSION_HISTORY=1` before recording begins.
+Restart an existing server with that setting.
+
 For [OpenCode](https://github.com/anomalyco/opencode):
 
 ```sh
 opencode session export SESSION_ID --format agent-session
 ```
-
-Adds ASR to the existing `session export` format selector. Capture requires
-`OPENCODE_AGENT_SESSION_HISTORY=1` before recording begins. Restart an existing
-server with this setting.
 
 The exporter writes ASR 0.1 from opt-in durable session events. It preserves
 retained text, reasoning and tool results, declares missing facts and filters

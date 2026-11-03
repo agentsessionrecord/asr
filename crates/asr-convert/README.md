@@ -24,10 +24,10 @@ The CLI's `asr agents` output lists selectable names.
 | Source group | Agents | Mapping and limits |
 | --- | --- | --- |
 | Transcripts | Claude Code, Codex | [Coverage below](#adapter-coverage) |
-| Documents and snapshots | Cursor, Gemini CLI, Mistral Vibe, Mux, fx | [Source contracts](ADAPTERS-W1A.md) |
+| Documents and snapshots | Cursor, Gemini CLI, Mistral Vibe, Xum, legacy Mux, fx | [Source contracts](ADAPTERS-W1A.md) |
 | Native JSONL | Antigravity, Tabnine, Qoder, Droid, Copilot CLI, Qwen Code, Grok Build, Pi, Kimi Code, DeepSeek harness, Junie, legacy OpenClaw | [JSONL profiles](src/jsonl/README.md) |
 | Stored documents | Auggie, Cline, CodeBuddy, Continue, Hermes, NanoClaw, OpenHands, Roo Code, Rovo Dev | [Document source profiles](tests/fixtures/documents/README.md) |
-| Databases | AstrBot, Crush, Lingma, Shelley, Deep Agents, ForgeCode, OpenCode, Kilo Code, MiMoCode, Zed, Devin, Firebender, Goose, Kiro, Warp, OpenClaw | [Database profiles](DATABASE-ADAPTERS.md) |
+| Databases | AstrBot, Crush, Qoder CN, Shelley, Deep Agents, ForgeCode, OpenCode, Kilo Code, MiMoCode, Zed, Devin, Firebender, Goose, Kiro, Warp, OpenClaw | [Database profiles](DATABASE-ADAPTERS.md) |
 
 The OpenClaw selector accepts both supported SQLite and legacy JSONL layouts.
 Source profile support does not establish compatibility with every agent release.

@@ -1,11 +1,99 @@
 {
   "date": "2026-11-03",
   "sourceBase": "7a11fb8cba1afb39f74d268029d449e2d1de9156",
-  "status": "blocked",
-  "reason": "The consolidated project verification lease timed out after 300 seconds while queued for heavy build admission. Earlier focused leases were cancelled after remaining queued.",
-  "liveTest": "not-run-for-refreshed-source",
-  "nativeSample": "expected synthetic fixture, runtime reproduction not completed for refreshed source",
-  "integrationBlocker": "The generated validator recognizes mux but not xum. Integration must update the agent registry and regenerate validator schemas before this renamed sample can validate.",
-  "projectCheckStatus": "not-run",
-  "packageCheckStatus": "The combined check.mjs and reproduce.mjs lease timed out after 120 seconds while queued."
+  "status": "passed",
+  "checks": [
+    {
+      "command": [
+        "bun",
+        "x",
+        "prettier",
+        "--write",
+        "src/cli/agentSessionExport.ts",
+        "src/cli/agentSessionExport.test.ts",
+        "src/cli/sessions.ts",
+        "src/cli/index.ts"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "bun",
+        "test",
+        "src/cli/agentSessionExport.test.ts"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "make",
+        "build-main"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "make",
+        "typecheck"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "bun",
+        "x",
+        "oxlint",
+        "src/cli/agentSessionExport.ts",
+        "src/cli/agentSessionExport.test.ts",
+        "src/cli/sessions.ts",
+        "src/cli/index.ts"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "bun",
+        "src/cli/index.ts",
+        "sessions",
+        "export",
+        "--session",
+        "synthetic-xum",
+        "--source",
+        "{package}samples/native/native.jsonl",
+        "--format",
+        "agent-session"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "{package}/reproduce-native.mjs",
+        "{checkout}"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "tools/validator/bin/asr-validate.js",
+        "--json",
+        "{package}samples/asr/session.jsonl"
+      ],
+      "exit": 0,
+      "error": null
+    }
+  ],
+  "validator": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "liveTest": "not-run-for-refreshed-source"
 }

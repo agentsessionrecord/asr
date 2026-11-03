@@ -47,5 +47,8 @@
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
+  },
+  "overrides": {
+    "zod": "4.6.6"
   }
 }

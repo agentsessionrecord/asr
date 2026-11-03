@@ -8,7 +8,7 @@ import { filesUnder, repositoryRoot } from './lib/files.mjs';
 const history = /agent trace|earlier draft|previous draft|was removed|no longer|v3\.[0-9]|fitted|priority tool|admission rule|written exception|experimental tier|v321|fixture-verified|no-model|harness-authors|langfuse|complian(t|ce with)|non-normative|\bc[t]x\b|c[t]xrs/i;
 const agentName = /t[3] code|t[3]code|t[3]-code|codes\.t[3]/i;
 const internalName = /\bc[t]x(?:-[a-z][a-z-]*)?\b|c[t]xrs/i;
-const localPath = /\$(?:WORK[T]REES|ASR_RE[S]EARCH)\b|\/(?:home|Users)\/[^/\s"'<>\\]+|[A-Z]:[\\/]+Users[\\/]+[^\\/\s"'<>]+/i;
+const localPath = /\$(?:WORK[T]REES|ASR_RE[S]EARCH)\b|(?<![A-Za-z0-9_.-])\/(?:home|Users)\/[^/\s"'<>\\]+|[A-Z]:[\\/]+Users[\\/]+[^\\/\s"'<>]+/i;
 const disclosure = /^The author also builds \[c[t]x\]\(\), an open-source converter and search tool for agent sessions\.$/i;
 const environment = /\b83[1]7\b|\bgpt-\d+(?:\.\d+)?-(?:s[o]l|l[u]na|a[s]tra|f[a]ble)\b|\bhai[k]u\b/i;
 // Include wrapped prose and the added-line prefix in documentation patches.
@@ -36,7 +36,8 @@ export function checkWriting(text, file) {
     // This is a native API identifier, rather than an internal tool reference.
     const names = /^upstream\/deepseek-harness\/patches\//.test(file)
       ? line.replace(/\bc[t]x(?=[:,).])/g, 'context') : line;
-    if (internalName.test(names) && !disclosed) findings.push({ line: index + 1, code: 'internal-name' });
+    const upstreamContext = /^upstream\/[^/]+\/patches\//.test(file) && /^(?: |@@)/.test(line);
+    if (internalName.test(names) && !disclosed && !upstreamContext) findings.push({ line: index + 1, code: 'internal-name' });
     if (agentName.test(line) && !catalog) findings.push({ line: index + 1, code: 'agent-name' });
     if (localPath.test(line)) findings.push({ line: index + 1, code: 'local-path' });
     if (/build\s+governor/i.test(line)

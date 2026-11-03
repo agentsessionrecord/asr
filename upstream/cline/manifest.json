@@ -45,6 +45,6 @@
     "samples/native/native.json": "fca8c5637127378c8dc0d30dd5cc6af5c196c4fabc16d3299dc67e041f1c9a82",
     "validation.json": "ba6a5ccf67188a776c3e10aff1c88e913d41768a6299e846b52bdd538d32eaa7",
     "verification.json": "aee326bb63377a9bf6ff10de2191f8352c6f72d28d5a1df459fb56021c5019bb",
-    "verify-native.mjs": "b70a3f0bc5b086c34e4e49e0a818ed13b5163fd59c5d19fb41dbff3701e98459"
+    "verify-native.mjs": "71b8ad6b5534be1a0c87634e7cccaf436a724217d9e38a3802d2e12bf79adc9e"
   }
 }

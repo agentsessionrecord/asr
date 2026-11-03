@@ -12,7 +12,7 @@ Subject: [PATCH] Add explicit session discovery registration
 
 diff --git a/codex-rs/session-export/src/discovery.rs b/codex-rs/session-export/src/discovery.rs
 new file mode 100644
-index 0000000000..57f5a74269
+index 0000000000000000000000000000000000000000..57f5a74269d559a34707e63de635f7d3b55d647d
 --- /dev/null
 +++ b/codex-rs/session-export/src/discovery.rs
 @@ -0,0 +1,39 @@
@@ -56,7 +56,7 @@ index 0000000000..57f5a74269
 +    Ok(())
 +}
 diff --git a/codex-rs/session-export/src/lib.rs b/codex-rs/session-export/src/lib.rs
-index e9171eb14d..6de4a80e39 100644
+index e9171eb14d723f986d2d031f09d976de64ab3733..6de4a80e39980336e3cb666be8b7760823dbbd9a 100644
 --- a/codex-rs/session-export/src/lib.rs
 +++ b/codex-rs/session-export/src/lib.rs
 @@ -3,6 +3,7 @@
@@ -85,7 +85,7 @@ index e9171eb14d..6de4a80e39 100644
                  if args.thread.is_none() && args.out.is_none() {
                      bail!("use --thread for stdout, or --out for a bundle");
 diff --git a/codex-rs/session-export/src/tests.rs b/codex-rs/session-export/src/tests.rs
-index 732c22b079..7564b8112d 100644
+index 732c22b079f24db2f6c80576c4a731fd516a9031..7564b8112de1efb4f61d58fb75ced3d589d88bcb 100644
 --- a/codex-rs/session-export/src/tests.rs
 +++ b/codex-rs/session-export/src/tests.rs
 @@ -688,6 +688,41 @@ async fn state_snapshot_is_read_only_and_does_not_migrate() {
@@ -130,6 +130,3 @@ index 732c22b079..7564b8112d 100644
  fn a_shrinking_source_ends_with_one_gap() {
      let mut file = tempfile::NamedTempFile::new().unwrap();
      writeln!(file, "{}", line("session_meta", header())).unwrap();
--- 
-2.43.0
-

@@ -102,3 +102,10 @@ The ASR stream declares missing model identity, copies, timestamps, approvals an
 {"type":"tool_result","id":"part-1:result","callId":"edit-1","status":"completed","content":[{"type":"text","text":"Edit applied."}]}
 {"type":"file_change","id":"part-1:change","callId":"edit-1","path":"/work/parser.py","op":"modify","status":"applied","patch":"--- a/parser.py\n+++ b/parser.py\n@@ -1 +1 @@\n-limit = int(value)\n+limit = int(value or \"0\")\n"}
 ```
+
+## Local native reference
+
+The local native reference uses
+`opencode session export SESSION_ID --format agent-session`.
+Enable `OPENCODE_AGENT_SESSION_HISTORY=1` before recording and restart an
+existing server with that setting. Capture is partial and requires design approval.

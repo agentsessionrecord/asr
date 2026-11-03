@@ -1,5 +1,5 @@
 // Draft 2020-12 schemas. Keep objects and enums open for future fields and values.
-export const AGENT_NAMES = "amp antigravity astrbot auggie claude-code cline codebuddy codex continue copilot-cli crush cursor deepagents deepseek-harness devin droid firebender forgecode fx gemini-cli goose grok-build hermes junie kilo kimi-code kiro lingma mimocode mistral-vibe mux nanoclaw openclaw opencode openhands pi qoder qwen-code roo-code rovodev shelley t3-code tabnine warp zed".split(" ");
+export const AGENT_NAMES = "amp antigravity astrbot auggie claude-code cline codebuddy codex continue copilot-cli crush cursor deepagents deepseek-harness devin droid firebender forgecode fx gemini-cli goose grok-build hermes junie kilo kimi-code kiro lingma mimocode mistral-vibe mux nanoclaw openclaw opencode openhands pi qoder qwen-code roo-code rovodev shelley t3-code tabnine warp xum zed".split(" ");
 export const SCHEMA_FILES = {
   record: "agent-session.schema.json",
   annotation: "annotation.schema.json",

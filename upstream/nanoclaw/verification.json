@@ -1,11 +1,104 @@
 {
   "date": "2026-11-03",
   "sourceBase": "f7440e85f8b2a75b17fc9a08f0cc6aacf723a1e2",
-  "status": "blocked",
-  "reason": "The consolidated project verification lease timed out after 300 seconds while queued for heavy build admission. Earlier focused leases were cancelled after remaining queued.",
+  "status": "passed",
+  "checks": [
+    {
+      "command": [
+        "pnpm",
+        "exec",
+        "prettier",
+        "--write",
+        ".claude/skills/export-agent-session/scripts/export-agent-session.ts",
+        ".claude/skills/export-agent-session/scripts/export-agent-session.test.ts"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        ".claude/skills/export-agent-session/scripts/export-agent-session.test.ts"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "pnpm",
+        "exec",
+        "tsc",
+        "-p",
+        ".claude/skills/export-agent-session/tsconfig.json"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "pnpm",
+        "exec",
+        "eslint",
+        ".claude/skills/export-agent-session/scripts/export-agent-session.ts",
+        ".claude/skills/export-agent-session/scripts/export-agent-session.test.ts"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        ".claude/skills/export-agent-session/scripts/export-agent-session.ts",
+        "--session",
+        "synthetic-session",
+        "--transcript",
+        "{package}samples/native/transcript.jsonl",
+        "--format",
+        "agent-session"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "{package}/reproduce-native.mjs",
+        "{checkout}"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "tools/validator/bin/asr-validate.js",
+        "--json",
+        "{package}samples/asr/session.jsonl"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": "pnpm run build",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "python3 {scratch}/nanoclaw-clean.py",
+      "exit": 0,
+      "status": "passed"
+    }
+  ],
+  "validator": {
+    "files": 1,
+    "records": 7,
+    "errors": 0,
+    "warnings": 0,
+    "counts": {}
+  },
   "liveTest": "not-run-for-refreshed-source",
-  "nativeSample": "expected synthetic fixture, runtime reproduction not completed for refreshed source",
-  "projectCheckStatus": "not-run",
-  "packageCheckStatus": "The combined check.mjs and reproduce.mjs lease timed out after 120 seconds while queued.",
-  "sourceCommitStatus": "amendment lease timed out after 120 seconds while queued. No hook bypass. Staged draft and standalone skill are preserved."
+  "cleanSnapshot": "Committed skill and root module declaration, with installed upstream dependencies. Four Vitest cases, strict TypeScript and exact native sample comparison pass."
 }

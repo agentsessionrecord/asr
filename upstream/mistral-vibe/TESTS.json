@@ -1,12 +1,46 @@
 {
   "checks": [
-    "Current refresh blocked. Submitted checks were canceled before resource admission."
+    {
+      "command": "VIBE_SKIP_RUST_TUI=1 uv sync --frozen",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "VIBE_SKIP_RUST_TUI=1 uv build",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "VIBE_SKIP_RUST_TUI=1 uv run --frozen ruff check --fix vibe/app_server/agent_session_export.py tests/app_server/test_agent_session_export.py",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "VIBE_SKIP_RUST_TUI=1 uv run --frozen ruff format vibe/app_server/agent_session_export.py tests/app_server/test_agent_session_export.py",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "VIBE_SKIP_RUST_TUI=1 uv run --frozen pytest -n 0 tests/app_server/test_agent_session_export.py",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "VIBE_SKIP_RUST_TUI=1 uv run --frozen pyright vibe/app_server/agent_session_export.py tests/app_server/test_agent_session_export.py",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "VIBE_SKIP_RUST_TUI=1 uv run --frozen python {scratch}/native-python.py mistral-vibe",
+      "exit": 0,
+      "status": "passed"
+    }
   ],
   "sampleRecords": 5,
   "sampleErrors": 0,
   "sampleWarnings": [],
-  "liveTestStatus": "partial",
-  "refreshStatus": "blocked",
-  "sampleEvidence": "Historical sample counts. Not revalidated for this refresh.",
-  "refreshSampleErrors": null
+  "liveTestStatus": "not-live-tested",
+  "refreshStatus": "passed",
+  "sampleEvidence": "Fresh native synthetic fixture validated on the pinned source.",
+  "refreshSampleErrors": 0
 }

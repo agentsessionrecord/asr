@@ -11,7 +11,7 @@
         "src/cli/command-path-policy.test.ts",
         "src/cli/program/register.status-health-sessions.test.ts"
       ],
-      "exit": 2,
+      "exit": 0,
       "error": null
     },
     {
@@ -24,17 +24,16 @@
         "src/sessions/agent-session-export.transcript.ts",
         "src/commands/sessions-export.ts"
       ],
-      "exit": 1,
+      "exit": 0,
       "error": null
     },
     {
       "command": [
         "pnpm",
-        "exec",
-        "tsgo",
-        "--noEmit"
+        "run",
+        "tsgo:core"
       ],
-      "exit": 1,
+      "exit": 0,
       "error": null
     },
     {
@@ -52,7 +51,7 @@
         "{package}/plugin/check-entry.mjs",
         "{checkout}"
       ],
-      "exit": 1,
+      "exit": 0,
       "error": null
     },
     {
@@ -61,10 +60,10 @@
         "--import",
         "./scripts/tsx.mjs",
         "{package}/reproduce-native.mjs",
-        "{package}/samples/native/source.json",
+        "{package}samples/native/source.json",
         "{scratch}/session.jsonl"
       ],
-      "exit": 1,
+      "exit": 0,
       "error": null
     },
     {
@@ -80,9 +79,9 @@
         "node",
         "tools/validator/bin/asr-validate.js",
         "--json",
-        "{package}/samples/asr/plugin.jsonl"
+        "{package}samples/asr/plugin.jsonl"
       ],
-      "exit": 1,
+      "exit": 0,
       "error": null
     },
     {
@@ -90,16 +89,149 @@
         "node",
         "tools/validator/bin/asr-validate.js",
         "--json",
-        "{package}/samples/asr/session.jsonl"
+        "{package}samples/asr/session.jsonl"
       ],
-      "exit": 1,
+      "exit": 0,
       "error": null
+    },
+    {
+      "command": "pnpm exec oxfmt --check src/sessions/agent-session-export*.ts src/commands/sessions-export.ts src/cli/program/register.status-health-sessions.ts",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "node {package-root}/openclaw/plugin/check-entry.mjs {checkouts}/openclaw",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "python3 {scratch}/openclaw-host-smoke.py",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "pnpm build",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "pnpm check --base 05a73c2679f5c7bb660e5f391ee89dd5e618f565",
+      "exit": 1,
+      "status": "failed",
+      "reason": "20 unchanged upstream max-lines errors"
     }
   ],
   "validator": {
-    "status": "unavailable"
+    "files": 2,
+    "records": 14,
+    "errors": 0,
+    "warnings": 0,
+    "counts": {}
   },
   "liveTest": "not-run-for-refreshed-source",
-  "reason": "Plugin mapper tests and synthetic plugin export passed. Repository tests, lint, typecheck, SDK registration and secondary native export failed to start because required upstream dependencies are absent. Validator calls could not load ajv in the ASR checkout.",
-  "packageCheckStatus": "The combined check.mjs and reproduce.mjs lease timed out after 120 seconds while queued."
+  "hostSmoke": "Local install with explicit capability consent, public SDK session seed, selected export, mode 600 and overwrite refusal passed. No model request.",
+  "blocker": "The full pnpm check passes every preflight and all production, script and root-test type checks. Full lint fails with 20 max-lines errors in files byte-identical to the pinned upstream base. The final full-format stage does not run after that failure. Focused export lint and format, full build, export tests and installed plugin smoke pass.",
+  "unchangedLintFailures": [
+    {
+      "path": "extensions/anthropic/cli.runtime.ts",
+      "unchangedFromBase": true,
+      "blob": "9b79f200b5bdf615168e27102ce6742adcbff344"
+    },
+    {
+      "path": "extensions/codex/src/app-server/event-projector.ts",
+      "unchangedFromBase": true,
+      "blob": "7cc368a21f35049bd25b72aba5326c3d5b117899"
+    },
+    {
+      "path": "extensions/crabbox/src/crabbox-worker-node-enrollment.test.ts",
+      "unchangedFromBase": true,
+      "blob": "a44d13be413c987132a938ae53fa6228f0cf5cb5"
+    },
+    {
+      "path": "extensions/oc-path/src/cli.test.ts",
+      "unchangedFromBase": true,
+      "blob": "2582955bb333ba0517ce834120042843093dc11c"
+    },
+    {
+      "path": "extensions/tlon/src/monitor/index.test.ts",
+      "unchangedFromBase": true,
+      "blob": "9dc921766eaf8554a9289056c1f930e931228b14"
+    },
+    {
+      "path": "src/agents/plugin-model-catalog.ts",
+      "unchangedFromBase": true,
+      "blob": "d5ce16f1a22fcf8a83b8844b6d50a78e551baccf"
+    },
+    {
+      "path": "src/auto-reply/reply/session-event-handoff.ts",
+      "unchangedFromBase": true,
+      "blob": "a4b01004411ea58cb3827463326768eda864638d"
+    },
+    {
+      "path": "src/cli/update-cli/update-command-post-update.ts",
+      "unchangedFromBase": true,
+      "blob": "c007d0536d52bdb8671435759c5ba5bd7886dfb2"
+    },
+    {
+      "path": "src/config/sessions/session-entry-read.worker.ts",
+      "unchangedFromBase": true,
+      "blob": "551f94c82a676b8e81198ae66e7714127479d400"
+    },
+    {
+      "path": "src/config/sessions/transcript.test.ts",
+      "unchangedFromBase": true,
+      "blob": "9f57186ba655d0ce3aa416781ce4bdbdff03500f"
+    },
+    {
+      "path": "src/cron/isolated-agent/run-prepare.ts",
+      "unchangedFromBase": true,
+      "blob": "313657bf63cd56d9419ef88c055a4ae0c8ec43b2"
+    },
+    {
+      "path": "src/gateway/server-plugin-reload.ts",
+      "unchangedFromBase": true,
+      "blob": "baf74f08fe5f21180c42c6b938fdda0f3632c2ed"
+    },
+    {
+      "path": "src/infra/update-startup.ts",
+      "unchangedFromBase": true,
+      "blob": "6a9961cd2c666d09d68f02c713b175e67e0798cd"
+    },
+    {
+      "path": "src/plugins/registry-runtime.ts",
+      "unchangedFromBase": true,
+      "blob": "227c7ca4bac67c5de9804d76b57294a25576f733"
+    },
+    {
+      "path": "src/shared/text/text-projection.ts",
+      "unchangedFromBase": true,
+      "blob": "d4739edd0f4a4574f10635d890f98b52ee37c810"
+    },
+    {
+      "path": "ui/src/e2e/session-management.sidebar.e2e.test.ts",
+      "unchangedFromBase": true,
+      "blob": "5e433c493d94107cd4891d4eb9a2d16a26aa30a1"
+    },
+    {
+      "path": "ui/src/e2e/settings-layout.e2e.test.ts",
+      "unchangedFromBase": true,
+      "blob": "458a7533d097884c4ad57e811839a051d77fc236"
+    },
+    {
+      "path": "ui/src/pages/activity/activity-page.test.ts",
+      "unchangedFromBase": true,
+      "blob": "7ea2a6b1ad62d58389adb60255189b1d90e27c3f"
+    },
+    {
+      "path": "ui/src/pages/chat/components/chat-sidebar-region.runtime.tsx",
+      "unchangedFromBase": true,
+      "blob": "e7536cb8a83c05bb36c32357ffb843c4bb9f8e37"
+    },
+    {
+      "path": "ui/src/pages/sessions/sessions-page.test.ts",
+      "unchangedFromBase": true,
+      "blob": "3de76a933c0734b6499555ac5029fb8c276847ca"
+    }
+  ],
+  "toolchainNotes": "The package-lock guard passes with toolchain-local npm 11.19.0. No dependency policy was changed."
 }

@@ -1,0 +1,53 @@
+{
+  "date": "2026-11-03",
+  "status": "passed",
+  "checks": [
+    {
+      "command": "uv sync --frozen",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "uv run --frozen pytest tests/test_session_export.py -q",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "uv run --frozen ruff check astrbot/cli/__main__.py astrbot/cli/commands/cmd_sessions.py tests/test_session_export.py",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "uv run --frozen ruff format --check astrbot/cli/__main__.py astrbot/cli/commands/cmd_sessions.py tests/test_session_export.py",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "uv build",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "uv run --frozen {checkouts}/mistral-vibe/.venv/bin/pyright --pythonpath .venv/bin/python astrbot/cli/commands/cmd_sessions.py",
+      "exit": 0,
+      "status": "passed"
+    },
+    {
+      "command": "uv run --frozen python {scratch}/native-python.py astrbot",
+      "exit": 0,
+      "status": "passed"
+    }
+  ],
+  "validator": {
+    "files": 1,
+    "records": 6,
+    "errors": 0,
+    "warnings": 0,
+    "counts": {}
+  },
+  "liveTestStatus": "not-live-tested",
+  "liveTestNotes": "No current model run. Earlier live evidence is historical.",
+  "notes": "The project does not install Pyright as a dependency. The focused file passes Pyright 1.1.409 using this project's Python environment.",
+  "packageCheck": "passed",
+  "patchReplay": "passed"
+}

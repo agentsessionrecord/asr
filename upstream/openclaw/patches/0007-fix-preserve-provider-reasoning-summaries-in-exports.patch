@@ -10,7 +10,7 @@ Subject: [PATCH] fix: preserve provider reasoning summaries in exports
  3 files changed, 30 insertions(+), 6 deletions(-)
 
 diff --git a/src/sessions/agent-session-export.json.ts b/src/sessions/agent-session-export.json.ts
-index 9b0b0408972..5b8cdb92afc 100644
+index 9b0b04089722c7534abec50ec8af5103afe88f43..5b8cdb92afc3e580f0c6cc248549eec4c4d44a92 100644
 --- a/src/sessions/agent-session-export.json.ts
 +++ b/src/sessions/agent-session-export.json.ts
 @@ -97,7 +97,7 @@ export function exportPath(value: string, cwd?: string): string {
@@ -54,7 +54,7 @@ index 9b0b0408972..5b8cdb92afc 100644
    return { type: "reasoning", text };
  }
 diff --git a/src/sessions/agent-session-export.test.ts b/src/sessions/agent-session-export.test.ts
-index 01c4b32c40c..f609f9737b2 100644
+index 01c4b32c40ce65a8a3b9174f169bb21dddd5245e..f609f9737b2306a25147530c9f839238a40168ad 100644
 --- a/src/sessions/agent-session-export.test.ts
 +++ b/src/sessions/agent-session-export.test.ts
 @@ -500,6 +500,20 @@ describe("native Agent Session export", () => {
@@ -79,7 +79,7 @@ index 01c4b32c40c..f609f9737b2 100644
  
    it("keeps unknown-model calls, completion positions and explicit setting clears", async () => {
 diff --git a/src/sessions/agent-session-export.transcript.ts b/src/sessions/agent-session-export.transcript.ts
-index 0c6786acf66..966636f8990 100644
+index 0c6786acf669c602cbeb95b6452539e6fef1d223..966636f8990e99d078e7a460df87bbb01326710c 100644
 --- a/src/sessions/agent-session-export.transcript.ts
 +++ b/src/sessions/agent-session-export.transcript.ts
 @@ -415,7 +415,7 @@ export class TranscriptExport {
@@ -91,6 +91,3 @@ index 0c6786acf66..966636f8990 100644
      if (array(message.content).some((p) => object(p).type === "thinking" && object(p).redacted)) {
        this.losses.add("reasoning");
      }
--- 
-2.43.0
-

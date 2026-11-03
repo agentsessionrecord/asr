@@ -154,42 +154,11 @@ pub fn convert(s: &Spool, c: &mut Context, v: &Value) -> Result<()> {
                 Some("content.part") => {
                     let p = &e["part"];
                     let body = parts(&json!([p]), c);
-                    if let Some(step) = string(&e["stepUuid"]) {
-                        let key = format!("kimi-content:{step}");
-                        let old = s.entity(&key)?.unwrap_or(json!([]));
-                        let mut body = body;
-                        let mut assembled = old.as_array().cloned().unwrap_or_default();
-                        for p in body.drain(..) {
-                            if let Some(last) = assembled.last_mut().filter(|last| {
-                                last["type"] == p["type"]
-                                    && last["text"].is_string()
-                                    && p["text"].is_string()
-                                    && last["visibility"] == p["visibility"]
-                                    && matches!(p["type"].as_str(), Some("text" | "reasoning"))
-                            }) {
-                                if let (Some(a), Some(b)) =
-                                    (last["text"].as_str(), p["text"].as_str())
-                                {
-                                    last["text"] = json!(format!("{a}{b}"));
-                                }
-                            } else {
-                                assembled.push(p);
-                            }
-                        }
-                        let mut r = json!({"type":"message","role":"assistant","author":"model"});
-                        if serde_json::to_vec(&assembled)?.len() <= s.limit / 2 {
-                            s.save(&key, &json!(assembled))?;
-                            r["content"] = json!(assembled);
-                        } else {
-                            r["content"] = old;
-                            r["truncated"] = json!(true);
-                            c.loss("record_size_limit");
-                        }
-                        if let Some(i) = inf {
-                            r["inferenceId"] = json!(i);
-                        }
-                        c.emit(s, r, None, Some(&key))?;
+                    let mut r = json!({"type":"message","role":"assistant","author":"model","content":body});
+                    if let Some(i) = inf {
+                        r["inferenceId"] = json!(i);
                     }
+                    c.emit(s, r, native_id(e), None)?;
                 }
                 _ => {}
             }

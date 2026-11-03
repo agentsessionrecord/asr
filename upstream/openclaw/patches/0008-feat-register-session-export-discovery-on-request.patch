@@ -1,19 +1,35 @@
-From 07c7746e7ab54e1586a04d24ad4140bc119a8362 Mon Sep 17 00:00:00 2001
+From 9821ba393e50bd11209180ec09dcca32841cc568 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 16:26:17 -0500
 Subject: [PATCH] feat: register session export discovery on request
 
 ---
+ scripts/database-worker-inventory.mjs         |  4 ++
  .../register.status-health-sessions.test.ts   |  2 +
  .../register.status-health-sessions.ts        |  1 +
- src/commands/sessions-export.ts               | 17 +++++++
+ src/commands/sessions-export.ts               | 19 ++++++-
  src/sessions/agent-session-discovery.ts       | 50 +++++++++++++++++++
  src/sessions/agent-session-export.test.ts     | 15 ++++++
- 5 files changed, 85 insertions(+)
+ 6 files changed, 90 insertions(+), 1 deletion(-)
  create mode 100644 src/sessions/agent-session-discovery.ts
 
+diff --git a/scripts/database-worker-inventory.mjs b/scripts/database-worker-inventory.mjs
+index 9c1685de157ae6e4a24a7f5cf9cb16fcea931c80..29dc598058b125d037710297aa07eb35109df2b8 100644
+--- a/scripts/database-worker-inventory.mjs
++++ b/scripts/database-worker-inventory.mjs
+@@ -3686,6 +3686,10 @@ const exceptionModules = new Set([
+   "src/infra/sqlite-staging-token.ts", // acquireSqliteStagingToken holds the private snapshot admission/retirement lock through native transactions.
+ ]);
+ const cliModules = new Map([
++  [
++    "src/sessions/agent-session-export.source.ts",
++    "Only commands/sessions-export.ts invokes this reader directly or through exportAgentSessionBundle in sessions/agent-session-export.ts. cli/program/register.status-health-sessions.ts loads that command for the explicit sessions export one-shot. No Gateway or public SDK caller.",
++  ],
+   [
+     "src/gateway/worker-environments/retained-owner-recovery.ts",
+     "Only database-restore-session-dependencies.ts invokes this offline repair under exclusive local-state custody and its synchronous shared-state transaction",
 diff --git a/src/cli/program/register.status-health-sessions.test.ts b/src/cli/program/register.status-health-sessions.test.ts
-index ddc9c3d8e6a..d2c079febf8 100644
+index ddc9c3d8e6a1b8f8d630d3ca152962865de005cc..d2c079febf8f8afe4abb70e72c33052b388b73d8 100644
 --- a/src/cli/program/register.status-health-sessions.test.ts
 +++ b/src/cli/program/register.status-health-sessions.test.ts
 @@ -231,11 +231,13 @@ it("dispatches ASR export selectors and inherited agent selection", async () =>
@@ -31,7 +47,7 @@ index ddc9c3d8e6a..d2c079febf8 100644
    });
  });
 diff --git a/src/cli/program/register.status-health-sessions.ts b/src/cli/program/register.status-health-sessions.ts
-index 0b72714d4fd..f89a99ac1b5 100644
+index 0b72714d4fd67e3823560e7d54aa5039957d817e..f89a99ac1b5db1d9171dd0e24ba6dff508aacd29 100644
 --- a/src/cli/program/register.status-health-sessions.ts
 +++ b/src/cli/program/register.status-health-sessions.ts
 @@ -396,6 +396,7 @@ export function registerStatusHealthSessionsCommands(program: Command) {
@@ -43,10 +59,12 @@ index 0b72714d4fd..f89a99ac1b5 100644
        localSessionsAction(
          "export",
 diff --git a/src/commands/sessions-export.ts b/src/commands/sessions-export.ts
-index eb3bb099770..229ff2ade7e 100644
+index eb3bb09977078cfcab9deff907eab140b8946b78..2ae1e53f6fab78aa836a8187cd859eed575de07c 100644
 --- a/src/commands/sessions-export.ts
 +++ b/src/commands/sessions-export.ts
-@@ -2,6 +2,7 @@ import { throwExpectedCliError } from "../cli/failure-output.js";
+@@ -1,7 +1,8 @@
+-import { throwExpectedCliError } from "../cli/failure-output.js";
++import { throwExpectedCliError } from "../cli/expected-cli-error.js";
  import { captureRuntimeConfigAsyncReader } from "../config/config.js";
  import { resolveSqliteTargetFromSessionStorePath } from "../config/sessions/session-sqlite-target.js";
  import { writeRuntimeJson, type RuntimeEnv } from "../runtime.js";
@@ -84,7 +102,7 @@ index eb3bb099770..229ff2ade7e 100644
  }
 diff --git a/src/sessions/agent-session-discovery.ts b/src/sessions/agent-session-discovery.ts
 new file mode 100644
-index 00000000000..f554c87d7cc
+index 0000000000000000000000000000000000000000..f554c87d7ccecc81559ad082b623c26b2db4e171
 --- /dev/null
 +++ b/src/sessions/agent-session-discovery.ts
 @@ -0,0 +1,50 @@
@@ -139,7 +157,7 @@ index 00000000000..f554c87d7cc
 +  return destination;
 +}
 diff --git a/src/sessions/agent-session-export.test.ts b/src/sessions/agent-session-export.test.ts
-index f609f9737b2..440826f7511 100644
+index f609f9737b2306a25147530c9f839238a40168ad..440826f75114827796d4542614f421aebd8fb1be 100644
 --- a/src/sessions/agent-session-export.test.ts
 +++ b/src/sessions/agent-session-export.test.ts
 @@ -15,6 +15,7 @@ import {
@@ -171,6 +189,3 @@ index f609f9737b2..440826f7511 100644
    it("keeps unknown-model calls, completion positions and explicit setting clears", async () => {
      const { source } = await fixture();
      const native = [
--- 
-2.43.0
-

@@ -453,3 +453,30 @@ fn vibe_unified_generation_checks_digests_and_ignores_obsolete_generations() {
     ))
     .is_err());
 }
+
+#[test]
+fn xum_preserves_archive_order_and_legacy_mux_identity() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().join("sessions/native-workspace");
+    write(
+        &root.join("chat-archive.jsonl"),
+        &[json!({"id":"archive","role":"user","parts":[{"type":"text","text":"older"}]})],
+    );
+    write(
+        &root.join("chat.jsonl"),
+        &[
+            json!({"id":"active","role":"assistant","parts":[{"type":"text","text":"newer"},{"type":"dynamic-tool","toolCallId":"call","toolName":"read","input":{},"state":"output-available","output":"display"}]}),
+        ],
+    );
+    let (_, rows) = run(Agent::Xum, &root, &tmp.path().join("xum"));
+    assert_eq!(rows[0]["agent"]["name"], "xum");
+    let messages: Vec<_> = rows.iter().filter(|r| r["type"] == "message").collect();
+    assert_eq!(messages[0]["id"], "archive");
+    assert_eq!(messages[1]["id"], "active");
+    assert!(rows.iter().any(|r| r["_meta"]["com.coder.xum"].is_object()));
+    let (_, legacy) = run(Agent::Mux, &root, &tmp.path().join("mux"));
+    assert_eq!(legacy[0]["agent"]["name"], "mux");
+    assert!(legacy
+        .iter()
+        .any(|r| r["_meta"]["com.coder.mux"].is_object()));
+}

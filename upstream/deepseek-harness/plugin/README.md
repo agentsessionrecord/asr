@@ -12,6 +12,12 @@ npm test
 npm pack
 ```
 
+The standalone development graph pins Zod 4.6.6 with an npm override to fix
+GHSA-mrhx-c7xc-m3w5. npm does not apply a dependency package's overrides to its
+consumer. Set `"overrides": {"zod": "4.6.6"}` in the consuming profile's root
+package.json and reinstall before installing this plugin. The tarball smoke
+tests that consumer override and requires a clean production audit.
+
 Install the resulting tarball in the web profile:
 
 ```sh

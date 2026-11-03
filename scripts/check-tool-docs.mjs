@@ -9,7 +9,7 @@ const jobs = ['index', 'convert', 'record', 'collect', 'view', 'export', 'import
 
 export function toolJob(entry) {
   if (entry.kind === 'converter' || entry.id === 'asr-convert') return 'convert';
-  if (entry.kind === 'patch') return 'patch';
+  if (entry.kind === 'patch' || entry.path?.startsWith('upstream/')) return 'patch';
   if (entry.kind === 'importer' || entry.id === 'vendor-importer-core') return 'import';
   if (entry.kind === 'exporter') return 'export';
   if (entry.kind === 'app') return 'view';

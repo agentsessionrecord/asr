@@ -19,11 +19,10 @@
   "sampleErrors": 0,
   "sampleWarnings": [],
   "dependencyAudit": {
-    "status": "failed",
-    "high": 19,
-    "rootAdvisory": "GHSA-mrhx-c7xc-m3w5",
-    "dependency": "upstream pinned zod 4.4.3, affected below 4.6.6",
-    "scope": "Pinned harness peer dependency graph. No dependency override was applied."
+    "status": "passed",
+    "total": 0,
+    "dependency": "zod 4.6.6",
+    "scope": "Standalone npm root override. Consumers must configure the same root override because npm does not propagate dependency overrides."
   },
   "liveTestStatus": "not-live-tested",
   "liveTestNotes": "No model request or complete live Host application was run."

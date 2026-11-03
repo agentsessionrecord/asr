@@ -518,7 +518,12 @@ fn native_fixture(agent: asr_convert::Agent, root: &Path) -> PathBuf {
     let fixtures = repo().join("crates/asr-convert/tests/fixtures");
     let input = root.join("input");
     fs::create_dir_all(&input).unwrap();
-    let sql = fixtures.join(format!("sqlite/{}.sql", agent.name()));
+    let fixture_name = if agent == Agent::Xum {
+        "mux"
+    } else {
+        agent.name()
+    };
+    let sql = fixtures.join(format!("sqlite/{fixture_name}.sql"));
     if sql.is_file() {
         rusqlite::Connection::open(input.join("native.db"))
             .unwrap()
@@ -527,9 +532,9 @@ fn native_fixture(agent: asr_convert::Agent, root: &Path) -> PathBuf {
     } else {
         let source = ["w1-conv-a", "jsonl-b", "documents"]
             .into_iter()
-            .map(|batch| fixtures.join(batch).join(agent.name()))
+            .map(|batch| fixtures.join(batch).join(fixture_name))
             .find(|p| p.is_dir())
-            .unwrap_or_else(|| repo().join(format!("samples/{}/native", agent.name())));
+            .unwrap_or_else(|| repo().join(format!("samples/{fixture_name}/native")));
         copy_native(&source, &input);
         let create = |script: &str, name: &str| {
             let path = input.join(name);

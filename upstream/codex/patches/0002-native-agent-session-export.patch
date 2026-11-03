@@ -11,7 +11,7 @@ Subject: [PATCH] Map saved settings, offered tools, and approval decisions
  4 files changed, 440 insertions(+), 9 deletions(-)
 
 diff --git a/codex-rs/session-export/src/mapping/events.rs b/codex-rs/session-export/src/mapping/events.rs
-index 1617a1d276..027bea31ba 100644
+index 1617a1d276af2271b0054610cf5ea6308175cbc0..027bea31baf445f51dc606d30ab672423dfaa703 100644
 --- a/codex-rs/session-export/src/mapping/events.rs
 +++ b/codex-rs/session-export/src/mapping/events.rs
 @@ -91,10 +91,97 @@ impl Mapper {
@@ -193,7 +193,7 @@ index 1617a1d276..027bea31ba 100644
  }
  
 diff --git a/codex-rs/session-export/src/mapping/mod.rs b/codex-rs/session-export/src/mapping/mod.rs
-index 9d0cd74d52..1250001af0 100644
+index 9d0cd74d52a8834c35fac561ccd8ee02afffbc14..1250001af0084ff26ee45864a2f59eb495d11ab2 100644
 --- a/codex-rs/session-export/src/mapping/mod.rs
 +++ b/codex-rs/session-export/src/mapping/mod.rs
 @@ -22,6 +22,8 @@ pub(crate) struct Mapper {
@@ -215,7 +215,7 @@ index 9d0cd74d52..1250001af0 100644
              copying: false,
              copy_prefix_open: true,
 diff --git a/codex-rs/session-export/src/mapping/structure.rs b/codex-rs/session-export/src/mapping/structure.rs
-index a3aedb10c8..a9bbf930b4 100644
+index a3aedb10c875f469255e2f7adb480bf028b2934f..a9bbf930b4c28b8fa2e4bb3f35abaab5eaea133c 100644
 --- a/codex-rs/session-export/src/mapping/structure.rs
 +++ b/codex-rs/session-export/src/mapping/structure.rs
 @@ -4,7 +4,12 @@ impl Mapper {
@@ -296,7 +296,7 @@ index a3aedb10c8..a9bbf930b4 100644
  }
  
 diff --git a/codex-rs/session-export/src/tests.rs b/codex-rs/session-export/src/tests.rs
-index 1a35131696..732c22b079 100644
+index 1a35131696f243ca0ec0d93d3bc73a24adc6b1e9..732c22b079f24db2f6c80576c4a731fd516a9031 100644
 --- a/codex-rs/session-export/src/tests.rs
 +++ b/codex-rs/session-export/src/tests.rs
 @@ -136,6 +136,76 @@ fn identities_and_reasoning_follow_current_spec() {
@@ -555,6 +555,3 @@ index 1a35131696..732c22b079 100644
 +    ]);
 +    assert!(!records.iter().any(|r| r.get("tools").is_some()));
 +}
--- 
-2.43.0
-

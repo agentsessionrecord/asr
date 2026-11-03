@@ -106,3 +106,9 @@ The ASR stream is:
 {"type":"tool_result","id":"line:3:result","callId":"edit-1","status":"completed","content":[{"type":"text","text":"Success. Updated files:\nM /work/parser.py\n"}]}
 {"type":"file_change","id":"line:4:change","callId":"edit-1","path":"/work/parser.py","op":"modify","status":"applied","edits":[{"oldText":"limit = int(value)\n","newText":"limit = int(value or \"0\")\n"}]}
 ```
+
+## Local native reference
+
+The local native reference has six commits. `/export --format agent-session PATH`
+uses saved local rollout history. Markdown remains the default export.
+The reference is for design feedback because outside code is not accepted.

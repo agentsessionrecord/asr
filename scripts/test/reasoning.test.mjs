@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
-import { stripTypeScriptTypes } from 'node:module';
+import { transformSync } from 'esbuild';
+const compileTypeScript = source => transformSync(source, { loader: 'ts', format: 'esm', target: 'es2022' }).code;
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -17,6 +18,11 @@ function additions(directory) {
       const added = diff.split('\n').filter(line => line.startsWith('+') && !line.startsWith('+++'))
         .map(line => line.slice(1)).join('\n');
       files.set(name, (files.get(name) ?? '') + '\n' + added);
+    }
+  }
+  if (manifest.kind === 'plugin') {
+    for (const name of ['format.ts', 'index.ts']) {
+      files.set(`plugin/${name}`, readFileSync(path.join(directory, 'plugin', name), 'utf8'));
     }
   }
   return files;
@@ -45,12 +51,31 @@ for (const agent of readdirSync(path.join(repositoryRoot, 'upstream')).filter(na
     }
   });
   for (const [name, source] of sources) {
+    if (agent === 'kimi-code' && name.endsWith('/sessionExport/agent-session.ts')) {
+      test('Kimi native parts retain exact reasoning and exclude encrypted bytes', async () => {
+        const code = compileTypeScript(source);
+        const module = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
+        const sourceRows = [
+          { type: 'metadata', protocol_version: '1.5' },
+          { type: 'context.append_loop_event', event: { type: 'content.part', part: { type: 'think', think: 'Exact\r\n', encrypted: 'synthetic-opaque' } } },
+          { type: 'context.append_loop_event', event: { type: 'content.part', part: { type: 'think', think: '' } } },
+        ];
+        const output = module.formatAgentSession(sourceRows.map(JSON.stringify).join('\n') + '\n', 'synthetic');
+        const parts = output.trimEnd().split('\n').map(JSON.parse).flatMap(row => row.content ?? []);
+        assert.deepEqual(parts, [
+          { type: 'reasoning', text: 'Exact\r\n' },
+          { type: 'reasoning', visibility: 'encrypted' },
+          { type: 'reasoning', visibility: 'omitted' },
+        ]);
+        assert.ok(!output.includes('synthetic-opaque'));
+      });
+    }
     if (name.endsWith('.ts') && source.includes('function asrReasoning(')) {
       helperAgents.add(agent);
       test(`${agent}: reasoning keeps exact unknown text, summaries and omitted content`, async () => {
         const helper = /function asrReasoning\([\s\S]*?\n\}/.exec(source)?.[0];
         assert.ok(helper);
-        const js = stripTypeScriptTypes(helper + '\nexport { asrReasoning };');
+        const js = compileTypeScript(helper + '\nexport { asrReasoning };');
         const module = await import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`);
         assert.deepEqual(module.asrReasoning(''), { type: 'reasoning', visibility: 'omitted' });
         assert.deepEqual(module.asrReasoning('', true), { type: 'reasoning', visibility: 'omitted' });
@@ -76,7 +101,7 @@ for (const agent of readdirSync(path.join(repositoryRoot, 'upstream')).filter(na
     }
     if (['gemini-cli', 'qwen-code'].includes(agent) && name.endsWith('/agent-session.ts')) {
       test(`${agent}: native content boundary omits signature-only thinking`, async () => {
-        const code = stripTypeScriptTypes(source, { mode: 'transform' });
+        const code = compileTypeScript(source);
         const module = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
         const exporter = new module.SessionExport('synthetic.example');
         const parts = exporter.parts([
@@ -96,7 +121,7 @@ for (const agent of readdirSync(path.join(repositoryRoot, 'upstream')).filter(na
     }
     if (agent === 'deepagents' && name.endsWith('/deepagents_code/session_export.py')) {
       test('Deep Agents native content boundary preserves thinking representations', () => {
-        const program = "scope = {'__name__': 'synthetic_asr'}\n" + `exec(${JSON.stringify(source)}, scope)\n` + [
+        const program = "scope = {'__name__': 'synthetic_asr'}\n" + `exec(${JSON.stringify(source.replace(/^from deepagents_code\._version import __version__$/m, ''))}, scope)\n` + [
           "parts, _ = scope['_parts']([{'type':'thinking','thinking':'Exact\\r\\n'}, {'type':'thinking','signature':'synthetic-opaque'}, {'type':'reasoning','reasoning':''}])",
           "assert parts == [{'type':'reasoning','visibility':'summary','summary':['Exact\\r\\n']}, {'type':'reasoning','visibility':'omitted'}, {'type':'reasoning','visibility':'omitted'}]",
         ].join('\n');
@@ -146,7 +171,7 @@ func TestRepresentation(t *testing.T) {
 
 test('Rust producers preserve reasoning representations in their packaged helpers', t => {
   assert.equal(rustHelpers.length, 4);
-  assert.deepEqual([...helperAgents].sort(), ['cline', 'continue', 'crush', 'deepagents', 'deepseek-harness', 'forgecode', 'gemini-cli', 'goose', 'hermes', 'kilo', 'kimi-code', 'mistral-vibe', 'mux', 'openclaw', 'opencode', 'pi', 'qwen-code', 'roo-code', 'shelley', 'warp', 'zed']);
+  assert.deepEqual([...helperAgents].sort(), ['cline', 'crush', 'deepagents', 'deepseek-harness', 'forgecode', 'gemini-cli', 'goose', 'hermes', 'kilo', 'mistral-vibe', 'openclaw', 'opencode', 'pi', 'qwen-code', 'shelley', 'warp', 'xum', 'zed']);
   const scratch = mkdtempSync(path.join(tmpdir(), 'asr-rust-reasoning-'));
   t.after(() => rmSync(scratch, { recursive: true, force: true }));
   writeFileSync(path.join(scratch, 'Cargo.toml'), '[package]\nname="asr-reasoning-contracts"\nversion="0.0.0"\nedition="2024"\n[lib]\npath="lib.rs"\n[dependencies]\nserde_json="1"\n');
@@ -171,7 +196,8 @@ test('upstream fixes keep reviewable series and established CLI selection', () =
   for (const agent of ['codex', 'opencode', 'pi', 'openclaw']) {
     const proposal = readFileSync(path.join(directory(agent), 'PROPOSAL.md'), 'utf8');
     assert.doesNotMatch(proposal, /Grok uses its append-only sidecar instead/);
-    assert.ok(proposal.includes(`node upstream/${agent}/check.mjs`));
+    const readme = readFileSync(path.join(directory(agent), 'README.md'), 'utf8');
+    assert.ok((proposal + readme).includes(`node upstream/${agent}/check.mjs`));
   }
   const readme = readFileSync(path.join(directory('codex'), 'README.md'), 'utf8');
   assert.ok(readme.indexOf('[proposal]') < readme.indexOf('## Evaluate'));

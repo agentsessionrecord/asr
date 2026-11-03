@@ -39,7 +39,7 @@ Subject: [PATCH] Add offline session export crate with core mappings and tests
  create mode 100644 codex-rs/session-export/src/tests.rs
 
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
-index 4e0b6e98a4..5b03e52c77 100644
+index 4e0b6e98a4866ac3f9c560dad3fb71963fa01ee0..5b03e52c77295e92c81dab8ae1370cd141ec394b 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
 @@ -4844,6 +4844,29 @@ dependencies = [
@@ -73,7 +73,7 @@ index 4e0b6e98a4..5b03e52c77 100644
  name = "codex-shell-command"
  version = "0.0.0"
 diff --git a/codex-rs/Cargo.toml b/codex-rs/Cargo.toml
-index 7453a47de5..4b8522943e 100644
+index 7453a47de5044e37988fad42f2b3e7f57b17e06c..4b8522943e9347d4453b36308d964196d10c47e4 100644
 --- a/codex-rs/Cargo.toml
 +++ b/codex-rs/Cargo.toml
 @@ -105,6 +105,7 @@ members = [
@@ -94,7 +94,7 @@ index 7453a47de5..4b8522943e 100644
  codex-analytics = { path = "analytics" }
 diff --git a/codex-rs/session-export/BUILD.bazel b/codex-rs/session-export/BUILD.bazel
 new file mode 100644
-index 0000000000..1dd212846b
+index 0000000000000000000000000000000000000000..1dd212846bc8cb2ce3375f0caa02b38855151b50
 --- /dev/null
 +++ b/codex-rs/session-export/BUILD.bazel
 @@ -0,0 +1,6 @@
@@ -106,7 +106,7 @@ index 0000000000..1dd212846b
 +)
 diff --git a/codex-rs/session-export/Cargo.toml b/codex-rs/session-export/Cargo.toml
 new file mode 100644
-index 0000000000..0f3f1500eb
+index 0000000000000000000000000000000000000000..0f3f1500ebe90280fa580dd4bdf587a47fd642e9
 --- /dev/null
 +++ b/codex-rs/session-export/Cargo.toml
 @@ -0,0 +1,32 @@
@@ -144,7 +144,7 @@ index 0000000000..0f3f1500eb
 +zstd = { workspace = true }
 diff --git a/codex-rs/session-export/examples/export.rs b/codex-rs/session-export/examples/export.rs
 new file mode 100644
-index 0000000000..e52825367a
+index 0000000000000000000000000000000000000000..e52825367a833d53c91b97343e7a503c11e9bcd7
 --- /dev/null
 +++ b/codex-rs/session-export/examples/export.rs
 @@ -0,0 +1,13 @@
@@ -163,7 +163,7 @@ index 0000000000..e52825367a
 +}
 diff --git a/codex-rs/session-export/src/content.rs b/codex-rs/session-export/src/content.rs
 new file mode 100644
-index 0000000000..2e750a012c
+index 0000000000000000000000000000000000000000..2e750a012cb513437aeb37a00804940b296459e2
 --- /dev/null
 +++ b/codex-rs/session-export/src/content.rs
 @@ -0,0 +1,270 @@
@@ -439,7 +439,7 @@ index 0000000000..2e750a012c
 +}
 diff --git a/codex-rs/session-export/src/export.rs b/codex-rs/session-export/src/export.rs
 new file mode 100644
-index 0000000000..1bd7aaf0af
+index 0000000000000000000000000000000000000000..1bd7aaf0af01ed75b398bdad2302a0970d317c55
 --- /dev/null
 +++ b/codex-rs/session-export/src/export.rs
 @@ -0,0 +1,253 @@
@@ -698,7 +698,7 @@ index 0000000000..1bd7aaf0af
 +}
 diff --git a/codex-rs/session-export/src/lib.rs b/codex-rs/session-export/src/lib.rs
 new file mode 100644
-index 0000000000..e9171eb14d
+index 0000000000000000000000000000000000000000..e9171eb14d723f986d2d031f09d976de64ab3733
 --- /dev/null
 +++ b/codex-rs/session-export/src/lib.rs
 @@ -0,0 +1,83 @@
@@ -787,7 +787,7 @@ index 0000000000..e9171eb14d
 +mod tests;
 diff --git a/codex-rs/session-export/src/mapping/events.rs b/codex-rs/session-export/src/mapping/events.rs
 new file mode 100644
-index 0000000000..1617a1d276
+index 0000000000000000000000000000000000000000..1617a1d276af2271b0054610cf5ea6308175cbc0
 --- /dev/null
 +++ b/codex-rs/session-export/src/mapping/events.rs
 @@ -0,0 +1,171 @@
@@ -964,7 +964,7 @@ index 0000000000..1617a1d276
 +}
 diff --git a/codex-rs/session-export/src/mapping/mod.rs b/codex-rs/session-export/src/mapping/mod.rs
 new file mode 100644
-index 0000000000..9d0cd74d52
+index 0000000000000000000000000000000000000000..9d0cd74d52a8834c35fac561ccd8ee02afffbc14
 --- /dev/null
 +++ b/codex-rs/session-export/src/mapping/mod.rs
 @@ -0,0 +1,308 @@
@@ -1278,7 +1278,7 @@ index 0000000000..9d0cd74d52
 +}
 diff --git a/codex-rs/session-export/src/mapping/responses.rs b/codex-rs/session-export/src/mapping/responses.rs
 new file mode 100644
-index 0000000000..00ea04e47d
+index 0000000000000000000000000000000000000000..00ea04e47d8b583235119990f7d323b4d6699452
 --- /dev/null
 +++ b/codex-rs/session-export/src/mapping/responses.rs
 @@ -0,0 +1,179 @@
@@ -1463,7 +1463,7 @@ index 0000000000..00ea04e47d
 +}
 diff --git a/codex-rs/session-export/src/mapping/structure.rs b/codex-rs/session-export/src/mapping/structure.rs
 new file mode 100644
-index 0000000000..a3aedb10c8
+index 0000000000000000000000000000000000000000..a3aedb10c875f469255e2f7adb480bf028b2934f
 --- /dev/null
 +++ b/codex-rs/session-export/src/mapping/structure.rs
 @@ -0,0 +1,185 @@
@@ -1654,7 +1654,7 @@ index 0000000000..a3aedb10c8
 +}
 diff --git a/codex-rs/session-export/src/mapping/tools.rs b/codex-rs/session-export/src/mapping/tools.rs
 new file mode 100644
-index 0000000000..c9ace6b5c1
+index 0000000000000000000000000000000000000000..c9ace6b5c133a306754d329b03db03427b8d0499
 --- /dev/null
 +++ b/codex-rs/session-export/src/mapping/tools.rs
 @@ -0,0 +1,243 @@
@@ -1903,7 +1903,7 @@ index 0000000000..c9ace6b5c1
 +}
 diff --git a/codex-rs/session-export/src/source.rs b/codex-rs/session-export/src/source.rs
 new file mode 100644
-index 0000000000..f9d02a6828
+index 0000000000000000000000000000000000000000..f9d02a68287b78eed915ceadf0a9568713c70556
 --- /dev/null
 +++ b/codex-rs/session-export/src/source.rs
 @@ -0,0 +1,520 @@
@@ -2429,7 +2429,7 @@ index 0000000000..f9d02a6828
 +}
 diff --git a/codex-rs/session-export/src/state.rs b/codex-rs/session-export/src/state.rs
 new file mode 100644
-index 0000000000..f3405bc9aa
+index 0000000000000000000000000000000000000000..f3405bc9aa031b56cb4c5cb7acc2b6ad6c60ff34
 --- /dev/null
 +++ b/codex-rs/session-export/src/state.rs
 @@ -0,0 +1,124 @@
@@ -2559,7 +2559,7 @@ index 0000000000..f3405bc9aa
 +}
 diff --git a/codex-rs/session-export/src/stream.rs b/codex-rs/session-export/src/stream.rs
 new file mode 100644
-index 0000000000..046649e364
+index 0000000000000000000000000000000000000000..046649e364f2e68b7ba3848cf279f0b8bdd4ed78
 --- /dev/null
 +++ b/codex-rs/session-export/src/stream.rs
 @@ -0,0 +1,87 @@
@@ -2652,7 +2652,7 @@ index 0000000000..046649e364
 +}
 diff --git a/codex-rs/session-export/src/tests.rs b/codex-rs/session-export/src/tests.rs
 new file mode 100644
-index 0000000000..1a35131696
+index 0000000000000000000000000000000000000000..1a35131696f243ca0ec0d93d3bc73a24adc6b1e9
 --- /dev/null
 +++ b/codex-rs/session-export/src/tests.rs
 @@ -0,0 +1,582 @@
@@ -3238,6 +3238,3 @@ index 0000000000..1a35131696
 +    assert_eq!(inventory.segments[0].thread_id, THREAD);
 +    assert_eq!(inventory.unavailable[0]["code"], "unavailable-alias");
 +}
--- 
-2.43.0
-

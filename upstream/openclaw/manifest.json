@@ -2,47 +2,47 @@
   "schemaVersion": 1,
   "agent": "openclaw",
   "base": "05a73c2679f5c7bb660e5f391ee89dd5e618f565",
-  "head": "07c7746e7ab54e1586a04d24ad4140bc119a8362",
+  "head": "9821ba393e50bd11209180ec09dcca32841cc568",
   "patches": [
     {
       "path": "patches/0001-feat-define-session-export-records-and-tool-mappings.patch",
       "commit": "679c8e36fae1c2d4bbef616d4251864afe291564",
-      "sha256": "a4e9851f3edfbeea26c85bd3b86f5545354d9f885d715117f8b92c634c5147f6"
+      "sha256": "2957f0d3532d017b72880cb273d25fe37912bbaf1484d91c81e0fe0c6f5887f5"
     },
     {
       "path": "patches/0002-feat-map-native-transcripts-and-side-store-evidence.patch",
       "commit": "17d7ddeb39ffb4048a259655ac508633a8e1e9f6",
-      "sha256": "8d4f3f5a15087f0cbc7d25b8bccc0b8199bee0a0e459e46512dbdce6d2672dbc"
+      "sha256": "2ed024fcde74b52f7e83401e2b5bf3792c292d4a78260a6dfdbdf460e18ce96f"
     },
     {
       "path": "patches/0003-feat-read-and-export-native-session-snapshots.patch",
       "commit": "a725c709033224d41734fc336d6ad96e6f9c1c5e",
-      "sha256": "61ec3b790d26654c8ce00e875b4f0f6cdb42be33c62421ae53ad12f0bfd28f6b"
+      "sha256": "790141472fa22604bd304a27241181fba830b3ff57e57e0e8a097d2fe9c79124"
     },
     {
       "path": "patches/0004-test-add-session-export-test-support.patch",
       "commit": "905d8674b0919edde2e522395fad7a61ead4adf2",
-      "sha256": "10b867dc96fcb82eb269a6293021baba06a29144c3e12a94c28f2d6541a86204"
+      "sha256": "fb19011d79f1069d02bedcc5ac4e57c740963c4fd1ec3d7720b71b777c7c6193"
     },
     {
       "path": "patches/0005-feat-wire-native-session-export-into-the-CLI.patch",
       "commit": "0022fe0b9f32b741fb49d0b8fdfb2f1ec4290090",
-      "sha256": "630ddeb2bc2d8ff03bed4feb2320d3724c2cb1315b73cbd29441a46b0f80720c"
+      "sha256": "98448cf875c11cce6958e44cf20896634b93aa06441f9288b839fb3a2c5655f2"
     },
     {
       "path": "patches/0006-test-cover-native-session-export-boundaries.patch",
       "commit": "38dfd281b127013be4c395ffac7d9dd3762e2af7",
-      "sha256": "54a488d969bfd52db3de0ff0d63b42b6a7f5b546a05f98280141f07eb3dacbc4"
+      "sha256": "c68b4a4d310cb3ead3ef26545845dca72c06c2d05c6cf4d06834254908be343e"
     },
     {
       "path": "patches/0007-fix-preserve-provider-reasoning-summaries-in-exports.patch",
       "commit": "69536b5922845248e954899d0d17b1cb1406b65e",
-      "sha256": "47d5ce79f2f446c4d1f213abdf3f3f9f90611ad45aba4f6dd7a2674c24fdb0d1"
+      "sha256": "9aa53ecce7d3e1cc31d5970934d57494e160cb078fa5f923961239823a43c668"
     },
     {
       "path": "patches/0008-feat-register-session-export-discovery-on-request.patch",
-      "commit": "07c7746e7ab54e1586a04d24ad4140bc119a8362",
-      "sha256": "0f0a4b35cd5019f9734ee47843dde6df52560d28390153687ef25c9998a301d7"
+      "commit": "9821ba393e50bd11209180ec09dcca32841cc568",
+      "sha256": "bba2838ca77778f3287d6f1104fda7ec9b491e1fd5f53484f992b157958045f8"
     }
   ],
   "checks": [
@@ -61,11 +61,11 @@
     "repository": "https://github.com/openclaw/openclaw",
     "upstreamBase": "05a73c2679f5c7bb660e5f391ee89dd5e618f565",
     "refreshBase": "05a73c2679f5c7bb660e5f391ee89dd5e618f565",
-    "implementationRevision": "07c7746e7ab54e1586a04d24ad4140bc119a8362",
+    "implementationRevision": "9821ba393e50bd11209180ec09dcca32841cc568",
     "implementationBranch": "codex/patch-js-b",
     "sampleFiles": {
       "samples/asr/plugin.jsonl": "e0ff46eb6fe7c8166826cd297d7371174d4ed5ebaaa574d2e1bf214dda3f1f6c",
-      "samples/asr/session.jsonl": "2e71de44df66f6ec29e2c3c6ca5f274f823b74621f52c03852384892c8260212",
+      "samples/asr/session.jsonl": "17346fe30ce3c36c09ba43aa9c6586e020af705eff4cc16dd54b2a0a4f156d36",
       "samples/native/plugin-projection.json": "41f83d7a8c3c8ba27f5c0b362305020428e3b25a83192f3c9c2309641351aa1b",
       "samples/native/source.json": "9802ad8a4fee6a7ed3f97e05c57136637cbafcc296be453a1e1892e7ff1cae62"
     },
@@ -83,18 +83,18 @@
   "files": {
     ".gitattributes": "feeab3231951b683b59f27bf05a3d3feb324a87543375f52d572a6a7d9d71681",
     "PROPOSAL.md": "088b29be8a99ce25b53745c9dbab4dfd92e5bc511b27b0e39ae8dc124b7cdaa7",
-    "README.md": "e3abe40b22a94533f7d4bea47d24539094e85113880752cdc6f4dbecf2a5cdff",
+    "README.md": "a228dcbf7319705c1083f32d5ea08d352f7e712f405739a83e597443aee04600",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "contracts.mjs": "e380dc768ab0482bce98a1384c945187f215126e2034526422ffb580a8fc7f95",
-    "patches/0001-feat-define-session-export-records-and-tool-mappings.patch": "a4e9851f3edfbeea26c85bd3b86f5545354d9f885d715117f8b92c634c5147f6",
-    "patches/0002-feat-map-native-transcripts-and-side-store-evidence.patch": "8d4f3f5a15087f0cbc7d25b8bccc0b8199bee0a0e459e46512dbdce6d2672dbc",
-    "patches/0003-feat-read-and-export-native-session-snapshots.patch": "61ec3b790d26654c8ce00e875b4f0f6cdb42be33c62421ae53ad12f0bfd28f6b",
-    "patches/0004-test-add-session-export-test-support.patch": "10b867dc96fcb82eb269a6293021baba06a29144c3e12a94c28f2d6541a86204",
-    "patches/0005-feat-wire-native-session-export-into-the-CLI.patch": "630ddeb2bc2d8ff03bed4feb2320d3724c2cb1315b73cbd29441a46b0f80720c",
-    "patches/0006-test-cover-native-session-export-boundaries.patch": "54a488d969bfd52db3de0ff0d63b42b6a7f5b546a05f98280141f07eb3dacbc4",
-    "patches/0007-fix-preserve-provider-reasoning-summaries-in-exports.patch": "47d5ce79f2f446c4d1f213abdf3f3f9f90611ad45aba4f6dd7a2674c24fdb0d1",
-    "patches/0008-feat-register-session-export-discovery-on-request.patch": "0f0a4b35cd5019f9734ee47843dde6df52560d28390153687ef25c9998a301d7",
-    "plugin/check-entry.mjs": "74dd0df7be12583ae9b610fec66bbe42788eb5df8cd43df4f3669bdeb79f812e",
+    "patches/0001-feat-define-session-export-records-and-tool-mappings.patch": "2957f0d3532d017b72880cb273d25fe37912bbaf1484d91c81e0fe0c6f5887f5",
+    "patches/0002-feat-map-native-transcripts-and-side-store-evidence.patch": "2ed024fcde74b52f7e83401e2b5bf3792c292d4a78260a6dfdbdf460e18ce96f",
+    "patches/0003-feat-read-and-export-native-session-snapshots.patch": "790141472fa22604bd304a27241181fba830b3ff57e57e0e8a097d2fe9c79124",
+    "patches/0004-test-add-session-export-test-support.patch": "fb19011d79f1069d02bedcc5ac4e57c740963c4fd1ec3d7720b71b777c7c6193",
+    "patches/0005-feat-wire-native-session-export-into-the-CLI.patch": "98448cf875c11cce6958e44cf20896634b93aa06441f9288b839fb3a2c5655f2",
+    "patches/0006-test-cover-native-session-export-boundaries.patch": "c68b4a4d310cb3ead3ef26545845dca72c06c2d05c6cf4d06834254908be343e",
+    "patches/0007-fix-preserve-provider-reasoning-summaries-in-exports.patch": "9aa53ecce7d3e1cc31d5970934d57494e160cb078fa5f923961239823a43c668",
+    "patches/0008-feat-register-session-export-discovery-on-request.patch": "bba2838ca77778f3287d6f1104fda7ec9b491e1fd5f53484f992b157958045f8",
+    "plugin/check-entry.mjs": "6888e354a81eacc4450666e6f5e3df87582cc76ea0598730112057c76b733788",
     "plugin/index.ts": "7eabde507d005d7e20003d8fe161f30d9ca4dd052e00d363cbd906a2020e8cc7",
     "plugin/openclaw.plugin.json": "3eadca4d41f8c0fb3324010d764dd52681c11b0b5a1774850f9507c13eeb41b6",
     "plugin/package.json": "de56ec7a5d70a9a461fb001cccc5983795a5a718397bfa93f3de1f95d3f8f4a8",
@@ -105,12 +105,12 @@
     "reproduce-plugin.mjs": "5975582b88c26684187f591405ce4b8f1ccf8d700fdc5ecff3dc76d6153b8500",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
     "samples/asr/plugin.jsonl": "e0ff46eb6fe7c8166826cd297d7371174d4ed5ebaaa574d2e1bf214dda3f1f6c",
-    "samples/asr/session.jsonl": "2e71de44df66f6ec29e2c3c6ca5f274f823b74621f52c03852384892c8260212",
+    "samples/asr/session.jsonl": "17346fe30ce3c36c09ba43aa9c6586e020af705eff4cc16dd54b2a0a4f156d36",
     "samples/native/plugin-projection.json": "41f83d7a8c3c8ba27f5c0b362305020428e3b25a83192f3c9c2309641351aa1b",
     "samples/native/source.json": "9802ad8a4fee6a7ed3f97e05c57136637cbafcc296be453a1e1892e7ff1cae62",
     "validation.json": "5d65f899c79a1b03842a141798df2a73c3da38ce566d076a43d5bc0bbbf4d916",
-    "verification.json": "29e1e407f67827741ab652619637ca694655419a7be46e7cf108906a6bdf9820",
-    "verify-native.mjs": "f450682c121f19eff4b1d8d872e04f159c70ee181a24d2f032486a2f6b41fb90"
+    "verification.json": "9f3653f993c5b9532c9ed5cd995667adb9afed7234e248e5f3b35f9f15cf7a02",
+    "verify-native.mjs": "1d3489eb115c4613ee2f3be87c29de557c08d137529d8cf0f91b5f05ff786eb4"
   },
   "privacyExceptions": {
     "patches/0006-test-cover-native-session-export-boundaries.patch": [
