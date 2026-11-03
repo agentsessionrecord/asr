@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "agent": "hermes",
-  "base": "c7c7e0fa92f40c8f526e4a52c0966c128245ffd3",
-  "head": "06146ba228f7c9a757e78f72c58625a63eeb8d5c",
+  "base": "b7736eca98cc6919b7b7f1d52dc1c45946793648",
+  "head": "fc88f9a0464d394a7876d5bdc625891f545dcc2a",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "06146ba228f7c9a757e78f72c58625a63eeb8d5c",
-      "sha256": "3d06a564ddcf4a02ffdeb1248f98ef937bf0a56b04073712d9cd8822770190c2"
+      "commit": "fc88f9a0464d394a7876d5bdc625891f545dcc2a",
+      "sha256": "b7607ff1547a1b630910678de5760b6ee9b46ce2630cebae8752f8db42cf09a7"
     }
   ],
   "checks": [
@@ -18,19 +18,20 @@
     ]
   ],
   "provenance": {
-    "repository": "https://github.com/NousResearch/hermes-agent.git",
-    "base": "c7c7e0fa92f40c8f526e4a52c0966c128245ffd3",
-    "commit": "06146ba228f7c9a757e78f72c58625a63eeb8d5c",
+    "repository": "https://github.com/NousResearch/hermes-agent",
+    "base": "b7736eca98cc6919b7b7f1d52dc1c45946793648",
+    "commit": "fc88f9a0464d394a7876d5bdc625891f545dcc2a",
     "patch": "patches/0001-native-agent-session-export.patch",
-    "patchSha256": "3d06a564ddcf4a02ffdeb1248f98ef937bf0a56b04073712d9cd8822770190c2"
+    "patchSha256": "b7607ff1547a1b630910678de5760b6ee9b46ce2630cebae8752f8db42cf09a7"
   },
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
-    "PROPOSAL.md": "a20be3f3229fc0619038615dced0dbfe9c9074fa194b1cb7fee8707e9c0e43da",
-    "README.md": "0661c9eae4cbcbcc0c9299e4fb5af69afead27ccb944e23804ffaaeaa9c02616",
+    "PROPOSAL.md": "2bf94ee976489acf6f9c9dcd7933a5c5cacf4b970ac751be8ff0f2bcdb42b22d",
+    "README.md": "ce548cd0781bc921b8980ce6d1fcc33c994df3931e9dc8c72dadf34bf29d6195",
+    "TEST-RESULTS.md": "2e0d8b4509b75790a625609c301b03996a89e1c563389f605e0e702a241f1e34",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "check.test.mjs": "1ea0a59dded17c00d3c64de31ea2b44d6cb92aadfdc4a69735116e1b67b59ca4",
-    "patches/0001-native-agent-session-export.patch": "3d06a564ddcf4a02ffdeb1248f98ef937bf0a56b04073712d9cd8822770190c2",
+    "patches/0001-native-agent-session-export.patch": "b7607ff1547a1b630910678de5760b6ee9b46ce2630cebae8752f8db42cf09a7",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
     "samples/asr/session.jsonl": "2eac55fbc2cda4a056d0dab10e09761fec661dec74951f005d1f7473c337723b",
     "samples/native/native.json": "506ade39a5bf94c0ddd9e617ef0e76f22d47cb9fb191529f4b0fa86ed2cdd068"
