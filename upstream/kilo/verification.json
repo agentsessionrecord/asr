@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-03",
+  "platform": "linux-x64",
+  "base": "25e7fd0574f49eba91ebc5b56b4ed34008aaf323",
+  "head": "7b104668da5a596dd5a58db2235f2b77559f30ec",
+  "projectChecks": "Focused native mapping tests, type check, formatting, the shared-source annotation guard and the CLI build pass. The built binary passes the upstream smoke checks.",
+  "nativeFixtures": {
+    "records": [
+      11,
+      8
+    ],
+    "validatorErrors": 0,
+    "validatorWarnings": 0,
+    "exactPackagedSampleReplay": true
+  },
+  "liveModelRun": "not performed",
+  "artifactSize": "296 MiB",
+  "v2Fixture": "samples/native/v2.json"
+}

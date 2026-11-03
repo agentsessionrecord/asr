@@ -1,68 +1,51 @@
-# Kilo Code native ASR native export patch
+# Kilo Code native ASR export patch
 
-## Install
+Export saved Kilo sessions for search and audit without starting a model turn.
 
-Use a separate writable checkout of the upstream project. The supported base is
-`0a9faeff69fff8712da184ee5188bb7985c6f057`. [manifest.json](manifest.json) pins
-this base, the ordered patches and their digests. Read [PROPOSAL.md](PROPOSAL.md)
-for the upstream repository, runtime requirements and native build instructions.
-These patches are local source changes. They are not installed by the ASR CLI.
+Upstream: https://github.com/Kilo-Org/kilocode
 
-Set `ASR_PACKAGE` to this package's absolute path. Run in a clean upstream
-checkout at the pinned base:
+The pinned base is `25e7fd0574f49eba91ebc5b56b4ed34008aaf323`. The manifest
+records the local feature commit, patch digest and all package file digests.
+Apply from a separate clean upstream checkout at that base:
 
 ```sh
 git am "$ASR_PACKAGE"/patches/*.patch
+kilo export SESSION_ID --format agent-session
 ```
 
-Build and install the patched agent using its own instructions and the focused
-checks in the proposal. To remove the feature, use a clean unpatched build.
-Existing exported files remain in their output directory.
+Adds ASR to the existing `export` command. The format name and output shape
+follow the OpenCode patch. Kilo uses a read-only SQLite transaction instead of
+OpenCode's durable-log client. The V2 adapter preserves mixed legacy history in
+source order.
 
-## Use
+The source is retained SQLite V1 and V2 durable events. Manual approvals, served
+models, complete settings, media, normalized edits, commits and copied-history
+mapping remain incomplete. Unmapped V2 events produce gaps. V2 tool output
+currently preserves text only. Known credential filtering does not establish
+that an export is safe to share.
 
-Run with the patched agent. Replace example IDs and input paths with a selected
-native session. See the proposal for selection and output options.
-
-```sh
-kilo sessions export --format agent-session --session SESSION_ID
-kilo sessions export --format agent-session --output new-directory
-```
-
-## What it records
-
-Retained V1 sync events supply messages, reasoning, tools, final results, effective inputs, requested models, usage, costs and mode and permission changes. Winning policy rules can establish snapshot approvals.
-
-Output uses ASR 0.1 with `producer.method: native`. Known credential fields and
-recognized secret text are excluded. Keep exports private and review content
-before sharing. Pattern filtering cannot identify every secret.
-
-## Limits
-
-V2 history and missing creation history fail explicitly. Manual approvals, served models, complete settings, media, normalized file changes, commits and session links remain incomplete. Native IDs are not a complete copied-history mapping.
-
-The [proposal](PROPOSAL.md) describes the source profile and detailed losses.
-Valid ASR does not establish complete source capture.
-
-## Tests and status
-
-Run from the ASR repository root with its Node dependencies installed:
+Run package checks from the ASR repository root:
 
 ```sh
 node upstream/kilo/check.mjs
 node upstream/kilo/reproduce.mjs /path/to/upstream-checkout
+bun upstream/kilo/verify-native.mjs /path/to/upstream-checkout
 ```
 
-The package check verifies file hashes, patch syntax, synthetic source contracts
-and ASR sample validation. The reproduce command also replays the series in a
-temporary Git index against the pinned source commits. It preserves the source
-checkout. It needs both pinned commits in that checkout and does not build or
-run the agent. Upstream build and test evidence is in the proposal.
+Reproduction compares a temporary Git index with the pinned feature tree. It
+preserves the source checkout and does not run a model. The native driver loads
+the source exporter, validates a synthetic stream and compares the sample. It
+does not exercise an installed full CLI and model session.
 
-Live-test status: **partial**.
-The evidence below is from a prior revision. A live run of the current code has not been verified.
-Isolated scratch session through a local OpenAI-compatible endpoint. Native export passed the reference validator with 10 records, zero errors and zero warnings.
+Focused native mapping tests, type check, formatting, the shared-source
+annotation guard and the CLI build pass. The built binary passes the upstream
+smoke checks. Native fixture exports pass the reference validator with zero
+errors and zero warnings. [verification.json](verification.json) records the
+checked source revision and focused results. See [PROPOSAL.md](PROPOSAL.md) for
+the scope.
 
-The package's [synthetic export](samples/asr/session.jsonl) has zero validator
-errors. Any expected extension or pairing warnings are explained by the proposal
-or printed by the package check. Package checks make no model requests.
+Current live-model status is unverified. Earlier live evidence is partial and
+applies to an older revision. No model run was performed for this refresh.
+
+Submission prerequisites: A linked issue is required. Community reviews are
+paused during the V2 migration.

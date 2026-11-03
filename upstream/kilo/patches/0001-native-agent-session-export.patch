@@ -1,26 +1,27 @@
-From 2f432a05f4260a0357259dc025722a656b55e3bb Mon Sep 17 00:00:00 2001
+From 7b104668da5a596dd5a58db2235f2b77559f30ec Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] feat(cli): add Agent Session Record export format
 
 ---
  .changeset/native-agent-session.md            |   5 +
- packages/opencode/src/index.ts                |   2 +
- .../opencode/src/kilocode/agent-session.ts    | 421 ++++++++++++++++++
- .../src/kilocode/cli/cmd/agent-session.ts     |  35 ++
- packages/opencode/src/kilocode/cli/setup.ts   |   5 +-
- .../test/kilocode/agent-session.test.ts       | 112 +++++
+ packages/opencode/src/cli/cmd/export.ts       |  30 +-
+ .../opencode/src/kilocode/agent-session-v2.ts | 170 ++++++++
+ .../opencode/src/kilocode/agent-session.ts    | 386 ++++++++++++++++++
+ .../test/kilocode/agent-session.test.ts       | 124 ++++++
  .../fixtures/agent-session/native.json        |  68 +++
- 7 files changed, 647 insertions(+), 1 deletion(-)
+ .../kilocode/fixtures/agent-session/v2.json   |  50 +++
+ 7 files changed, 831 insertions(+), 2 deletions(-)
  create mode 100644 .changeset/native-agent-session.md
+ create mode 100644 packages/opencode/src/kilocode/agent-session-v2.ts
  create mode 100644 packages/opencode/src/kilocode/agent-session.ts
- create mode 100644 packages/opencode/src/kilocode/cli/cmd/agent-session.ts
  create mode 100644 packages/opencode/test/kilocode/agent-session.test.ts
  create mode 100644 packages/opencode/test/kilocode/fixtures/agent-session/native.json
+ create mode 100644 packages/opencode/test/kilocode/fixtures/agent-session/v2.json
 
 diff --git a/.changeset/native-agent-session.md b/.changeset/native-agent-session.md
 new file mode 100644
-index 0000000..d786fed
+index 0000000000..d786fed3b4
 --- /dev/null
 +++ b/.changeset/native-agent-session.md
 @@ -0,0 +1,5 @@
@@ -29,36 +30,256 @@ index 0000000..d786fed
 +---
 +
 +Support exporting sessions as Agent Session Record JSONL.
-diff --git a/packages/opencode/src/index.ts b/packages/opencode/src/index.ts
-index 6fc98fe..10fe583 100644
---- a/packages/opencode/src/index.ts
-+++ b/packages/opencode/src/index.ts
-@@ -1,3 +1,4 @@
-+import { AgentSessionCommand } from "./kilocode/cli/cmd/agent-session" // kilocode_change
- import yargs from "yargs"
- import { hideBin } from "yargs/helpers"
- // kilocode_change - upstream account console intentionally omitted; KiloCli registers `kilo console` for local settings
-@@ -119,6 +120,7 @@ let cli = yargs(args) // kilocode_change
-   .command(GithubCommand)
-   .command(PrCommand)
-   .command(SessionCommand)
-+  .command(AgentSessionCommand) // kilocode_change
-   .command(PluginCommand)
-   .command(DbCommand)
+diff --git a/packages/opencode/src/cli/cmd/export.ts b/packages/opencode/src/cli/cmd/export.ts
+index 46d75359b4..ff89397c22 100644
+--- a/packages/opencode/src/cli/cmd/export.ts
++++ b/packages/opencode/src/cli/cmd/export.ts
+@@ -226,13 +226,17 @@ function sanitize(data: { info: Session.Info; messages: SessionV1.WithParts[] })
  
+ export const ExportCommand = effectCmd({
+   command: "export [sessionID]",
+-  describe: "export session data as JSON",
++  describe: "export session data as JSON or Agent Session Record", // kilocode_change
+   builder: (yargs) =>
+     yargs
+       .positional("sessionID", {
+         describe: "session id to export",
+         type: "string",
+       })
++      // kilocode_change start
++      .option("format", { type: "string", choices: ["json", "agent-session"], default: "json" })
++      .option("output", { type: "string", describe: "new output directory for Agent Session Record" })
++      // kilocode_change end
+       .option("sanitize", {
+         describe: "redact sensitive transcript and file data",
+         type: "boolean",
+@@ -242,7 +246,14 @@ export const ExportCommand = effectCmd({
+   }),
+ })
+ 
+-const run = Effect.fn("Cli.export.body")(function* (args: { sessionID?: string; sanitize?: boolean }) {
++// kilocode_change start - add format and output arguments
++const run = Effect.fn("Cli.export.body")(function* (args: {
++  sessionID?: string
++  sanitize?: boolean
++  format?: string // kilocode_change
++  output?: string // kilocode_change
++}) {
++  // kilocode_change end
+   const svc = yield* Session.Service
+   let sessionID = args.sessionID ? SessionID.make(args.sessionID) : undefined
+   process.stderr.write(`Exporting session: ${sessionID ?? "latest"}\n`)
+@@ -283,6 +294,21 @@ const run = Effect.fn("Cli.export.body")(function* (args: { sessionID?: string;
+     prompts.outro("Exporting session...", { output: process.stderr })
+   }
+ 
++  // kilocode_change start
++  if (args.format === "agent-session") {
++    if (args.sanitize) return yield* fail("--sanitize is only supported for JSON exports")
++    const { write } = yield* Effect.promise(() => import("@/kilocode/agent-session"))
++    const { InstallationVersion } = yield* Effect.promise(() => import("@opencode-ai/core/installation/version"))
++    const { Database } = yield* Effect.promise(() => import("@opencode-ai/core/database/database"))
++    return yield* Effect.tryPromise({
++      try: () =>
++        write({ database: Database.path(), sessionID: sessionID!, output: args.output, version: InstallationVersion }),
++      catch: (error) => error,
++    }).pipe(Effect.catch((error) => fail(error instanceof Error ? error.message : String(error))))
++  }
++  if (args.output) return yield* fail("--output requires --format agent-session")
++  // kilocode_change end
++
+   // Match legacy try/catch — catches both typed failures and defects
+   // (Session.Service.get throws NotFoundError as a defect, not a typed E).
+   return yield* Effect.gen(function* () {
+diff --git a/packages/opencode/src/kilocode/agent-session-v2.ts b/packages/opencode/src/kilocode/agent-session-v2.ts
+new file mode 100644
+index 0000000000..4f26c9f16b
+--- /dev/null
++++ b/packages/opencode/src/kilocode/agent-session-v2.ts
+@@ -0,0 +1,170 @@
++import { SessionEvent } from "@opencode-ai/schema/session-event"
++import { Schema } from "effect"
++
++type Row = { id: string; type: string; data: string }
++type Record = { type: string; [key: string]: unknown }
++
++export function project(
++  session: string,
++  rows: readonly Row[],
++  add: (row: Row, record: Record) => unknown,
++  missing: Set<string>,
++) {
++  const steps = new Map<string, { id: string; model: { id: string; providerID: string } }>()
++  const linked = new Set<string>()
++  const results = new Set<string>()
++  const output: { row: Row; record: Record }[] = []
++  const emit = (row: Row, record: Record) => output.push({ row, record })
++  for (const row of rows) {
++    if (!row.type.startsWith("session.next.")) continue
++    missing.add("tool_output")
++    missing.add("native_metadata")
++    try {
++      const event = Schema.decodeUnknownSync(Schema.toEncoded(SessionEvent.Durable))({
++        id: row.id,
++        type: row.type.replace(/\.\d+$/, ""),
++        data: JSON.parse(row.data, (_key, value: unknown, context?: { source: string }) => {
++          if (typeof value === "number" && Number.isInteger(value) && !Number.isSafeInteger(value))
++            return context!.source
++          return value
++        }),
++      })
++      if (event.data.sessionID !== session) throw new Error("Mismatched session identity")
++      const base = { ts: new Date(event.data.timestamp).toISOString() }
++      switch (event.type) {
++        case "session.next.agent.switched":
++          emit(row, { type: "session_info", ...base, agentSettings: { mode: event.data.agent } })
++          break
++        case "session.next.prompted":
++          emit(row, {
++            type: "message",
++            ...base,
++            role: "user",
++            content: [{ type: "text", text: event.data.prompt.text }],
++          })
++          break
++        case "session.next.synthetic":
++        case "session.next.context.updated":
++          emit(row, {
++            type: "message",
++            ...base,
++            role: "system",
++            author: "harness",
++            origin: "instructions",
++            content: [{ type: "text", text: event.data.text }],
++          })
++          break
++        case "session.next.step.started":
++          steps.set(event.data.assistantMessageID, { id: event.id, model: event.data.model })
++          break
++        case "session.next.text.ended":
++        case "session.next.reasoning.ended":
++          emit(row, {
++            type: "message",
++            ...base,
++            role: "assistant",
++            author: "model",
++            inferenceId: steps.get(event.data.assistantMessageID)?.id,
++            content: [
++              event.type === "session.next.text.ended"
++                ? { type: "text", text: event.data.text }
++                : event.data.text
++                  ? { type: "reasoning", text: event.data.text }
++                  : { type: "reasoning", visibility: "omitted" },
++            ],
++          })
++          break
++        case "session.next.tool.called":
++          emit(row, {
++            type: "tool_call",
++            ...base,
++            callId: event.data.callID,
++            name: event.data.tool,
++            input: event.data.input,
++            ...(event.data.provider.executed ? {} : { requestedBy: "model" }),
++            inferenceId: steps.get(event.data.assistantMessageID)?.id,
++          })
++          break
++        case "session.next.tool.success":
++        case "session.next.tool.failed": {
++          const callId = event.data.callID
++          const unique = !results.has(callId)
++          results.add(callId)
++          const success = event.type === "session.next.tool.success"
++          emit(row, {
++            type: "tool_result",
++            ...base,
++            ...(unique ? { callId } : {}),
++            status: success ? "completed" : "failed",
++            ...(event.type === "session.next.tool.success"
++              ? {
++                  content: event.data.content
++                    .filter((part) => part.type === "text")
++                    .map((part) => ({ type: "text", text: part.text })),
++                }
++              : { error: { message: event.data.error.message } }),
++          })
++          break
++        }
++        case "session.next.step.ended":
++        case "session.next.step.failed": {
++          const step = steps.get(event.data.assistantMessageID)
++          if (!step) {
++            emit(row, { type: "gap", ...base, reason: "not_retained", detail: "Model call start is unavailable" })
++            break
++          }
++          const { id, model } = step
++          const tokens = event.type === "session.next.step.ended" ? event.data.tokens : undefined
++          const usage = tokens && {
++            inputTokens: tokens.input + tokens.cache.read + tokens.cache.write,
++            outputTokens: tokens.output + tokens.reasoning,
++            reasoningTokens: tokens.reasoning,
++            cacheReadTokens: tokens.cache.read,
++            cacheWriteTokens: tokens.cache.write,
++          }
++          const safe = usage && Object.values(usage).every((value) => Number.isSafeInteger(value) && value >= 0)
++          emit(row, {
++            type: "inference",
++            id,
++            ...base,
++            model: { provider: model.providerID, requested: model.id },
++            ...(safe ? { usage } : {}),
++            ...(event.type === "session.next.step.ended"
++              ? { cost: { amount: event.data.cost, currency: "USD" }, stopReason: event.data.finish }
++              : { error: { message: event.data.error.message } }),
++          })
++          linked.add(id)
++          steps.delete(event.data.assistantMessageID)
++          break
++        }
++        case "session.next.compaction.ended":
++          emit(row, {
++            type: "message",
++            ...base,
++            role: "assistant",
++            author: "model",
++            origin: "compaction",
++            content: [{ type: "text", text: event.data.text }],
++          })
++          break
++        case "session.next.prompt.admitted":
++        case "session.next.text.started":
++        case "session.next.reasoning.started":
++        case "session.next.tool.input.started":
++        case "session.next.tool.input.ended":
++        case "session.next.tool.progress":
++          break
++        default:
++          emit(row, { type: "gap", ...base, reason: "not_recorded", detail: "Native event has no ASR mapping" })
++          missing.add("native_events")
++      }
++    } catch {
++      emit(row, { type: "gap", reason: "unparseable", count: 1, detail: "Native event could not be decoded" })
++      missing.add("corrupt_events")
++    }
++  }
++  for (const item of output) {
++    if (!linked.has(item.record.inferenceId as string)) delete item.record.inferenceId
++    add(item.row, item.record)
++  }
++}
 diff --git a/packages/opencode/src/kilocode/agent-session.ts b/packages/opencode/src/kilocode/agent-session.ts
 new file mode 100644
-index 0000000..fba9c88
+index 0000000000..c0d09c762a
 --- /dev/null
 +++ b/packages/opencode/src/kilocode/agent-session.ts
-@@ -0,0 +1,421 @@
+@@ -0,0 +1,386 @@
++import { project } from "./agent-session-v2"
 +import { SessionV1 } from "@opencode-ai/schema/v1/session"
 +import { PermissionV1 } from "@opencode-ai/schema/v1/permission"
 +import { Schema } from "effect"
 +import { Database } from "bun:sqlite"
 +import { createHash } from "node:crypto"
 +import fs from "node:fs/promises"
-+import os from "node:os"
 +import path from "node:path"
 +
 +type Row = { id: string; seq: number; type: string; data: string }
@@ -98,8 +319,6 @@ index 0000000..fba9c88
 +  if (!created) throw new Error("Session creation history is unavailable")
 +  const first = Schema.decodeUnknownSync(SessionV1.Event.Created.data)(parse(created.data)).info
 +  if (first.id !== session) throw new Error("Session identity does not match its history")
-+  if (rows.some((row) => row.type.startsWith("session.next.")))
-+    throw new Error("V2 session history is not supported by this exporter")
 +  const missing = new Set([
 +    "approvals",
 +    "agent_settings",
@@ -152,7 +371,24 @@ index 0000000..fba9c88
 +    )
 +  }
 +  info(created, { mode: first.agent, approval: first.permission }, first.time.created)
++  // Both durable families may occur in a session that spans the V2 migration.
++  // Core projects V2 events into message tables without emitting V1 events.
++  const projected = new Map<string, { type: string; [key: string]: unknown }[]>()
++  project(
++    session,
++    rows,
++    (row, record) => {
++      const values = projected.get(row.id) ?? []
++      values.push(record)
++      projected.set(row.id, values)
++    },
++    missing,
++  )
 +  for (const row of rows) {
++    if (row.type.startsWith("session.next.")) {
++      for (const record of projected.get(row.id) ?? []) add(row, record)
++      continue
++    }
 +    const type = row.type.replace(/\.\d+$/, "")
 +    try {
 +      const raw = parse(row.data)
@@ -249,11 +485,7 @@ index 0000000..fba9c88
 +            ? { author: "model", ...(message.summary ? { origin: "compaction" } : {}) }
 +            : {}),
 +          ...(part.type === "text" && part.synthetic ? { author: "harness", origin: "injected" } : {}),
-+          content: [
-+            part.type === "reasoning"
-+              ? asrReasoning(part.text, false)
-+              : { type: "text", text: part.text },
-+          ],
++          content: [part.type === "reasoning" ? asrReasoning(part.text, false) : { type: "text", text: part.text }],
 +        })
 +        continue
 +      }
@@ -390,152 +622,49 @@ index 0000000..fba9c88
 +  return safe
 +}
 +
-+export async function write(input: {
-+  database: string
-+  sessions: string[]
-+  output?: string
-+  since?: string
-+  discovery?: boolean
-+  version: string
-+}) {
-+  if (!input.sessions.length && !input.output)
-+    throw new Error("Select exactly one --session for stdout, or supply --output")
-+  if (input.sessions.length > 1 && !input.output) throw new Error("Multiple sessions require --output")
-+  const since = input.since === undefined ? undefined : Date.parse(input.since)
-+  if (since !== undefined && (!/^\d{4}-\d\d-\d\dT.*(?:Z|[+-]\d\d:\d\d)$/.test(input.since!) || !Number.isFinite(since)))
-+    throw new Error("--since must be an RFC 3339 timestamp")
++export async function write(input: { database: string; sessionID: string; output?: string; version: string }) {
 +  using db = new Database(input.database, { readonly: true, strict: true, safeIntegers: true })
 +  db.exec("BEGIN")
 +  try {
-+    const all = input.sessions.length
-+      ? [...new Set(input.sessions)]
-+      : db
-+          .query<{ id: string }, []>("SELECT id FROM session ORDER BY id")
-+          .all()
-+          .map((row) => row.id)
++    const found = db.query<{ id: string }, [string]>("SELECT id FROM session WHERE id = ?").get(input.sessionID)
++    if (!found) throw new Error("Selected session is unavailable")
++    const rows = db
++      .query<Row, [string]>("SELECT id, type, data, seq FROM event WHERE aggregate_id = ? ORDER BY seq")
++      .all(input.sessionID)
 +    const secrets = Object.entries(process.env).flatMap(([key, value]) =>
 +      /(?:TOKEN|SECRET|PASSWORD|API_KEY)/i.test(key) && value && value.length >= 8 ? [value] : [],
 +    )
-+    const streams = all.flatMap((session) => {
-+      const found = db
-+        .query<{ time_updated: bigint }, [string]>("SELECT time_updated FROM session WHERE id = ?")
-+        .get(session)
-+      if (!found) throw new Error("Selected session is unavailable")
-+      if (since !== undefined && found.time_updated < BigInt(since)) return []
-+      const rows = db
-+        .query<Row, [string]>("SELECT id, type, data, seq FROM event WHERE aggregate_id = ? ORDER BY seq")
-+        .all(session)
-+      return [
-+        {
-+          session,
-+          text:
-+            records(session, rows, input.version, secrets)
-+              .map((record) => JSON.stringify(record))
-+              .join("\n") + "\n",
-+        },
-+      ]
-+    })
-+    if (!input.output && streams.length !== 1) throw new Error("Selection does not contain exactly one session")
++    const text =
++      records(input.sessionID, rows, input.version, secrets)
++        .map((record) => JSON.stringify(record))
++        .join("\n") + "\n"
 +    if (input.output) {
 +      await fs.mkdir(input.output, { mode: 0o700 })
-+      for (const stream of streams)
-+        await fs.writeFile(path.join(input.output, digest(stream.session) + ".jsonl"), stream.text, {
-+          mode: 0o600,
-+          flag: "wx",
-+        })
++      await fs.writeFile(path.join(input.output, digest(input.sessionID) + ".jsonl"), text, {
++        mode: 0o600,
++        flag: "wx",
++      })
 +    }
-+    if (input.discovery) {
-+      const root =
-+        process.platform === "win32"
-+          ? (process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"))
-+          : (process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), ".config"))
-+      const directory = path.join(root, "agent-sessions", "sources")
-+      await fs.mkdir(directory, { recursive: true, mode: 0o700 })
-+      await fs.writeFile(
-+        path.join(directory, "kilo.json"),
-+        JSON.stringify({
-+          agent: "kilo",
-+          exportCommand: ["kilo", "sessions", "export", "--format", "agent-session"],
-+          formatVersions: ["0.1"],
-+          supportsDeletionHook: false,
-+        }) + "\n",
-+        { mode: 0o600, flag: "wx" },
-+      )
-+    }
-+    if (!input.output) process.stdout.write(streams[0]!.text)
++    if (!input.output) process.stdout.write(text)
 +  } finally {
 +    db.exec("ROLLBACK")
 +  }
 +}
 +
-+function asrReasoning(text: unknown, summary = false): { type: string; visibility?: string; text?: string; summary?: string[] } {
-+  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
-+  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
-+  return { type: "reasoning", text };
++function asrReasoning(
++  text: unknown,
++  summary = false,
++): { type: string; visibility?: string; text?: string; summary?: string[] } {
++  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" }
++  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] }
++  return { type: "reasoning", text }
 +}
-diff --git a/packages/opencode/src/kilocode/cli/cmd/agent-session.ts b/packages/opencode/src/kilocode/cli/cmd/agent-session.ts
-new file mode 100644
-index 0000000..0dac76d
---- /dev/null
-+++ b/packages/opencode/src/kilocode/cli/cmd/agent-session.ts
-@@ -0,0 +1,35 @@
-+import { cmd } from "@/cli/cmd/cmd"
-+
-+export const AgentSessionCommand = cmd({
-+  command: "sessions",
-+  describe: "export Agent Session Records",
-+  builder: (yargs) =>
-+    yargs
-+      .command({
-+        command: "export",
-+        describe: "export recorded session events as Agent Session Record JSONL",
-+        builder: (yargs) =>
-+          yargs
-+            .option("format", { type: "string", choices: ["agent-session"], default: "agent-session" })
-+            .option("session", { type: "string", array: true, default: [] })
-+            .option("since", { type: "string" })
-+            .option("output", { type: "string" })
-+            .option("database", { type: "string" })
-+            .option("write-discovery", { type: "boolean", default: false }),
-+        handler: async (args) => {
-+          const { write } = await import("@/kilocode/agent-session")
-+          const { InstallationVersion } = await import("@opencode-ai/core/installation/version")
-+          const { Database } = await import("@opencode-ai/core/database/database")
-+          await write({
-+            database: args.database ?? Database.path(),
-+            sessions: args.session,
-+            since: args.since,
-+            output: args.output,
-+            discovery: args.writeDiscovery,
-+            version: InstallationVersion,
-+          })
-+        },
-+      })
-+      .demandCommand(),
-+  handler() {},
-+})
-diff --git a/packages/opencode/src/kilocode/cli/setup.ts b/packages/opencode/src/kilocode/cli/setup.ts
-index ef87cc0..cb1c68c 100644
---- a/packages/opencode/src/kilocode/cli/setup.ts
-+++ b/packages/opencode/src/kilocode/cli/setup.ts
-@@ -70,7 +70,10 @@ export namespace KiloCli {
-   // Runs from the upstream `.middleware`, before any command handler. Env tagging is additive so
-   // it never has to modify upstream's own env assignments.
-   export async function bootstrap(opts: { [key: string]: unknown }): Promise<void> {
--    info = opts.help === true || opts.version === true
-+    info =
-+      opts.help === true ||
-+      opts.version === true ||
-+      (Array.isArray(opts._) && opts._[0] === "sessions" && opts._[1] === "export")
-     if (info) return
-     narrow = workerTui(opts)
- 
 diff --git a/packages/opencode/test/kilocode/agent-session.test.ts b/packages/opencode/test/kilocode/agent-session.test.ts
 new file mode 100644
-index 0000000..e7de3f7
+index 0000000000..fe431db7fe
 --- /dev/null
 +++ b/packages/opencode/test/kilocode/agent-session.test.ts
-@@ -0,0 +1,112 @@
+@@ -0,0 +1,124 @@
 +import { expect, test } from "bun:test"
 +import { records, write } from "../../src/kilocode/agent-session"
 +import { Database } from "bun:sqlite"
@@ -598,15 +727,8 @@ index 0000000..e7de3f7
 +  expect(records("ses_synthetic", input, "test").some((record) => record.type === "approval")).toBe(false)
 +})
 +
-+test("rejects unavailable and unsupported history", () => {
++test("rejects unavailable history", () => {
 +  expect(() => records("ses_missing", [], "test")).toThrow("creation history")
-+  expect(() =>
-+    records(
-+      "ses_synthetic",
-+      [...rows, { id: "evt_v2", seq: 20, type: "session.next.step.started.1", data: "{}" }],
-+      "test",
-+    ),
-+  ).toThrow("V2")
 +})
 +
 +test("reads a consistent SQLite source without changing it and writes private files", async () => {
@@ -624,15 +746,14 @@ index 0000000..e7de3f7
 +    }
 +    const before = await fs.readFile(file)
 +    const output = path.join(root, "output")
-+    await write({ database: file, sessions: ["ses_synthetic"], output, version: "test" })
++    await write({ database: file, sessionID: "ses_synthetic", output, version: "test" })
 +    expect(await fs.readFile(file)).toEqual(before)
 +    const files = await fs.readdir(output)
 +    expect(files[0]).toMatch(/^[a-f0-9]{64}\.jsonl$/)
 +    if (process.platform !== "win32") expect((await fs.stat(path.join(output, files[0]!))).mode & 0o777).toBe(0o600)
 +    await expect(
-+      write({ database: file, sessions: ["ses_missing"], output: path.join(root, "absent"), version: "test" }),
++      write({ database: file, sessionID: "ses_missing", output: path.join(root, "absent"), version: "test" }),
 +    ).rejects.toThrow("unavailable")
-+    await expect(write({ database: file, sessions: ["a", "b"], version: "test" })).rejects.toThrow("Multiple")
 +  } finally {
 +    await fs.rm(root, { recursive: true, force: true })
 +  }
@@ -648,9 +769,29 @@ index 0000000..e7de3f7
 +    "ai.kilo": { tokens: { input: "9007199254740993" }, inputTokens: "9007199254740997" },
 +  })
 +})
++
++test("exports V2 durable history with retained legacy events", async () => {
++  const current = await Bun.file(path.join(import.meta.dir, "fixtures/agent-session/v2.json")).json()
++  const result = records("ses_synthetic", current, "test")
++  expect(result.find((record) => record.type === "tool_call")?.callId).toBe("read-1")
++  expect(result.find((record) => record.type === "tool_call")?.inferenceId).toBe(
++    result.find((record) => record.type === "inference")?.id,
++  )
++  expect(result.find((record) => record.type === "tool_result")?.content).toEqual([
++    { type: "text", text: "synthetic\n" },
++  ])
++  expect(result.find((record) => record.type === "inference")?.usage).toMatchObject({
++    inputTokens: 14,
++    outputTokens: 6,
++  })
++  expect(result.filter((record) => record.type === "inference")).toHaveLength(1)
++  expect(result.some((record) => record.type === "gap")).toBe(false)
++  const mixed = records("ses_synthetic", [...current, ...rows.slice(1)], "test")
++  expect(mixed.filter((record) => record.type === "inference")).toHaveLength(2)
++})
 diff --git a/packages/opencode/test/kilocode/fixtures/agent-session/native.json b/packages/opencode/test/kilocode/fixtures/agent-session/native.json
 new file mode 100644
-index 0000000..6db527f
+index 0000000000..6db527f925
 --- /dev/null
 +++ b/packages/opencode/test/kilocode/fixtures/agent-session/native.json
 @@ -0,0 +1,68 @@
@@ -722,5 +863,64 @@ index 0000000..6db527f
 +    "data": "{\"sessionID\": \"ses_synthetic\", \"info\": {\"agent\": null, \"permission\": null}}"
 +  }
 +]
+diff --git a/packages/opencode/test/kilocode/fixtures/agent-session/v2.json b/packages/opencode/test/kilocode/fixtures/agent-session/v2.json
+new file mode 100644
+index 0000000000..94877b62ba
+--- /dev/null
++++ b/packages/opencode/test/kilocode/fixtures/agent-session/v2.json
+@@ -0,0 +1,50 @@
++[
++  {
++    "id": "evt_synthetic_0",
++    "type": "session.created.1",
++    "seq": 0,
++    "data": "{\"sessionID\": \"ses_synthetic\", \"info\": {\"id\": \"ses_synthetic\", \"slug\": \"demo\", \"projectID\": \"global\", \"directory\": \"/work/demo\", \"title\": \"Synthetic session\", \"version\": \"7.8.25\", \"time\": {\"created\": 1767225600000, \"updated\": 1767225600000}, \"permission\": []}}"
++  },
++  {
++    "id": "evt_v2_1",
++    "seq": 1,
++    "type": "session.next.prompted.1",
++    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600001, \"messageID\": \"msg_prompt\", \"prompt\": {\"text\": \"Read the synthetic example.\\n\"}, \"delivery\": \"steer\"}"
++  },
++  {
++    "id": "evt_v2_2",
++    "seq": 2,
++    "type": "session.next.step.started.1",
++    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600002, \"assistantMessageID\": \"msg_assistant\", \"agent\": \"build\", \"model\": {\"id\": \"requested-model\", \"providerID\": \"example\"}}"
++  },
++  {
++    "id": "evt_v2_3",
++    "seq": 3,
++    "type": "session.next.tool.called.1",
++    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600003, \"assistantMessageID\": \"msg_assistant\", \"callID\": \"read-1\", \"tool\": \"read_file\", \"input\": {\"path\": \"/work/demo/input.txt\"}, \"provider\": {\"executed\": false}}"
++  },
++  {
++    "id": "evt_v2_4",
++    "seq": 4,
++    "type": "session.next.synthetic.1",
++    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600004, \"messageID\": \"msg_notice\", \"text\": \"A recorded notice.\"}"
++  },
++  {
++    "id": "evt_v2_5",
++    "seq": 5,
++    "type": "session.next.tool.success.1",
++    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600005, \"assistantMessageID\": \"msg_assistant\", \"callID\": \"read-1\", \"structured\": {}, \"content\": [{\"type\": \"text\", \"text\": \"synthetic\\n\"}], \"provider\": {\"executed\": false}}"
++  },
++  {
++    "id": "evt_v2_6",
++    "seq": 6,
++    "type": "session.next.text.ended.1",
++    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600006, \"assistantMessageID\": \"msg_assistant\", \"textID\": \"txt_synthetic\", \"text\": \"Done.\"}"
++  },
++  {
++    "id": "evt_v2_7",
++    "seq": 7,
++    "type": "session.next.step.ended.2",
++    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600007, \"assistantMessageID\": \"msg_assistant\", \"finish\": \"stop\", \"cost\": 0, \"tokens\": {\"input\": 10, \"output\": 4, \"reasoning\": 2, \"cache\": {\"read\": 3, \"write\": 1}}}"
++  }
++]
 
-base-commit: 0a9faeff69fff8712da184ee5188bb7985c6f057
+base-commit: 25e7fd0574f49eba91ebc5b56b4ed34008aaf323
+-- 
+2.43.0
+

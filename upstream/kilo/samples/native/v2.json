@@ -1,0 +1,50 @@
+[
+  {
+    "id": "evt_synthetic_0",
+    "type": "session.created.1",
+    "seq": 0,
+    "data": "{\"sessionID\": \"ses_synthetic\", \"info\": {\"id\": \"ses_synthetic\", \"slug\": \"demo\", \"projectID\": \"global\", \"directory\": \"/work/demo\", \"title\": \"Synthetic session\", \"version\": \"7.8.25\", \"time\": {\"created\": 1767225600000, \"updated\": 1767225600000}, \"permission\": []}}"
+  },
+  {
+    "id": "evt_v2_1",
+    "seq": 1,
+    "type": "session.next.prompted.1",
+    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600001, \"messageID\": \"msg_prompt\", \"prompt\": {\"text\": \"Read the synthetic example.\\n\"}, \"delivery\": \"steer\"}"
+  },
+  {
+    "id": "evt_v2_2",
+    "seq": 2,
+    "type": "session.next.step.started.1",
+    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600002, \"assistantMessageID\": \"msg_assistant\", \"agent\": \"build\", \"model\": {\"id\": \"requested-model\", \"providerID\": \"example\"}}"
+  },
+  {
+    "id": "evt_v2_3",
+    "seq": 3,
+    "type": "session.next.tool.called.1",
+    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600003, \"assistantMessageID\": \"msg_assistant\", \"callID\": \"read-1\", \"tool\": \"read_file\", \"input\": {\"path\": \"/work/demo/input.txt\"}, \"provider\": {\"executed\": false}}"
+  },
+  {
+    "id": "evt_v2_4",
+    "seq": 4,
+    "type": "session.next.synthetic.1",
+    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600004, \"messageID\": \"msg_notice\", \"text\": \"A recorded notice.\"}"
+  },
+  {
+    "id": "evt_v2_5",
+    "seq": 5,
+    "type": "session.next.tool.success.1",
+    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600005, \"assistantMessageID\": \"msg_assistant\", \"callID\": \"read-1\", \"structured\": {}, \"content\": [{\"type\": \"text\", \"text\": \"synthetic\\n\"}], \"provider\": {\"executed\": false}}"
+  },
+  {
+    "id": "evt_v2_6",
+    "seq": 6,
+    "type": "session.next.text.ended.1",
+    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600006, \"assistantMessageID\": \"msg_assistant\", \"textID\": \"txt_synthetic\", \"text\": \"Done.\"}"
+  },
+  {
+    "id": "evt_v2_7",
+    "seq": 7,
+    "type": "session.next.step.ended.2",
+    "data": "{\"sessionID\": \"ses_synthetic\", \"timestamp\": 1767225600007, \"assistantMessageID\": \"msg_assistant\", \"finish\": \"stop\", \"cost\": 0, \"tokens\": {\"input\": 10, \"output\": 4, \"reasoning\": 2, \"cache\": {\"read\": 3, \"write\": 1}}}"
+  }
+]
