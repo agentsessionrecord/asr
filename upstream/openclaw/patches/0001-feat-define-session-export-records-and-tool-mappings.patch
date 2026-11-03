@@ -1,7 +1,7 @@
-From 4fc193cd57831c0f4862fc104401762271920353 Mon Sep 17 00:00:00 2001
+From 679c8e36fae1c2d4bbef616d4251864afe291564 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 16:26:16 -0500
-Subject: [PATCH 1/8] feat: define session export records and tool mappings
+Subject: [PATCH] feat: define session export records and tool mappings
 
 ---
  src/sessions/agent-session-export.json.ts  | 207 +++++++++++++++
@@ -590,3 +590,6 @@ index 00000000000..c7a1c36e436
 +  leafId?: string;
 +  cold: boolean;
 +};
+-- 
+2.43.0
+

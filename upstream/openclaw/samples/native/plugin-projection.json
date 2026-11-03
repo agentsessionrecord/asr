@@ -1,0 +1,42 @@
+[
+  {
+    "type": "message",
+    "id": "u",
+    "message": {
+      "role": "user",
+      "content": "Read the synthetic item.\n"
+    }
+  },
+  {
+    "type": "message",
+    "id": "a",
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "toolCall",
+          "id": "call-1",
+          "name": "read",
+          "arguments": {
+            "path": "/work/fixture"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "type": "message",
+    "id": "r",
+    "message": {
+      "role": "toolResult",
+      "toolCallId": "call-1",
+      "isError": false,
+      "content": [
+        {
+          "type": "text",
+          "text": "done\n"
+        }
+      ]
+    }
+  }
+]

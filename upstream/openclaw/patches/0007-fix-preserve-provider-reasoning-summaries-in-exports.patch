@@ -1,7 +1,7 @@
-From 6d0b7e76631908d061dd7f50fa8b15ef6b4d3be6 Mon Sep 17 00:00:00 2001
+From 69536b5922845248e954899d0d17b1cb1406b65e Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 16:26:17 -0500
-Subject: [PATCH 7/8] fix: preserve provider reasoning summaries in exports
+Subject: [PATCH] fix: preserve provider reasoning summaries in exports
 
 ---
  src/sessions/agent-session-export.json.ts     | 20 ++++++++++++++-----
@@ -91,3 +91,6 @@ index 0c6786acf66..966636f8990 100644
      if (array(message.content).some((p) => object(p).type === "thinking" && object(p).redacted)) {
        this.losses.add("reasoning");
      }
+-- 
+2.43.0
+

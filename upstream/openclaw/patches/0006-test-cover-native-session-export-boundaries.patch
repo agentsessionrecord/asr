@@ -1,7 +1,7 @@
-From 70c3e78252d4a8da63de0cd12fa4e7b9c4042e7e Mon Sep 17 00:00:00 2001
+From 38dfd281b127013be4c395ffac7d9dd3762e2af7 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 16:26:17 -0500
-Subject: [PATCH 6/8] test: cover native session export boundaries
+Subject: [PATCH] test: cover native session export boundaries
 
 ---
  src/sessions/agent-session-export.test.ts | 544 ++++++++++++++++++++++
@@ -558,3 +558,6 @@ index 00000000000..01c4b32c40c
 +    expect(records[0]!.missing).toContain("model");
 +  });
 +});
+-- 
+2.43.0
+

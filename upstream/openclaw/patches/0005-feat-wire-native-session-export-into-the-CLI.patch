@@ -1,7 +1,7 @@
-From 6609fb7cb23847b94349200a18e2a79fc0a12160 Mon Sep 17 00:00:00 2001
+From 0022fe0b9f32b741fb49d0b8fdfb2f1ec4290090 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 16:26:17 -0500
-Subject: [PATCH 5/8] feat: wire native session export into the CLI
+Subject: [PATCH] feat: wire native session export into the CLI
 
 ---
  src/cli/command-catalog.ts                    |  5 ++
@@ -13,10 +13,10 @@ Subject: [PATCH 5/8] feat: wire native session export into the CLI
  create mode 100644 src/commands/sessions-export.ts
 
 diff --git a/src/cli/command-catalog.ts b/src/cli/command-catalog.ts
-index b21d6c4b560..903f89de911 100644
+index ec9d3ebcb1c..5315328657a 100644
 --- a/src/cli/command-catalog.ts
 +++ b/src/cli/command-catalog.ts
-@@ -252,6 +252,11 @@ export const cliCommandCatalog: readonly CliCommandCatalogEntry[] = [
+@@ -258,6 +258,11 @@ export const cliCommandCatalog: readonly CliCommandCatalogEntry[] = [
      },
      route: { id: "sessions" },
    },
@@ -29,7 +29,7 @@ index b21d6c4b560..903f89de911 100644
      commandPath: ["agents", "list"],
      // Output combines config with shared-state provenance and optional read-only
 diff --git a/src/cli/command-path-policy.test.ts b/src/cli/command-path-policy.test.ts
-index ce7d67c5805..8ed0a3eb05c 100644
+index 5cd3006627a..4f8cecd7770 100644
 --- a/src/cli/command-path-policy.test.ts
 +++ b/src/cli/command-path-policy.test.ts
 @@ -100,6 +100,16 @@ describe("command-path-policy", () => {
@@ -50,7 +50,7 @@ index ce7d67c5805..8ed0a3eb05c 100644
      ["plugins list|plugins lint", { ...skip, ensureCliPath: false }],
      [
 diff --git a/src/cli/program/register.status-health-sessions.test.ts b/src/cli/program/register.status-health-sessions.test.ts
-index b921cf2635d..1a0361f2f93 100644
+index 7cbcb4dbb41..ddc9c3d8e6a 100644
 --- a/src/cli/program/register.status-health-sessions.test.ts
 +++ b/src/cli/program/register.status-health-sessions.test.ts
 @@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
@@ -96,7 +96,7 @@ index b921cf2635d..1a0361f2f93 100644
 +  });
 +});
 diff --git a/src/cli/program/register.status-health-sessions.ts b/src/cli/program/register.status-health-sessions.ts
-index b49e92d40ed..beaed988d43 100644
+index ef76fe350ae..0b72714d4fd 100644
 --- a/src/cli/program/register.status-health-sessions.ts
 +++ b/src/cli/program/register.status-health-sessions.ts
 @@ -379,6 +379,32 @@ export function registerStatusHealthSessionsCommands(program: Command) {
@@ -217,3 +217,6 @@ index 00000000000..eb3bb099770
 +    );
 +  }
 +}
+-- 
+2.43.0
+

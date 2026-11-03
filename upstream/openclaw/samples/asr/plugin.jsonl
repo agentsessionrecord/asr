@@ -1,0 +1,5 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"openclaw"},"sessionId":"synthetic-plugin","producer":{"name":"openclaw-asr-export","version":"0.1.0","method":"native","source":"plugin-sdk-transcript"},"missing":["history","usage","model","approvals","agent_settings","tools","file_changes","commits","subagents","copies","reasoning","media","native_metadata","message_author","timestamps","provider_state","redacted_fields"]}
+{"type":"gap","id":"projection-prefix","reason":"not_recorded","detail":"This export covers the retained public transcript projection. Side-store evidence and unavailable history are not read."}
+{"id":"u","type":"message","role":"user","content":[{"type":"text","text":"Read the synthetic item.\n"}]}
+{"id":"a","type":"tool_call","callId":"call-1","name":"read","input":{"path":"/work/fixture"}}
+{"id":"r","type":"tool_result","callId":"call-1","status":"completed","content":[{"type":"text","text":"done\n"}]}
