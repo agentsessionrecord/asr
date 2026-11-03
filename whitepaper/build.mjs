@@ -172,7 +172,7 @@ function renderCover(meta, abstractHtml) {
   </dl>
   ${abstractHtml ? `<div class="cover-abstract">${abstractHtml}</div>` : ''}
   <div class="cover-foot">
-    <p>Draft for review. This paper describes a proposed format and will change before Preview and 1.0.</p>
+    <p>Feedback: feedback@agentsessionrecord.org</p>
     ${repo}
   </div>
 </section>

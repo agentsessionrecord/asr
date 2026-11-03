@@ -15,7 +15,7 @@
   },
   "favicon": "/favicon.svg",
   "banner": {
-    "content": "ASR 0.1 is a draft for review. Feedback: [feedback@agentsessionrecord.org](mailto:feedback@agentsessionrecord.org)",
+    "content": "ASR 0.1 is ready to build on. Feedback: [feedback@agentsessionrecord.org](mailto:feedback@agentsessionrecord.org)",
     "dismissible": true
   },
   "navbar": {

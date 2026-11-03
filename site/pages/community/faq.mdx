@@ -11,9 +11,9 @@ It is an indexable log of work. It records messages, tool activity, edits and co
 
 You can, for one agent. Each agent stores sessions differently, so readers must rebuild search and blame logic for each format and keep it current as formats change. A converter holds that knowledge once. Readers then work across agents.
 
-## Is version 0.1 stable?
+## Can an agent ship version 0.1 now?
 
-No. Version 0.1 is a draft for review. Requirement IDs and meanings stay fixed within a format version, and a breaking change gets a new `formatVersion`. The [Versions section](/spec/format#versions) defines what agent makers can rely on during 0.1. From 1.0, a reader for 1.x reads every 1.x file. Later 1.x versions only add optional fields, record types and values. Readers preserve unfamiliar data and ignore meanings they do not understand.
+Yes. Changes to 0.1 only add optional fields, record types and enum values. Requirement IDs and meanings stay fixed within a format version, and a breaking change gets a new `formatVersion`. The tools in this repository keep reading 0.1 files. The [Versions section](/spec/format#versions) defines what agent makers can rely on. From 1.0, a reader for 1.x reads every 1.x file. Later 1.x versions only add optional fields, record types and values. Readers preserve unfamiliar data and ignore meanings they do not understand.
 
 ## Must an agent write ASR itself?
 

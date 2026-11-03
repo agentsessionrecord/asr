@@ -106,7 +106,7 @@ function convertWhitepaper() {
   const header = [
     '---',
     'title: "White paper"',
-    'description: "Agent Session Record: an open format for recorded agent sessions. A white paper and call for review, by Wills Manley."',
+    'description: "Agent Session Record: an open format for recorded agent sessions. A white paper by Wills Manley."',
     '---',
     '',
     `<Card title="Download the PDF" icon="file-pdf" href="/downloads/${PDF_NAME}" horizontal />`,

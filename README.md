@@ -19,7 +19,7 @@
     <a href="https://agentsessionrecord.org/downloads/agent-session-record-whitepaper.pdf">White paper</a>
   </p>
   <p>
-    <img alt="Format 0.1 draft" src="https://img.shields.io/badge/format-0.1%20draft-18181b">
+    <img alt="Format 0.1" src="https://img.shields.io/badge/format-0.1-18181b">
     <img alt="License Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-18181b">
   </p>
   <br>

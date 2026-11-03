@@ -11,7 +11,7 @@ An ASR stream is one `.jsonl` file for one session. Its media type is `applicati
 
 **ASR-078** Requirement IDs MUST NOT be reused, record and field meanings MUST NOT change within a format version, and a breaking change MUST use a new `formatVersion`.
 
-Version 0.1 is a draft for review. Optional fields, record types and enum values can be added. Readers ignore unfamiliar data and storage tools preserve it. A validator reports an unsupported format version as an error. From 1.0, a reader for 1.x reads every 1.x file. Changes within 1.x only add optional fields, record types and values.
+Version 0.1 is the current format. Changes to 0.1 only add optional fields, record types and enum values. Readers ignore unfamiliar data and storage tools preserve it. A breaking change gets a new `formatVersion`, and the tools in this repository keep reading 0.1 files. A validator reports an unsupported format version as an error. From 1.0, a reader for 1.x reads every 1.x file. Changes within 1.x only add optional fields, record types and values.
 
 ## File format and order
 

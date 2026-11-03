@@ -1,8 +1,8 @@
 ---
 title: "Agent Session Record: an open format for recorded agent sessions"
-description: "The need for a common agent session record, the design of ASR and a call for review."
-subtitle: "A white paper and call for review"
-version: "v0.1 draft"
+description: "The need for a common agent session record and the design of ASR."
+subtitle: "A white paper"
+version: "v0.1"
 date: "October 2026"
 authors: "Wills Manley"
 repository: "https://agentsessionrecord.org"
@@ -11,9 +11,9 @@ repository: "https://agentsessionrecord.org"
 <!-- titleblock -->
 # Agent Session Record: an open format for recorded agent sessions
 
-*A white paper and call for review*
+*A white paper*
 
-**v0.1 draft** · October 2026<br>
+**v0.1** · October 2026<br>
 Wills Manley
 <!-- /titleblock -->
 
@@ -164,4 +164,4 @@ The author also builds [ctx](https://github.com/ctxrs/ctx), an open-source conve
 6. <a id="ref-6"></a>Git. *git-rev-parse documentation.* <https://git-scm.com/docs/git-rev-parse>
 7. <a id="ref-7"></a>OASIS. *Static Analysis Results Interchange Format (SARIF) Version 2.1.0*, OASIS Standard, March 2020. <https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html>
 8. <a id="ref-8"></a>GitHub Docs. *SARIF support for code scanning.* <https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning>
-9. <a id="ref-9"></a>Agent Session Record. *Specification, format 0.1 draft.* <https://agentsessionrecord.org/spec/overview>
+9. <a id="ref-9"></a>Agent Session Record. *Specification, format 0.1.* <https://agentsessionrecord.org/spec/overview>
