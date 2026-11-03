@@ -1,29 +1,17 @@
-From 91e0792c5cb0cb44a8e18c772534be11ad1f05ea Mon Sep 17 00:00:00 2001
+From 3cc21573f2f5a2fadfaeea9828da8f0f0e639364 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] agent: export saved threads as Agent Session Record
 
 ---
- README.md                                     |   3 +
  crates/agent/Cargo.toml                       |   2 +-
  crates/agent/examples/export_agent_session.rs |  21 ++
  crates/agent/src/agent.rs                     |   1 +
  crates/agent/src/agent_session.rs             | 209 ++++++++++++++++++
- 5 files changed, 235 insertions(+), 1 deletion(-)
+ 4 files changed, 232 insertions(+), 1 deletion(-)
  create mode 100644 crates/agent/examples/export_agent_session.rs
  create mode 100644 crates/agent/src/agent_session.rs
 
-diff --git a/README.md b/README.md
-index 9f641fb..24840ee 100644
---- a/README.md
-+++ b/README.md
-@@ -1,3 +1,6 @@
-+> [!IMPORTANT]
-+> Remove this line to confirm you've reviewed this PR before submitting.
-+
- # Zed
- 
- [![Zed](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/zed-industries/zed/main/assets/badge/v0.json)](https://zed.dev)
 diff --git a/crates/agent/Cargo.toml b/crates/agent/Cargo.toml
 index 4980846..fb27d4c 100644
 --- a/crates/agent/Cargo.toml
@@ -65,7 +53,7 @@ index 0000000..b80334c
 +    thread.write_agent_session(&session_id, io::stdout().lock())
 +}
 diff --git a/crates/agent/src/agent.rs b/crates/agent/src/agent.rs
-index 3c35de3..5b833ae 100644
+index 091f35d..0dcbafe 100644
 --- a/crates/agent/src/agent.rs
 +++ b/crates/agent/src/agent.rs
 @@ -1,3 +1,4 @@
@@ -288,5 +276,6 @@ index 0000000..183e492
 +        serde_json::json!({"type":"reasoning", "text":text})
 +    }
 +}
+-- 
+2.43.0
 
-base-commit: 14b7b0ef3764d62a85070c8b5ccea105a2ad3235
