@@ -1,24 +1,24 @@
-From 3e7534eeed9dca589b735c10061b9e14e8392310 Mon Sep 17 00:00:00 2001
+From 4dfb5620b8dece95c20475647acf3853d277f550 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] feat: export Xum chat segments as ASR
 
 ---
- src/cli/agentSessionExport.test.ts |  98 ++++++++++++++++
- src/cli/agentSessionExport.ts      | 179 +++++++++++++++++++++++++++++
+ src/cli/agentSessionExport.test.ts | 108 ++++++++++++++++
+ src/cli/agentSessionExport.ts      | 192 +++++++++++++++++++++++++++++
  src/cli/index.ts                   |  14 ++-
  src/cli/sessions.ts                |  23 ++++
- 4 files changed, 313 insertions(+), 1 deletion(-)
+ 4 files changed, 336 insertions(+), 1 deletion(-)
  create mode 100644 src/cli/agentSessionExport.test.ts
  create mode 100644 src/cli/agentSessionExport.ts
  create mode 100644 src/cli/sessions.ts
 
 diff --git a/src/cli/agentSessionExport.test.ts b/src/cli/agentSessionExport.test.ts
 new file mode 100644
-index 0000000..016d25f
+index 0000000..2869fc2
 --- /dev/null
 +++ b/src/cli/agentSessionExport.test.ts
-@@ -0,0 +1,98 @@
+@@ -0,0 +1,108 @@
 +import { describe, expect, test } from "bun:test";
 +import { exportAgentSession } from "./agentSessionExport";
 +
@@ -117,17 +117,34 @@ index 0000000..016d25f
 +    expect(() => exportAgentSession("", "")).toThrow();
 +  });
 +});
++
++
++test("removes credential fields from tool data and marks the loss", () => {
++  const source = JSON.stringify({ id: "a", role: "assistant", parts: [{ type: "dynamic-tool", toolCallId: "c", toolName: "read", input: { credentials: "synthetic-excluded-value", path: "fixture" }, state: "output-available", output: { password: "synthetic-excluded-value", text: "done" } }] }) + "\n";
++  const output = exportAgentSession("synthetic", source);
++  expect(output).not.toContain("synthetic-excluded-value");
++  const rows = output.trimEnd().split("\n").map(line => JSON.parse(line));
++  expect(rows.find(row => row.type === "tool_call").truncated).toBe(true);
++  expect(rows.find(row => row.type === "tool_result")._meta["com.coder.xum"].output).toEqual({ text: "done" });
++});
 diff --git a/src/cli/agentSessionExport.ts b/src/cli/agentSessionExport.ts
 new file mode 100644
-index 0000000..0b66efb
+index 0000000..e14aa45
 --- /dev/null
 +++ b/src/cli/agentSessionExport.ts
-@@ -0,0 +1,179 @@
+@@ -0,0 +1,192 @@
 +/** Offline export of one explicitly selected native chat.jsonl segment. */
 +import type { MuxMessage } from "@/common/types/message";
 +import { MuxMessageSchema } from "@/common/orpc/schemas/message";
 +
 +type Row = Record<string, unknown>;
++
++function clean(value: unknown): unknown {
++  if (typeof value === "string") return value.replace(/\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g, "[redacted]");
++  if (Array.isArray(value)) return value.map(clean);
++  if (value !== null && typeof value === "object") return Object.fromEntries(Object.entries(value).filter(([key]) => !/^(?:api[_-]?key|authorization|password|access[_-]?token|refresh[_-]?token|credentials|signature|thinkingSignature)$/i.test(key)).map(([key, item]) => [key, clean(item)]));
++  return value;
++}
 +
 +/** Export the selected segment without reading configuration, archives, or providers. */
 +export function exportAgentSession(sessionId: string, source: string): string {
@@ -137,7 +154,7 @@ index 0000000..0b66efb
 +      type: "session",
 +      id: "header",
 +      formatVersion: "0.1",
-+      agent: { name: "mux" },
++      agent: { name: "xum" },
 +      sessionId,
 +      producer: {
 +        name: "xum-asr-export",
@@ -163,6 +180,7 @@ index 0000000..0b66efb
 +        "timestamps",
 +        "tool_status",
 +        "snapshot_updates",
++        "redacted_fields",
 +      ],
 +    },
 +    {
@@ -233,7 +251,9 @@ index 0000000..0b66efb
 +    }
 +    // History rewrites replace a full message, keyed by ID and sequence.
 +    if (lastSnapshot.get(identity(message)) !== lineIndex) continue;
-+    for (const [partIndex, part] of message.parts.entries()) {
++    for (const [partIndex, nativePart] of message.parts.entries()) {
++      const part = clean(nativePart) as typeof nativePart;
++      const redacted = JSON.stringify(part) !== JSON.stringify(nativePart);
 +      const append = (row: Row): void => {
 +        rows.push({
 +          id:
@@ -241,6 +261,7 @@ index 0000000..0b66efb
 +              ? allocate(message.id, true)
 +              : allocate(`line-${lineIndex}-part-${partIndex}`),
 +          ...row,
++          ...(redacted ? { truncated: true } : {}),
 +        });
 +      };
 +      if (part.type === "text" || part.type === "reasoning") {
@@ -282,7 +303,9 @@ index 0000000..0b66efb
 +            type: "tool_result",
 +            callId: part.toolCallId,
 +            status: "unknown",
-+            ...(part.state === "output-available" ? { output: part.output } : { truncated: true }),
++            ...(part.state === "output-available"
++              ? { _meta: { "com.coder.xum": { output: part.output } } }
++              : { truncated: true }),
 +          });
 +        }
 +      } else {
@@ -363,5 +386,6 @@ index 0000000..71f664f
 +  await command.parseAsync(process.argv, getParseOptions());
 +  return 0;
 +}
+-- 
+2.43.0
 
-base-commit: f10bd913c839ee09a4af3a0cf5e36c159ff17c9b
