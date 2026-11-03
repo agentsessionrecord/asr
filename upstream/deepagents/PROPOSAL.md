@@ -1,30 +1,20 @@
-# Native ASR export for Deep Agents Code
+# Agent Session Record export for Deep Agents Code
 
-Export a saved session in an open format that search and code history tools can read. The export keeps the source facts available for later review.
+Export a saved session as Agent Session Record so local tools can search and review its recorded work.
 
-This patch adds `threads export` to Deep Agents Code 0.2.2. It exports native SQLite message writes as Agent Session Record. The producer method is `native`.
+This adds `dcode threads export --format agent-session` to Deep Agents Code 0.2.4. One explicit thread without an output directory writes JSONL to stdout. Repeat `--session` to select threads with directory output. With an output directory and no IDs, all stored threads are selected. Existing output files are refused.
+
+The exporter reads a consistent read-only snapshot of root-namespace SQLite message writes in native replay order. LangChain message types provide text, tool arguments and explicit tool outcomes. Revisions and result updates occupy their final observation. Removal markers do not erase captured work. Corrupt writes become gaps. Large native argument integers become exact decimal strings. Pickle fallback is disabled.
+
+Message boundaries do not establish model calls. Usage, historical models, complete reasoning, approvals, settings, instructions, tools, timestamps, edits, commits, child sessions and copies remain incomplete. Offloaded history and nested checkpoint namespaces are not recovered. The change stays in `libs/code` and adds no dependencies or lockfile changes.
 
 ```sh
 dcode threads export --format agent-session --session THREAD_ID
-dcode threads export --format agent-session --session THREAD_ID --output ./exports
-dcode threads export --format agent-session --output ./exports
+dcode threads export --format agent-session --session THREAD_ID --output exports
 ```
 
-One explicit session without `--output` writes JSONL to standard output. An output directory receives one file per selected thread. Filenames are SHA-256 digests of native IDs. Existing output files are refused. Source reads use a consistent read-only SQLite transaction. Missing threads fail with a nonzero exit code. The command does not start the model or the agent server.
+Source: [langchain-ai/deepagents](https://github.com/langchain-ai/deepagents), base `89f85affc20ea22d9a1ddb5821987660368b7b8b`. Apply the ordered patches in [manifest.json](manifest.json) with `git am` in a clean checkout at that base.
 
-The patch applies to langchain-ai/deepagents at `e9f0d8855cff6d7e79d87afc15c2defc62214a71`. Apply the patch listed in `manifest.json` with `git am` in a writable checkout at that commit.
+Output uses ASR 0.1 with `producer.method: native`. Known credential fields or recognized secret text are excluded where the source mapping supports them. Review exports before sharing. Filtering cannot identify every secret.
 
-Native LangChain message types provide roles, exact text, tool names, effective JSON arguments and explicit tool outcomes. The exporter reads root-namespace message deltas in the same checkpoint, task and write order that the project uses for native history replay. It retains work removed from later context. Message revisions and result updates occupy their last observation. Removal markers do not erase captured work. Corrupt writes become gaps. Valid message IDs stay native. Other record IDs are deterministic and avoid collisions. Missing native call IDs get deterministic IDs and a declared loss.
-
-Known credential fields and recognized credential text are excluded. Large native argument integers become exact decimal strings. Unsupported media and opaque provider state are excluded. The serializer disables pickle fallback. No attachment, current instruction file or current repository state is read for export.
-
-Saved message boundaries alone do not prove model-call boundaries. The export declares missing usage, model identity, reasoning coverage, inference settings, policy and approval history, complete instructions, tool definitions, native timestamps, file edits, commits, child sessions and copy detection. It does not treat a message's user role as human authorship or the end of a file as a session end. Offloaded history and nested checkpoint namespaces are not recovered.
-
-Focused export and argument tests pass. Ruff and type checks pass for the changed exporter and its tests. The live test used the Code model factory and Deep Agents SDK 0.7.32 graph with native SQLite checkpoint persistence against a local OpenAI-compatible endpoint. The real CLI exported three ASR records with zero validator errors and warnings. The interactive TUI and full headless Code server were not run.
-
-`samples/native/native.json` contains synthetic LangChain message serialization. `samples/asr/session.jsonl` is its export. The package check verifies source facts, patch syntax and integrity, privacy and ASR validation. The upstream tests are included in the patch. This patch does not add `--since`, discovery registration or a live ASR writer.
-
-## Verification scope
-
-The live evidence above is from a prior revision. The current source has focused
-regressions and package checks. Its full agent and model path has not been rerun.
+The native fixture and ASR sample are synthetic. [TEST-RESULTS.md](TEST-RESULTS.md) states the current verification results and remaining limits. Structural validation does not prove complete capture.
