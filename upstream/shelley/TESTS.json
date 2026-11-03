@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-03",
+  "upstreamChecks": [
+    {
+      "command": "go test ./db ./cmd/shelley-export",
+      "status": "blocked",
+      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+    },
+    {
+      "command": "go vet ./db ./cmd/shelley-export",
+      "status": "blocked",
+      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+    },
+    {
+      "command": "go build ./cmd/shelley-export",
+      "status": "blocked",
+      "reason": "Required shared build lease did not admit the job. The heavy queue remained full."
+    }
+  ],
+  "formatting": "existing Go formatting retained",
+  "nativeFixture": "blocked until native build admission",
+  "packageCheck": "passed",
+  "patchReplay": "passed",
+  "sampleRecords": 8,
+  "sampleErrors": 0,
+  "sampleWarnings": [],
+  "liveTestStatus": "not-live-tested",
+  "liveTestNotes": "No current model session was run."
+}
