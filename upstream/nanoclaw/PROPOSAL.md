@@ -1,42 +1,23 @@
-# NanoClaw native mailbox export
+# NanoClaw ASR utility skill
 
-Export a saved session in an open format that search and code history tools can read. The export keeps the source facts available for later review.
+Export a selected NanoClaw Claude continuation as ASR, including tool and model
+calls. The change is a utility skill under `.claude/skills/`. It changes no core
+module, database, provider or installed configuration.
 
-Applies to `qwibitai/nanoclaw` at `acc2b1c8f52a954368cfaf04b61c32f9a1efc280`.
+The operator selects the NanoClaw session and confirms its provider continuation.
+The skill reads that continuation's SDK transcript in file order. It preserves
+text, tool pairing, response IDs, served models and inclusive input counts.
+Multiple SDK rows for one response share one inference with final usage snapshots.
+Unsafe counts are retained exactly in metadata and omitted from core numeric fields.
 
-The patch adds an optional skill utility without changing the host or container.
-Run it in a patched checkout with its pinned dependencies installed.
+This export does not join mailbox traffic into guessed chronology. It covers one
+Claude continuation. Other providers, mailbox delivery, approvals, edits, commits
+and child lineage remain explicit losses. Known credential fields and provider
+signatures are excluded. The utility leaves nothing installed when it finishes.
 
-```bash
-pnpm exec tsx .claude/skills/export-agent-session/scripts/export-agent-session.ts \
-  --session ID --directory data/v2-sessions/GROUP/ID \
-  --format agent-session > session.jsonl
-```
+Run the skill's focused Vitest tests, targeted TypeScript check and Prettier check.
+The synthetic fixture includes a split response, reasoning, a tool call and result,
+zero usage and descending timestamps. Tests cover unsafe counts and corrupt input.
 
-The utility reads native inbound and outbound SQLite mailboxes in read-only
-mode. It preserves text, unique native record IDs and exact native sequence
-order. Invalid timestamps are omitted. Unsupported payloads become gaps.
-Scheduled inbound tasks keep their origin. A recorded sender session becomes a
-`from` reference. It does not establish a copied-history relationship.
-
-The export covers mailbox traffic. Internal model calls, reasoning, tools,
-approvals, settings, identities and usage are absent and listed in the header.
-It does not infer that inbound text came from a human or that outbound text
-came from a model. Stop the session for a stable snapshot across both files.
-
-The focused Vitest contract, TypeScript project check, ESLint check, skill
-structure check and native mailbox CLI export passed. The contract covers
-native order against reversed timestamps, excluded credential fields, missing
-sequence, invalid dates and session identity. No live host or agent container
-was configured. The included sample uses synthetic mailboxes.
-
-To reproduce the packaged sample from an already patched checkout, run:
-
-```bash
-python3 upstream/nanoclaw/reproduce.py /path/to/patched/checkout
-```
-
-The reproduction uses temporary native fixture files, compares the exported
-records with the packaged sample and runs the ASR validator. It does not start
-inference. The package check runs in repository CI without fetching or compiling
-the upstream project.
+Source: [https://github.com/nanocoai/nanoclaw](https://github.com/nanocoai/nanoclaw).
+Base: `f7440e85f8b2a75b17fc9a08f0cc6aacf723a1e2`.

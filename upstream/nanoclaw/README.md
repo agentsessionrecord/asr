@@ -1,68 +1,61 @@
-# NanoClaw native export patch
+# NanoClaw ASR utility skill
 
-## Install
+Source: [https://github.com/nanocoai/nanoclaw](https://github.com/nanocoai/nanoclaw).
+Pinned base: `f7440e85f8b2a75b17fc9a08f0cc6aacf723a1e2`.
 
-Use a separate writable checkout of the upstream project. The supported base is
-`acc2b1c8f52a954368cfaf04b61c32f9a1efc280`. [manifest.json](manifest.json) pins
-this base, the ordered patches and their digests. Read [PROPOSAL.md](PROPOSAL.md)
-for the upstream repository, runtime requirements and native build instructions.
-These patches are local source changes. They are not installed by the ASR CLI.
+The refreshed standalone draft is in `skill/`. Its source changes and tests are
+staged in the upstream clone. The hook-protected source commit is awaiting build
+admission. `draft-source.diff` records the changes after the rebased mailbox patch.
+The manifest patch series still pins that mailbox implementation. It does not yet
+reproduce the Claude transcript sample. Do not treat this package as passing.
 
-Set `ASR_PACKAGE` to this package's absolute path. Run in a clean upstream
-checkout at the pinned base:
-
-```sh
-git am "$ASR_PACKAGE"/patches/*.patch
-```
-
-Build and install the patched agent using its own instructions and the focused
-checks in the proposal. To remove the feature, use a clean unpatched build.
-Existing exported files remain in their output directory.
-
-## Use
-
-Run with the patched agent. Replace example IDs and input paths with a selected
-native session. See the proposal for selection and output options.
+The intended patch adds only `.claude/skills/export-agent-session/`. It installs no core
+code or configuration. Select a NanoClaw session and verify which Claude provider
+continuation belongs to it. Select that continuation's SDK JSONL file explicitly.
 
 ```sh
 pnpm exec tsx .claude/skills/export-agent-session/scripts/export-agent-session.ts \
-  --session ID --directory data/v2-sessions/GROUP/ID \
-  --format agent-session > session.jsonl
+  --session SESSION_ID --transcript SELECTED_TRANSCRIPT.jsonl \
+  --format agent-session > session.asr.jsonl
 ```
 
-## What it records
+The skill exports retained text, tool calls and results, provider response IDs,
+served models, reasoning summaries and inclusive token counts. Split response
+blocks share one inference. Later usage snapshots replace counts rather than
+being added together. Known credentials and signatures are excluded.
 
-Read-only inbound and outbound SQLite mailboxes supply text, native record IDs, sequence, scheduled-task origins and recorded sender references.
+This profile covers one Claude continuation. It does not merge mailbox delivery
+or other continuations and does not read raw SQL. Other providers need separate
+native mappings. Missing approvals, settings, edits, commits and lineage are
+declared. Unsupported records and corrupt lines become gaps.
 
-Output uses ASR 0.1 with `producer.method: native`. Known credential fields and
-recognized secret text are excluded. Keep exports private and review content
-before sharing. Pattern filtering cannot identify every secret.
+Native fixture reproduction:
 
-## Limits
+```sh
+node upstream/nanoclaw/reproduce-native.mjs /path/to/patched-checkout
+```
 
-This is mailbox traffic. Internal model calls, reasoning, tools, approvals, settings, identity and usage are absent. Stop the native session for a stable snapshot across both mailboxes.
+## Package checks
 
-The [proposal](PROPOSAL.md) describes the source profile and detailed losses.
-Valid ASR does not establish complete source capture.
+The manifest pins the source base, patch commits and file digests. Apply the
+ordered patches in a clean checkout at that base with `git am patches/*.patch`.
+The package is not installed by the ASR CLI.
 
-## Tests and status
-
-Run from the ASR repository root with its Node dependencies installed:
+From the ASR repository root, run:
 
 ```sh
 node upstream/nanoclaw/check.mjs
-node upstream/nanoclaw/reproduce.mjs /path/to/upstream-checkout
+node upstream/nanoclaw/reproduce.mjs /path/to/patched-checkout
 ```
 
-The package check verifies file hashes, patch syntax, synthetic source contracts
-and ASR sample validation. The reproduce command also replays the series in a
-temporary Git index against the pinned source commits. It preserves the source
-checkout. It needs both pinned commits in that checkout and does not build or
-run the agent. Upstream build and test evidence is in the proposal.
+The second command checks replay in a temporary Git index. It preserves the
+checkout and requires the pinned commits. It does not build the agent.
+Native fixture reproduction is a separate check described below.
 
-Live-test status: **not-live-tested**.
-No live host or agent container was configured. Synthetic native mailboxes, the optional skill utility and focused checks passed.
+The refreshed project checks and fixture regeneration are awaiting execution.
+See [verification.json](verification.json) for the current status. Existing
+live evidence is historical and does not validate this revision. No live model
+request was made for this refresh.
 
-The package's [synthetic export](samples/asr/session.jsonl) has zero validator
-errors. Any expected extension or pairing warnings are explained by the proposal
-or printed by the package check. Package checks make no model requests.
+Keep exports private and review them before sharing. Pattern filters cannot
+identify every secret. Valid ASR does not establish complete capture.

@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "agent": "nanoclaw",
-  "base": "acc2b1c8f52a954368cfaf04b61c32f9a1efc280",
-  "head": "2645edf25c02a677e42fc6892945c879e1953eae",
+  "base": "f7440e85f8b2a75b17fc9a08f0cc6aacf723a1e2",
+  "head": "e229991cc0273b10d866d5b765a82733deceff60",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "2645edf25c02a677e42fc6892945c879e1953eae",
-      "sha256": "b6c7ccdf2390eb370644aab20e32e6947b2a9774603c095f5e1897d31a6f9a11"
+      "commit": "e229991cc0273b10d866d5b765a82733deceff60",
+      "sha256": "11040098ab916bc968781ad1969e33412e1c2721136a9034fe9fc85458fe0767"
     }
   ],
   "checks": [
@@ -18,34 +18,53 @@
     ]
   ],
   "provenance": {
+    "repository": "https://github.com/nanocoai/nanoclaw",
     "agent": "nanoclaw",
-    "base": "acc2b1c8f52a954368cfaf04b61c32f9a1efc280",
-    "commit": "2645edf25c02a677e42fc6892945c879e1953eae",
+    "base": "f7440e85f8b2a75b17fc9a08f0cc6aacf723a1e2",
+    "head": "e229991cc0273b10d866d5b765a82733deceff60",
+    "commit": "e229991cc0273b10d866d5b765a82733deceff60",
+    "branch": "codex/patch-js-b",
     "patch": "patches/0001-native-agent-session-export.patch",
     "files": {
       ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
-      "patches/0001-native-agent-session-export.patch": "b6c7ccdf2390eb370644aab20e32e6947b2a9774603c095f5e1897d31a6f9a11",
-      "PROPOSAL.md": "9626d8748d2a7ebbb4c900669b9ea75f38df6dbae32d1c6b29ec4efd200861e3",
+      "PROPOSAL.md": "fafe24666780bc1aad479c267037cc9070e925182c371465c8026a448ddcda55",
+      "README.md": "ff46d900d60240b7ae89bd22435affd67066527938d26dafea298906f9d33546",
       "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
-      "evidence.json": "455f5181783d71c4a5ff62abf45c0135873b657840595715da6f41c09bd1274e",
-      "samples/native/in.sql": "c555ebf5492d59273014c0a36d53806fe1791ce0532ad1b10090ef9417dc7098",
-      "samples/native/out.sql": "48e2c223f4412d723cba0309cdac48ca60c294add52f9e8c7657ab77c02a3558",
-      "reproduce.py": "023f1bfe349b10c23afb354bd819bc13461ee8141a88bb62440194d389feffc7",
-      "samples/asr/session.jsonl": "4d1f6b4a95b1cc88d082df72efbf72906e371e01cfcb9cbe9770774300ac9506"
-    }
+      "contracts.mjs": "2c00585f88b032a9a33e67901bcc585819ae9771d81da3cfe03e9e1e20e6cf9b",
+      "draft-source.diff": "e6a095a8cb5382614a83964574acf519a37585d26b50ba7de231593cb20f3282",
+      "evidence.json": "eaae42f6c1ddaefd146fc3d6e74699233caf1eef5b1819357a21f3dc5867fa6d",
+      "patches/0001-native-agent-session-export.patch": "11040098ab916bc968781ad1969e33412e1c2721136a9034fe9fc85458fe0767",
+      "reproduce-native.mjs": "75f621e81fdb9561fdbf10299f79d7cbdaf15e020005fae4ac1333b28ae2618e",
+      "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+      "samples/asr/session.jsonl": "44103863b82d613ae2f683b96d625a8f0129bda1cae449494c1281e8fb33d935",
+      "samples/native/transcript.jsonl": "1902e60f9d3853628a62f17556d9059ab594f8cef67b5ee47da3555996559c4c",
+      "skill/SKILL.md": "a94f89b22e66fbaa6aa4a9b59840673dccd00d09ebf1bf4a2274295e1e2c1478",
+      "skill/scripts/export-agent-session.test.ts": "ab0e35dca465d48ebb8c4ac65eaf7077bd5f73662c279937d571b2fe47a2e6b5",
+      "skill/scripts/export-agent-session.ts": "8be685c307cb8679a51cbe6b512ed9b7b3d3d0118f3da1402a29b027d9f699d3",
+      "skill/tsconfig.json": "4b5ddb29c6adc3fe823f279d844dc187b62a3c6bff573d941e18fbdaf5711c07",
+      "verification.json": "93586a307f739345577aae66165208859f46e128df7602326c0d3f46d8ed23dc",
+      "verify-native.mjs": "7d342e27af30368caab31f4f0023e303a6b9e1ecc3b7512e7c0f55d9e8c2782e"
+    },
+    "draftStatus": "Claude transcript skill is staged but its hook-protected commit is blocked by build admission. The replayed series remains the rebased mailbox skill. Use skill/ for the refreshed standalone draft."
   },
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
-    "PROPOSAL.md": "9626d8748d2a7ebbb4c900669b9ea75f38df6dbae32d1c6b29ec4efd200861e3",
-    "README.md": "5b893321fddfafa61726b8c772c0a9aea87a3f34339362eaa34d00d6c6eb7bb8",
+    "PROPOSAL.md": "fafe24666780bc1aad479c267037cc9070e925182c371465c8026a448ddcda55",
+    "README.md": "ff46d900d60240b7ae89bd22435affd67066527938d26dafea298906f9d33546",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
-    "contracts.mjs": "5c01b8aa3b167c9ace70eb09ea39b2b37343381ed63ecec3d1f68d640efc268d",
-    "evidence.json": "455f5181783d71c4a5ff62abf45c0135873b657840595715da6f41c09bd1274e",
-    "patches/0001-native-agent-session-export.patch": "b6c7ccdf2390eb370644aab20e32e6947b2a9774603c095f5e1897d31a6f9a11",
+    "contracts.mjs": "2c00585f88b032a9a33e67901bcc585819ae9771d81da3cfe03e9e1e20e6cf9b",
+    "draft-source.diff": "e6a095a8cb5382614a83964574acf519a37585d26b50ba7de231593cb20f3282",
+    "evidence.json": "eaae42f6c1ddaefd146fc3d6e74699233caf1eef5b1819357a21f3dc5867fa6d",
+    "patches/0001-native-agent-session-export.patch": "11040098ab916bc968781ad1969e33412e1c2721136a9034fe9fc85458fe0767",
+    "reproduce-native.mjs": "75f621e81fdb9561fdbf10299f79d7cbdaf15e020005fae4ac1333b28ae2618e",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
-    "reproduce.py": "023f1bfe349b10c23afb354bd819bc13461ee8141a88bb62440194d389feffc7",
-    "samples/asr/session.jsonl": "4d1f6b4a95b1cc88d082df72efbf72906e371e01cfcb9cbe9770774300ac9506",
-    "samples/native/in.sql": "c555ebf5492d59273014c0a36d53806fe1791ce0532ad1b10090ef9417dc7098",
-    "samples/native/out.sql": "48e2c223f4412d723cba0309cdac48ca60c294add52f9e8c7657ab77c02a3558"
+    "samples/asr/session.jsonl": "44103863b82d613ae2f683b96d625a8f0129bda1cae449494c1281e8fb33d935",
+    "samples/native/transcript.jsonl": "1902e60f9d3853628a62f17556d9059ab594f8cef67b5ee47da3555996559c4c",
+    "skill/SKILL.md": "a94f89b22e66fbaa6aa4a9b59840673dccd00d09ebf1bf4a2274295e1e2c1478",
+    "skill/scripts/export-agent-session.test.ts": "ab0e35dca465d48ebb8c4ac65eaf7077bd5f73662c279937d571b2fe47a2e6b5",
+    "skill/scripts/export-agent-session.ts": "8be685c307cb8679a51cbe6b512ed9b7b3d3d0118f3da1402a29b027d9f699d3",
+    "skill/tsconfig.json": "4b5ddb29c6adc3fe823f279d844dc187b62a3c6bff573d941e18fbdaf5711c07",
+    "verification.json": "93586a307f739345577aae66165208859f46e128df7602326c0d3f46d8ed23dc",
+    "verify-native.mjs": "7d342e27af30368caab31f4f0023e303a6b9e1ecc3b7512e7c0f55d9e8c2782e"
   }
 }
