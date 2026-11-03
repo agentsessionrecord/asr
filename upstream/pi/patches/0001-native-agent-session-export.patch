@@ -1,66 +1,85 @@
-From e39eebeb213f17f715d8d56492b5c628c58aadb8 Mon Sep 17 00:00:00 2001
+From f55689b51e86bd1ab17ec995def675ea1384342a Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] feat(coding-agent): add installable ASR export extension
 
 ---
- package-lock.json                             |   3 +-
- .../install-lock/package-lock.json            |   1 +
- packages/coding-agent/package.json            |   1 +
- .../src/core/export-agent-session.ts          | 244 ++++++++++++++++++
- .../src/export-agent-session-cli.ts           |  23 ++
- .../test/export-agent-session.test.ts         | 161 ++++++++++++
- 6 files changed, 432 insertions(+), 1 deletion(-)
- create mode 100644 packages/coding-agent/src/core/export-agent-session.ts
- create mode 100644 packages/coding-agent/src/export-agent-session-cli.ts
+ .../examples/extensions/asr-export/README.md  |  19 ++
+ .../examples/extensions/asr-export/cli.ts     |  23 ++
+ .../examples/extensions/asr-export/export.ts  | 244 ++++++++++++++++++
+ .../examples/extensions/asr-export/index.ts   |  20 ++
+ .../extensions/asr-export/package.json        |  11 +
+ .../test/export-agent-session.test.ts         | 189 ++++++++++++++
+ 6 files changed, 506 insertions(+)
+ create mode 100644 packages/coding-agent/examples/extensions/asr-export/README.md
+ create mode 100644 packages/coding-agent/examples/extensions/asr-export/cli.ts
+ create mode 100644 packages/coding-agent/examples/extensions/asr-export/export.ts
+ create mode 100644 packages/coding-agent/examples/extensions/asr-export/index.ts
+ create mode 100644 packages/coding-agent/examples/extensions/asr-export/package.json
  create mode 100644 packages/coding-agent/test/export-agent-session.test.ts
 
-diff --git a/package-lock.json b/package-lock.json
-index 7c8fb25..cb896cc 100644
---- a/package-lock.json
-+++ b/package-lock.json
-@@ -5877,7 +5877,8 @@
- 				"yaml": "2.9.0"
- 			},
- 			"bin": {
--				"pi": "dist/bundle/cli.js"
-+				"pi": "dist/bundle/cli.js",
-+				"pi-session-export": "dist/export-agent-session-cli.js"
- 			},
- 			"devDependencies": {
- 				"@types/cross-spawn": "6.0.6",
-diff --git a/packages/coding-agent/install-lock/package-lock.json b/packages/coding-agent/install-lock/package-lock.json
-index 25e273c..bc6971f 100644
---- a/packages/coding-agent/install-lock/package-lock.json
-+++ b/packages/coding-agent/install-lock/package-lock.json
-@@ -520,6 +520,7 @@
- 				"yaml": "2.9.0"
- 			},
- 			"bin": {
-+				"pi-session-export": "dist/export-agent-session-cli.js",
- 				"pi": "dist/bundle/cli.js"
- 			},
- 			"engines": {
-diff --git a/packages/coding-agent/package.json b/packages/coding-agent/package.json
-index 0e452d9..ded6b65 100644
---- a/packages/coding-agent/package.json
-+++ b/packages/coding-agent/package.json
-@@ -7,6 +7,7 @@
- 		"configDir": ".pi"
- 	},
- 	"bin": {
-+		"pi-session-export": "dist/export-agent-session-cli.js",
- 		"pi": "dist/bundle/cli.js"
- 	},
- 	"main": "./dist/index.js",
-diff --git a/packages/coding-agent/src/core/export-agent-session.ts b/packages/coding-agent/src/core/export-agent-session.ts
+diff --git a/packages/coding-agent/examples/extensions/asr-export/README.md b/packages/coding-agent/examples/extensions/asr-export/README.md
 new file mode 100644
-index 0000000..1b077ac
+index 0000000..e2ce7d8
 --- /dev/null
-+++ b/packages/coding-agent/src/core/export-agent-session.ts
++++ b/packages/coding-agent/examples/extensions/asr-export/README.md
+@@ -0,0 +1,19 @@
++# ASR export extension
++
++Export a saved Pi session as Agent Session Record JSON Lines for local search or collection.
++The exporter includes every retained branch in native file order.
++
++From this directory, install the extension with `pi install .`.
++Restart Pi and run `/export-asr output.jsonl` to export the current saved session.
++The output path is relative to the current workspace. Existing files are refused.
++
++For offline export with Node 22.19 or later:
++
++```sh
++node cli.ts --session native-session.jsonl --format agent-session --output session.jsonl
++```
++
++The exporter keeps recorded response IDs, model identities, inclusive usage,
++text, reasoning summaries and tool calls. It excludes provider signatures and
++opaque state. The header declares missing approvals, offered tools, edits,
++commits, lineage and other unsupported evidence. Review content before sharing it.
+diff --git a/packages/coding-agent/examples/extensions/asr-export/cli.ts b/packages/coding-agent/examples/extensions/asr-export/cli.ts
+new file mode 100644
+index 0000000..008b453
+--- /dev/null
++++ b/packages/coding-agent/examples/extensions/asr-export/cli.ts
+@@ -0,0 +1,23 @@
++#!/usr/bin/env node
++/** Export a native Pi session without loading extensions, credentials, or the agent. */
++import { readFileSync, writeFileSync } from "node:fs";
++import { parseArgs } from "node:util";
++import { exportAgentSessionFile } from "./export.ts";
++
++try {
++	const { values } = parseArgs({
++		options: {
++			session: { type: "string" },
++			format: { type: "string", default: "agent-session" },
++			output: { type: "string" },
++		},
++	});
++	if (!values.session || values.format !== "agent-session")
++		throw new Error("Use --session <native-file> --format agent-session");
++	const stream = exportAgentSessionFile(readFileSync(values.session, "utf8"));
++	if (values.output) writeFileSync(values.output, stream, { mode: 0o600, flag: "wx" });
++	else process.stdout.write(stream);
++} catch (error) {
++	console.error(error instanceof Error ? error.message : "Export failed");
++	process.exitCode = 1;
++}
+diff --git a/packages/coding-agent/examples/extensions/asr-export/export.ts b/packages/coding-agent/examples/extensions/asr-export/export.ts
+new file mode 100644
+index 0000000..846e1e1
+--- /dev/null
++++ b/packages/coding-agent/examples/extensions/asr-export/export.ts
 @@ -0,0 +1,244 @@
 +/** Offline Agent Session Record export of the complete native session tree. */
-+import type { FileEntry, SessionEntry, SessionHeader } from "./session-manager.ts";
++import type { FileEntry, SessionEntry, SessionHeader } from "@earendil-works/pi-coding-agent";
 +
 +type RecordValue = Record<string, unknown>;
 +
@@ -303,44 +322,63 @@ index 0000000..1b077ac
 +	if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
 +	return { type: "reasoning", text };
 +}
-diff --git a/packages/coding-agent/src/export-agent-session-cli.ts b/packages/coding-agent/src/export-agent-session-cli.ts
+diff --git a/packages/coding-agent/examples/extensions/asr-export/index.ts b/packages/coding-agent/examples/extensions/asr-export/index.ts
 new file mode 100644
-index 0000000..553df83
+index 0000000..39a9c2b
 --- /dev/null
-+++ b/packages/coding-agent/src/export-agent-session-cli.ts
-@@ -0,0 +1,23 @@
-+#!/usr/bin/env node
-+/** Export a native Pi session without loading extensions, credentials, or the agent. */
++++ b/packages/coding-agent/examples/extensions/asr-export/index.ts
+@@ -0,0 +1,20 @@
++/** Export the current durable session through Pi's public extension API. */
++import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 +import { readFileSync, writeFileSync } from "node:fs";
-+import { parseArgs } from "node:util";
-+import { exportAgentSessionFile } from "./core/export-agent-session.ts";
++import { resolve } from "node:path";
++import { exportAgentSessionFile } from "./export.ts";
 +
-+try {
-+	const { values } = parseArgs({
-+		options: {
-+			session: { type: "string" },
-+			format: { type: "string", default: "agent-session" },
-+			output: { type: "string" },
++export default function (pi: ExtensionAPI) {
++	pi.registerCommand("export-asr", {
++		description: "Export the full session tree as ASR: /export-asr output.jsonl",
++		handler: async (args, context) => {
++			const file = context.sessionManager.getSessionFile();
++			if (!file) throw new Error("Save the session before exporting it");
++			if (!args.trim()) throw new Error("Use /export-asr output.jsonl");
++			const destination = resolve(context.cwd, args.trim());
++			const stream = exportAgentSessionFile(readFileSync(file, "utf8"));
++			writeFileSync(destination, stream, { mode: 0o600, flag: "wx" });
++			context.ui.notify(`Exported session to ${destination}`, "info");
 +		},
 +	});
-+	if (!values.session || values.format !== "agent-session")
-+		throw new Error("Use --session <native-file> --format agent-session");
-+	const stream = exportAgentSessionFile(readFileSync(values.session, "utf8"));
-+	if (values.output) writeFileSync(values.output, stream, { mode: 0o600, flag: "wx" });
-+	else process.stdout.write(stream);
-+} catch (error) {
-+	console.error(error instanceof Error ? error.message : "Export failed");
-+	process.exitCode = 1;
++}
+diff --git a/packages/coding-agent/examples/extensions/asr-export/package.json b/packages/coding-agent/examples/extensions/asr-export/package.json
+new file mode 100644
+index 0000000..ee26ec0
+--- /dev/null
++++ b/packages/coding-agent/examples/extensions/asr-export/package.json
+@@ -0,0 +1,11 @@
++{
++  "name": "pi-asr-export",
++  "version": "0.1.0",
++  "private": true,
++  "type": "module",
++  "pi": {
++    "extensions": [
++      "./index.ts"
++    ]
++  }
 +}
 diff --git a/packages/coding-agent/test/export-agent-session.test.ts b/packages/coding-agent/test/export-agent-session.test.ts
 new file mode 100644
-index 0000000..cbd9479
+index 0000000..c98be7c
 --- /dev/null
 +++ b/packages/coding-agent/test/export-agent-session.test.ts
-@@ -0,0 +1,161 @@
+@@ -0,0 +1,189 @@
 +import assert from "node:assert/strict";
++import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import { join } from "node:path";
 +import { test } from "node:test";
-+import { exportAgentSessionFile } from "../src/core/export-agent-session.ts";
++import type { ExtensionAPI, ExtensionCommandContext } from "../src/index.ts";
++import registerExport from "../examples/extensions/asr-export/index.ts";
++import { exportAgentSessionFile } from "../examples/extensions/asr-export/export.ts";
 +
 +const header = {
 +	type: "session",
@@ -412,6 +450,29 @@ index 0000000..cbd9479
 +]
 +	.map((row) => JSON.stringify(row))
 +	.join("\n")}\n`;
++
++test("extension command exports the saved session and refuses to overwrite files", async () => {
++	const directory = mkdtempSync(join(tmpdir(), "pi-asr-extension-"));
++	try {
++		const nativeFile = join(directory, "native.jsonl");
++		const destination = join(directory, "output.jsonl");
++		writeFileSync(nativeFile, source);
++		let command: Parameters<ExtensionAPI["registerCommand"]>[1] | undefined;
++		registerExport({ registerCommand: (_name, registered) => { command = registered; } } as ExtensionAPI);
++		assert.ok(command);
++		const context = {
++			cwd: directory,
++			sessionManager: { getSessionFile: () => nativeFile },
++			ui: { notify: () => {} },
++		} as unknown as ExtensionCommandContext;
++		await command.handler("output.jsonl", context);
++		assert.equal(readFileSync(destination, "utf8"), exportAgentSessionFile(source));
++		assert.equal(statSync(destination).mode & 0o777, 0o600);
++		await assert.rejects(() => command!.handler("output.jsonl", context), /EEXIST/);
++	} finally {
++		rmSync(directory, { recursive: true, force: true });
++	}
++});
 +
 +test("keeps branches, exact text, model identities and inclusive usage", () => {
 +	const output = exportAgentSessionFile(source);
@@ -499,5 +560,6 @@ index 0000000..cbd9479
 +		);
 +	}
 +});
+-- 
+2.43.0
 
-base-commit: a14cdf90f0a76532f3e20bc3c01872837cef24ba

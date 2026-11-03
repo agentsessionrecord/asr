@@ -1,11 +1,5 @@
 {
-  "checks": [
-    "6 focused Node tests",
-    "Full required npm check, including typecheck and browser smoke",
-    "Generated coding-agent install-lock check"
-  ],
-  "sampleRecords": 7,
-  "sampleErrors": 0,
-  "sampleWarnings": [],
-  "liveTestStatus": "partial"
+  "status": "pending",
+  "checks": "See verification.json and PROPOSAL.md",
+  "liveTestStatus": "not-run-for-refreshed-source"
 }
