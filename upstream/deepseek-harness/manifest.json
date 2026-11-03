@@ -1,45 +1,79 @@
 {
   "schemaVersion": 1,
   "agent": "deepseek-harness",
-  "base": "ce7073d51254c26cd63b22a60835b8f948deb447",
-  "head": "2e2c8b883594ea07a8fbef5559917f7a98c5372b",
-  "patches": [
-    {
-      "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "2e2c8b883594ea07a8fbef5559917f7a98c5372b",
-      "sha256": "13c3af0034fa9b80b86d4ce651b9cb5c4528c9a7d9035260eb8825e768ab3ab2"
-    }
-  ],
+  "base": "8bd073392eef6f54e921a093b95076248eb08cbb",
+  "head": "8bd073392eef6f54e921a093b95076248eb08cbb",
+  "patches": [],
   "checks": [
     [
       "node",
-      "../kimi-code/contracts.mjs",
-      "deepseek-harness"
+      "check.mjs"
     ]
   ],
   "provenance": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
-    "base": "ce7073d51254c26cd63b22a60835b8f948deb447",
-    "head": "2e2c8b883594ea07a8fbef5559917f7a98c5372b",
-    "branch": "codex/fix2-repo",
+    "base": "8bd073392eef6f54e921a093b95076248eb08cbb",
+    "head": "8bd073392eef6f54e921a093b95076248eb08cbb",
+    "branch": "codex/patch-reshape",
     "files": {
-      "patches/0001-native-agent-session-export.patch": "13c3af0034fa9b80b86d4ce651b9cb5c4528c9a7d9035260eb8825e768ab3ab2",
-      "samples/native/native.json": "07f8fcde447bf71038cac69846ca77feb4de665abd8920d7c5e61ffbec97423e",
-      "samples/asr/session.jsonl": "5550a35d561476558a0be121e7257758fe5db7c38aa9eb9c2b407953b9ccc334",
-      "PROPOSAL.md": "d342414aaa59b331f513fa64eb4548ab3cfee390615f048c656377f4981f6574",
-      "TESTS.json": "800a92f89c3f342d4d6e6f13d772fe5a2a263e7ba76247af97d29d3844f0b8ab",
-      ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944"
+      ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
+      "PROPOSAL.md": "6bf0f8a06d3088a469f2d7aed68a9ee9edbe77a81641a87d71f1c23f6a2b313f",
+      "README.md": "38f3e3ca84968448263bf956fdfca7516f6c4971e5b91bd201e7159f3961256d",
+      "TESTS.json": "53846257cfbe45bfa0b6901a51fb8701701069e946f0717a2c5daed60e008957",
+      "check.mjs": "0f632cc353e1e31ad610ef930c5ca9491ec6a221cbd22018be97ffed29ee3ecf",
+      "pack-smoke.mjs": "e0936927de02352cb0f3ede96c7597bdcc70b94226e425b0f0164129845a61dc",
+      "plugin/.gitignore": "ba79bbc25fa8951489e77f28f1561c2e9388115cb33f1c606424f8e08169f96b",
+      "plugin/.oxlintrc.json": "8eee54d3f34fd9488c9bd56ce508108eaf0e196599e1dba539ea8fce1028604f",
+      "plugin/LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "plugin/README.md": "def938c3a6df3fb749ff61bb6d52885ac2294d8fede9eed60c4c02dd7e9e913c",
+      "plugin/cordis.patch.yml": "c7e02c70bf5ff5122e94c11da097cff435bfc44eec0c5f545608aee5b0479b4d",
+      "plugin/dist/format.d.ts": "c2801cfef8abc02bb9731aeb1afaae4849901d20ed3bbbb920f1a18d55e93575",
+      "plugin/dist/format.js": "5d3c7ca924351ce621b4141df15c7cd419cd183d123a74b3ee6bdecd09ab713c",
+      "plugin/dist/index.d.ts": "64b3e272ec8ea42a4fdfa7bf74aa7c87fd79e1c565346b811b93d87f5b28556e",
+      "plugin/dist/index.js": "a9952d711b5803894ac0cc4558d4d84d7d6cb2bf9a8d5c75f15d7f4812754464",
+      "plugin/format.ts": "a44f8bc5f7d9cb031e8f96d12e50ae501b8b116263f8c46a21c4f3d1b622c081",
+      "plugin/index.ts": "842777b648b29c7fe8c917cd46400d4914b43b7eb16e086a7cfcfc71ca152537",
+      "plugin/package-lock.json": "69f2e9294783df65d9bc9c7d159688208716fe591ae089e5e43472762831ae8a",
+      "plugin/package.json": "7b60c2ad94911436db59bb260217fd209f1b764978a4226cbbdb602bd0a6bebc",
+      "plugin/test.mjs": "c95fff235c1fe1f2dcc9c5343da49b869fb00ee3fd226becacd2745b148131fa",
+      "plugin/tsconfig.json": "c1c7d429c2eafc070900c9984bd12d45636cbbb57ff2de63acc26e672d1264b0",
+      "reproduce.mjs": "11fb0ad0378c77acb805c48960544a63824557ff935cdbcb171a8a8fbb9a1b9b",
+      "samples/asr/session.jsonl": "196df5f428acd5b4a2370d7d16a6c41f54a639022660979ab9062abb0d75a880",
+      "samples/native/native.json": "07f8fcde447bf71038cac69846ca77feb4de665abd8920d7c5e61ffbec97423e"
     }
   },
   "files": {
     ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
-    "PROPOSAL.md": "d342414aaa59b331f513fa64eb4548ab3cfee390615f048c656377f4981f6574",
-    "README.md": "74b1910c44f5ce54ec6af61552e5475a0427e02e673b3dd713b0f2702b95babb",
-    "TESTS.json": "800a92f89c3f342d4d6e6f13d772fe5a2a263e7ba76247af97d29d3844f0b8ab",
-    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
-    "patches/0001-native-agent-session-export.patch": "13c3af0034fa9b80b86d4ce651b9cb5c4528c9a7d9035260eb8825e768ab3ab2",
-    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
-    "samples/asr/session.jsonl": "5550a35d561476558a0be121e7257758fe5db7c38aa9eb9c2b407953b9ccc334",
+    "PROPOSAL.md": "6bf0f8a06d3088a469f2d7aed68a9ee9edbe77a81641a87d71f1c23f6a2b313f",
+    "README.md": "38f3e3ca84968448263bf956fdfca7516f6c4971e5b91bd201e7159f3961256d",
+    "TESTS.json": "53846257cfbe45bfa0b6901a51fb8701701069e946f0717a2c5daed60e008957",
+    "check.mjs": "0f632cc353e1e31ad610ef930c5ca9491ec6a221cbd22018be97ffed29ee3ecf",
+    "pack-smoke.mjs": "e0936927de02352cb0f3ede96c7597bdcc70b94226e425b0f0164129845a61dc",
+    "plugin/.gitignore": "ba79bbc25fa8951489e77f28f1561c2e9388115cb33f1c606424f8e08169f96b",
+    "plugin/.oxlintrc.json": "8eee54d3f34fd9488c9bd56ce508108eaf0e196599e1dba539ea8fce1028604f",
+    "plugin/LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "plugin/README.md": "def938c3a6df3fb749ff61bb6d52885ac2294d8fede9eed60c4c02dd7e9e913c",
+    "plugin/cordis.patch.yml": "c7e02c70bf5ff5122e94c11da097cff435bfc44eec0c5f545608aee5b0479b4d",
+    "plugin/dist/format.d.ts": "c2801cfef8abc02bb9731aeb1afaae4849901d20ed3bbbb920f1a18d55e93575",
+    "plugin/dist/format.js": "5d3c7ca924351ce621b4141df15c7cd419cd183d123a74b3ee6bdecd09ab713c",
+    "plugin/dist/index.d.ts": "64b3e272ec8ea42a4fdfa7bf74aa7c87fd79e1c565346b811b93d87f5b28556e",
+    "plugin/dist/index.js": "a9952d711b5803894ac0cc4558d4d84d7d6cb2bf9a8d5c75f15d7f4812754464",
+    "plugin/format.ts": "a44f8bc5f7d9cb031e8f96d12e50ae501b8b116263f8c46a21c4f3d1b622c081",
+    "plugin/index.ts": "842777b648b29c7fe8c917cd46400d4914b43b7eb16e086a7cfcfc71ca152537",
+    "plugin/package-lock.json": "69f2e9294783df65d9bc9c7d159688208716fe591ae089e5e43472762831ae8a",
+    "plugin/package.json": "7b60c2ad94911436db59bb260217fd209f1b764978a4226cbbdb602bd0a6bebc",
+    "plugin/test.mjs": "c95fff235c1fe1f2dcc9c5343da49b869fb00ee3fd226becacd2745b148131fa",
+    "plugin/tsconfig.json": "c1c7d429c2eafc070900c9984bd12d45636cbbb57ff2de63acc26e672d1264b0",
+    "reproduce.mjs": "11fb0ad0378c77acb805c48960544a63824557ff935cdbcb171a8a8fbb9a1b9b",
+    "samples/asr/session.jsonl": "196df5f428acd5b4a2370d7d16a6c41f54a639022660979ab9062abb0d75a880",
     "samples/native/native.json": "07f8fcde447bf71038cac69846ca77feb4de665abd8920d7c5e61ffbec97423e"
+  },
+  "kind": "plugin",
+  "package": {
+    "name": "dsh-plugin-asr-export",
+    "version": "0.1.0",
+    "directory": "plugin",
+    "entry": "plugin/dist/index.js",
+    "topic": "dsh-plugin"
   }
 }

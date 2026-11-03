@@ -1,26 +1,9 @@
-# DeepSeek harness native Agent Session Record export
+# DeepSeek Harness session export plugin
 
-Export a saved session in an open format that search and code history tools can read. The export keeps the source facts available for later review.
+Download a saved session as Agent Session Record without changing the harness. This unofficial community plugin adds `GET /api/session.asr?sessionId=SESSION_ID` through the authenticated Host connection.
 
-Adds a native JSON Lines download through the authenticated Host connection. It also exports a pure backend formatter and updates the paired package documentation.
+The plugin uses a detached session-query observation and preserves source order, text, readable reasoning, calls, and final results. It excludes inherited events with a gap rather than crediting copied history as new work. The header declares unavailable usage, model identity, settings, approvals, relationships, media, edits, and commits. Provider replay state and unknown payloads are excluded.
 
-Applies to [https://github.com/deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) at `ce7073d51254c26cd63b22a60835b8f948deb447`. The local patch commit is `2e2c8b883594ea07a8fbef5559917f7a98c5372b`.
+Install the local tarball with `dsh plugin --profile web add /path/to/package.tgz` and load the supplied Cordis overlay with `dsh web --patch /path/to/cordis.patch.yml`. An authenticated owner can download the ASR route. Unloading the plugin withdraws it.
 
-Apply the patch with `git am patches/0001-native-agent-session-export.patch` in a clean checkout of that base.
-
-```text
-GET /api/session.agent-session?sessionId=SESSION_ID
-HEAD /api/session.agent-session?sessionId=SESSION_ID
-```
-
-It reads the selected complete committed snapshot with `sessionQuery.readSession`. It records exact text, readable reasoning, instruction messages, model tool calls, final tool results and title observations. The Host route returns a download and never creates a model turn.
-
-Inherited prefixes become a counted gap because original ASR record identities are unavailable. Media, opaque provider state, unknown events, approvals, configured settings and inference accounting are omitted and declared. Unsettled attempts become gaps. The response is buffered in memory. This patch adds a Host route, not a new browser action.
-
-Supported source: Session v4 and the session-query log observation at this revision. Output uses ASR `0.1` and `producer.method: "native"`. File output is exclusive and private where the command writes a file.
-
-Checks: Native formatter test and real Loader composition test passed. 22 focused export and existing Markdown route tests passed. Affected Host project typecheck. Oxlint on all changed TypeScript files. Paired translation check. The included native fixture and sample are synthetic. The sample passes the reference validator with zero errors.
-
-Not live-tested. The available Node runtime is 22.22.2. The project requires Node 24.9 or later for the full application and its native runtime was not built. The real Loader test uses the actual authenticated Host connection and query engine, with an in-memory native session observation.
-
-`manifest.json` pins the upstream base, local commit and packaged file hashes. Run `node upstream/deepseek-harness/check.mjs` from the ASR repository to check this patch package without upstream dependencies.
+The package is self-contained and ready to move to its own repository. [TESTS.json](TESTS.json) records checks against the current public API.

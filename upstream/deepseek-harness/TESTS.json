@@ -1,13 +1,30 @@
 {
-  "checks": [
-    "Native formatter test and real Loader composition test passed",
-    "22 focused export and existing Markdown route tests passed",
-    "Affected Host project typecheck",
-    "Oxlint on all changed TypeScript files",
-    "Paired translation check"
+  "date": "2026-11-03",
+  "checks": {
+    "npm install --ignore-scripts": "passed",
+    "npm run build": "passed",
+    "npm run lint": "passed using upstream shared strict rules",
+    "npm run typecheck": "passed",
+    "npm test": "passed, 3 tests",
+    "npm pack and fresh production install": "passed, 8 packed files",
+    "package check": "passed",
+    "pinned API reproduction": "passed"
+  },
+  "tests": [
+    "exact text, large arguments, final results, source order, copied prefix exclusion",
+    "Cordis route registration and unload, HTTP status handling, HEAD, opaque errors",
+    "native Host rejects non-owner peers before export and withdraws unloaded route"
   ],
   "sampleRecords": 5,
   "sampleErrors": 0,
   "sampleWarnings": [],
-  "liveTestStatus": "not-live-tested"
+  "dependencyAudit": {
+    "status": "failed",
+    "high": 19,
+    "rootAdvisory": "GHSA-mrhx-c7xc-m3w5",
+    "dependency": "upstream pinned zod 4.4.3, affected below 4.6.6",
+    "scope": "Pinned harness peer dependency graph. No dependency override was applied."
+  },
+  "liveTestStatus": "not-live-tested",
+  "liveTestNotes": "No model request or complete live Host application was run."
 }
