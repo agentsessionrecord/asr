@@ -10,5 +10,7 @@
   "sampleWarnings": [
     "unpaired-result"
   ],
-  "liveTestStatus": "not-live-tested"
+  "liveTestStatus": "not-live-tested",
+  "evidenceScope": "Historical evidence from before the 2026-11-03 refresh. It does not certify the refreshed source.",
+  "currentCodeLiveTest": "unverified"
 }

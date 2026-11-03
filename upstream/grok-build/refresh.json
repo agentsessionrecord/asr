@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-03",
+  "status": "blocked",
+  "repository": "https://github.com/xai-org/grok-build",
+  "base": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+  "head": "0d15771614899034064ea6c61ff68fbedfaac313",
+  "nativeChecks": "Not run. Required build admission remained unavailable and queued attempts were cancelled. No current native compilation, tests, lint or fixture execution is certified.",
+  "blocker": "All 12 required build-governor slots are occupied by other sessions.",
+  "sampleStatus": "Retained synthetic sample. Native regeneration on this base is pending.",
+  "liveTestStatus": "not-live-tested",
+  "notes": "Reference telemetry code only. ACP transcript export from updates.jsonl remains separate work.",
+  "patchReplay": {
+    "method": "temporary Git index",
+    "result": "matches committed source tree",
+    "tree": "167257f7c5980ec2d8f3227c5aabaaa73698df9e"
+  },
+  "packageChecks": "Not run. The check.mjs and reproduce.mjs commands were queued, then cancelled because build admission remained unavailable.",
+  "validator": "Not rerun. The retained synthetic sample is unchanged. Historical validator results are not current validation."
+}

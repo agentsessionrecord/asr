@@ -1,22 +1,23 @@
-From 1747e0cb3a829d7382ebdb697818da77884ad6bb Mon Sep 17 00:00:00 2001
+From 0d15771614899034064ea6c61ff68fbedfaac313 Mon Sep 17 00:00:00 2001
 From: ASR contributors <asr@example.invalid>
 Date: Sun, 1 Nov 2026 13:06:44 -0500
-Subject: [PATCH] feat: add native Agent Session Record export
+Subject: [PATCH] Add opt-in local Agent Session Record telemetry
 
 ---
- .../src/agent_session.rs                      | 292 ++++++++++++++++++
+ .../src/agent_session.rs                      | 334 ++++++++++++++++++
  .../xai-grok-session-events/src/lib.rs        |   1 +
- .../xai-grok-session-events/src/log.rs        |  19 ++
- 3 files changed, 312 insertions(+)
+ .../xai-grok-session-events/src/log.rs        |  19 +
+ 3 files changed, 354 insertions(+)
  create mode 100644 crates/codegen/xai-grok-session-events/src/agent_session.rs
 
 diff --git a/crates/codegen/xai-grok-session-events/src/agent_session.rs b/crates/codegen/xai-grok-session-events/src/agent_session.rs
 new file mode 100644
-index 0000000..0d260f1
+index 0000000..89b80bb
 --- /dev/null
 +++ b/crates/codegen/xai-grok-session-events/src/agent_session.rs
-@@ -0,0 +1,292 @@
-+//! Opt-in ASR projection of the typed session event log, without transcript capture.
+@@ -0,0 +1,334 @@
++//! Opt-in ASR projection of events.jsonl telemetry.
++//! Transcript updates.jsonl remains the separate, unchanged ACP update stream.
 +
 +use std::collections::HashSet;
 +use std::fs::{File, OpenOptions};
@@ -308,6 +309,47 @@ index 0000000..0d260f1
 +        );
 +    }
 +}
++
++#[cfg(test)]
++#[test]
++fn synthetic_fixture_export_for_external_validation() {
++    let Some(path) = std::env::var_os("ASR_TEST_OUTPUT") else {
++        return;
++    };
++    let directory = tempfile::tempdir().unwrap();
++    let mut writer = AgentSessionWriter::new(directory.path());
++    let ts = "2026-11-01T18:05:28.591Z";
++    let events = [
++        Event::TurnStarted {
++            session_id: "synthetic-grok".into(),
++            turn_number: 1,
++            model_id: "requested".into(),
++            yolo_mode: false,
++            conversation_message_count: 0,
++            session_relationship: crate::SessionRelationship::Primary,
++            schema_version: crate::EVENT_SCHEMA_VERSION.into(),
++            redirect_kind: None,
++        },
++        Event::PermissionResolved {
++            tool_name: "read".into(),
++            decision: PermissionDecision::Deny,
++            wait_ms: 0,
++        },
++        Event::ToolCompleted {
++            tool_name: "read".into(),
++            duration_ms: 0,
++            outcome: ToolOutcome::PermissionRejected,
++            tool_call_id: "call-1".into(),
++            source: ToolCompletedSource::Shell,
++            rewriting_hook: None,
++        },
++    ];
++    for event in events {
++        writer.emit(&event, ts).unwrap();
++    }
++    drop(writer);
++    std::fs::copy(directory.path().join("agent-session.jsonl"), path).unwrap();
++}
 diff --git a/crates/codegen/xai-grok-session-events/src/lib.rs b/crates/codegen/xai-grok-session-events/src/lib.rs
 index afe524b..f7ccc73 100644
 --- a/crates/codegen/xai-grok-session-events/src/lib.rs
@@ -376,3 +418,6 @@ index 0a19069..9fc7837 100644
      }
  }
  
+-- 
+2.43.0
+
