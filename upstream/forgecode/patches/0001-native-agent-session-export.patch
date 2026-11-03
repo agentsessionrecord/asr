@@ -1,15 +1,15 @@
-From 0f3e30f3608278d9a58bd7f1ad2e35bdee2481de Mon Sep 17 00:00:00 2001
+From 5628f1e95826a35557b2bf37bd6199507c962293 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] feat(conversation): add Agent Session Record dump format
 
 ---
  .../examples/export_agent_session.rs          |  13 +
  crates/forge_domain/src/agent_session.rs      | 269 ++++++++++++++++++
  crates/forge_domain/src/lib.rs                |   1 +
- crates/forge_main/src/cli.rs                  |   8 +
- crates/forge_main/src/ui.rs                   |   8 +
- 5 files changed, 299 insertions(+)
+ crates/forge_main/src/cli.rs                  |  34 ++-
+ crates/forge_main/src/ui.rs                   |   8 +-
+ 5 files changed, 318 insertions(+), 7 deletions(-)
  create mode 100644 crates/forge_domain/examples/export_agent_session.rs
  create mode 100644 crates/forge_domain/src/agent_session.rs
 
@@ -318,42 +318,103 @@ index 5ae3fca..375fbd0 100644
  mod auth;
  mod chat_request;
 diff --git a/crates/forge_main/src/cli.rs b/crates/forge_main/src/cli.rs
-index 1068f77..66e9699 100644
+index 1068f77..29de8d0 100644
 --- a/crates/forge_main/src/cli.rs
 +++ b/crates/forge_main/src/cli.rs
-@@ -716,6 +716,14 @@ pub struct ConversationCommandGroup {
- }
- #[derive(Subcommand, Debug, Clone)]
- pub enum ConversationCommand {
-+    /// Export retained context as Agent Session Record JSON Lines to stdout.
-+    Export {
-+        /// Conversation ID to export.
-+        id: ConversationId,
-+        /// Export format.
+@@ -726,14 +726,18 @@ pub enum ConversationCommand {
+     /// Create a new conversation.
+     New,
+ 
+-    /// Export conversation as JSON or HTML.
++    /// Export conversation as JSON, HTML or Agent Session Record.
+     Dump {
+         /// Conversation ID to export.
+         id: ConversationId,
+ 
+         /// Export as HTML instead of JSON.
+-        #[arg(long)]
++        #[arg(long, conflicts_with = "format")]
+         html: bool,
++
++        /// Export format. Omit for the existing JSON dump.
 +        #[arg(long, value_parser = ["agent-session"])]
-+        format: String,
-+    },
-     /// List conversation history.
-     List {
-         /// Output in machine-readable format.
++        format: Option<String>,
+     },
+ 
+     /// Compact conversation to reduce token usage.
+@@ -1139,7 +1143,7 @@ mod tests {
+         ]);
+         let (id, html) = match fixture.subcommands {
+             Some(TopLevelCommand::Conversation(conversation)) => match conversation.command {
+-                ConversationCommand::Dump { id, html } => (id, html),
++                ConversationCommand::Dump { id, html, .. } => (id, html),
+                 _ => (ConversationId::default(), true),
+             },
+             _ => (ConversationId::default(), true),
+@@ -1151,6 +1155,26 @@ mod tests {
+         assert_eq!(html, false); // JSON is default
+     }
+ 
++    #[test]
++    fn test_conversation_dump_agent_session() {
++        let fixture = [
++            "forge",
++            "conversation",
++            "dump",
++            "550e8400-e29b-41d4-a716-446655440000",
++            "--format",
++            "agent-session",
++        ];
++        let actual = Cli::try_parse_from(fixture).unwrap();
++        let Some(TopLevelCommand::Conversation(group)) = actual.subcommands else {
++            panic!("expected conversation command");
++        };
++        assert!(
++            matches!(group.command, ConversationCommand::Dump { format: Some(format), html: false, .. } if format == "agent-session")
++        );
++        assert!(Cli::try_parse_from(fixture.into_iter().chain(["--html"])).is_err());
++    }
++
+     #[test]
+     fn test_conversation_dump_html_with_id() {
+         let fixture = Cli::parse_from([
+@@ -1162,7 +1186,7 @@ mod tests {
+         ]);
+         let (id, html) = match fixture.subcommands {
+             Some(TopLevelCommand::Conversation(conversation)) => match conversation.command {
+-                ConversationCommand::Dump { id, html } => (id, html),
++                ConversationCommand::Dump { id, html, .. } => (id, html),
+                 _ => (ConversationId::default(), false),
+             },
+             _ => (ConversationId::default(), false),
+@@ -1585,7 +1609,7 @@ mod tests {
+         ]);
+         let (id, html) = match fixture.subcommands {
+             Some(TopLevelCommand::Conversation(conversation)) => match conversation.command {
+-                ConversationCommand::Dump { id, html } => (id, html),
++                ConversationCommand::Dump { id, html, .. } => (id, html),
+                 _ => (ConversationId::default(), true),
+             },
+             _ => (ConversationId::default(), true),
 diff --git a/crates/forge_main/src/ui.rs b/crates/forge_main/src/ui.rs
-index f1b516c..cdbd38b 100644
+index f1b516c..508859e 100644
 --- a/crates/forge_main/src/ui.rs
 +++ b/crates/forge_main/src/ui.rs
-@@ -916,6 +916,14 @@ impl<A: API + ConsoleWriter + 'static, F: Fn(ForgeConfig) -> A + Send + Sync> UI
-         conversation_group: crate::cli::ConversationCommandGroup,
-     ) -> anyhow::Result<()> {
-         match conversation_group.command {
-+            ConversationCommand::Export { id, format: _ } => {
-+                let conversation = self
-+                    .api
-+                    .conversation(&id)
-+                    .await?
-+                    .ok_or_else(|| anyhow::anyhow!("conversation not found"))?;
-+                conversation.write_agent_session(std::io::stdout().lock())?;
-+            }
-             ConversationCommand::List { porcelain } => {
-                 self.on_show_conversations(porcelain).await?;
+@@ -922,8 +922,12 @@ impl<A: API + ConsoleWriter + 'static, F: Fn(ForgeConfig) -> A + Send + Sync> UI
+             ConversationCommand::New => {
+                 self.handle_generate_conversation_id().await?;
              }
+-            ConversationCommand::Dump { id, html } => {
+-                self.validate_conversation_exists(&id).await?;
++            ConversationCommand::Dump { id, html, format } => {
++                let conversation = self.validate_conversation_exists(&id).await?;
++                if format.is_some() {
++                    conversation.write_agent_session(std::io::stdout().lock())?;
++                    return Ok(());
++                }
+ 
+                 let original_id = self.state.conversation_id;
+                 self.state.conversation_id = Some(id);
+-- 
+2.43.0
 
-base-commit: 7639d2b18418bd1948609ffd4e46f4acca30a117

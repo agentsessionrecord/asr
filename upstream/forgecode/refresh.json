@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-03",
+  "status": "blocked",
+  "repository": "https://github.com/tailcallhq/forgecode",
+  "base": "a22b49288856d5b3f3ca57e8532683d54a662c8c",
+  "head": "5628f1e95826a35557b2bf37bd6199507c962293",
+  "nativeChecks": "Not run. Required build admission remained unavailable and queued attempts were cancelled. No current native compilation, tests, lint or fixture execution is certified.",
+  "blocker": "All 12 required build-governor slots are occupied by other sessions.",
+  "sampleStatus": "Retained synthetic sample. Native regeneration on this base is pending.",
+  "liveTestStatus": "not-live-tested",
+  "notes": "Existing dump command extended. CLI parser and dispatch checks need execution.",
+  "patchReplay": {
+    "method": "temporary Git index",
+    "result": "matches committed source tree",
+    "tree": "352ec7e2fdefd3bac2390ca2c2fbc7767649e526"
+  },
+  "packageChecks": "Not run. The check.mjs and reproduce.mjs commands were queued, then cancelled because build admission remained unavailable.",
+  "validator": "Not rerun. The retained synthetic sample is unchanged. Historical validator results are not current validation."
+}
