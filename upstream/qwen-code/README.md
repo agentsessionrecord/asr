@@ -1,69 +1,50 @@
-# Qwen Code native export patch
+# Qwen Code native ASR export patch
 
-## Install
+Export current and saved Qwen chats in a stable format that other tools can
+read.
 
-Use a separate writable checkout of the upstream project. The supported base is
-`9ebd2de1713039b8cb5f60c9982e3d4c450e3a8b`. [manifest.json](manifest.json) pins
-this base, the ordered patches and their digests. Read [PROPOSAL.md](PROPOSAL.md)
-for the upstream repository, runtime requirements and native build instructions.
-These patches are local source changes. They are not installed by the ASR CLI.
+Upstream: https://github.com/QwenLM/qwen-code
 
-Set `ASR_PACKAGE` to this package's absolute path. Run in a clean upstream
-checkout at the pinned base:
+The pinned base is `632b06094e338cf368f075d5b719cfcbc10f99a3`. The manifest
+records the local feature commit, patch digest and all package file digests.
+Apply from a separate clean upstream checkout at that base:
 
 ```sh
 git am "$ASR_PACKAGE"/patches/*.patch
-```
-
-Build and install the patched agent using its own instructions and the focused
-checks in the proposal. To remove the feature, use a clean unpatched build.
-Existing exported files remain in their output directory.
-
-## Use
-
-Run with the patched agent. Replace example IDs and input paths with a selected
-native session. See the proposal for selection and output options.
-
-```sh
 qwen sessions export --format agent-session --session SESSION_ID
-qwen sessions export --format agent-session --input transcript.jsonl --session SESSION_ID
-qwen sessions export --format agent-session --output exports
 ```
 
-## What it records
+Adds `agent-session` to the existing `/export` menu alongside JSON and JSONL.
+`/export agent-session [directory]` and offline `sessions export` share one
+projection. Same-UUID fragments and repeated results fold at completion.
 
-Legacy ChatRecord transcripts supply text, arguments, results, IDs and retained branches. Same-UUID fragments fold at completion. Recorded policies, modes, titles and explicit parent links remain available.
+The source is legacy ChatRecord transcripts. Managed transaction journals are
+rejected. Approval decisions, model-call boundaries, complete settings,
+accounting, edits, commits and copy detection remain unavailable. Loaded unsafe
+integers fail slash export. Offline wide integers remain exact strings. Known
+credential filtering does not establish that an export is safe to share.
 
-Output uses ASR 0.1 with `producer.method: native`. Known credential fields and
-recognized secret text are excluded. Keep exports private and review content
-before sharing. Pattern filtering cannot identify every secret.
-
-## Limits
-
-Managed transaction journals are refused. Approval decisions, complete settings, accounting, edits, commits and copy detection remain losses. Full input is held in memory. No live writer or automatic registration is added.
-
-The [proposal](PROPOSAL.md) describes the source profile and detailed losses.
-Valid ASR does not establish complete source capture.
-
-## Tests and status
-
-Run from the ASR repository root with its Node dependencies installed:
+Run package checks from the ASR repository root:
 
 ```sh
 node upstream/qwen-code/check.mjs
 node upstream/qwen-code/reproduce.mjs /path/to/upstream-checkout
+bun upstream/qwen-code/verify-native.mjs /path/to/upstream-checkout
 ```
 
-The package check verifies file hashes, patch syntax, synthetic source contracts
-and ASR sample validation. The reproduce command also replays the series in a
-temporary Git index against the pinned source commits. It preserves the source
-checkout. It needs both pinned commits in that checkout and does not build or
-run the agent. Upstream build and test evidence is in the proposal.
+Reproduction compares a temporary Git index with the pinned feature tree. It
+preserves the source checkout and does not run a model. The native driver loads
+the source exporter, validates a synthetic stream and compares the sample. It
+does not exercise an installed full CLI and model session.
 
-Live-test status: **partial**.
-The evidence below is from a prior revision. A live run of the current code has not been verified.
-Qwen Code 0.26.5 recorded isolated synthetic message and read-tool sessions through the OpenAI-compatible or Anthropic-compatible endpoint. The focused patched export command produced ASR with zero validation errors or warnings. Full pinned CLI installation and workspace release checks were not run.
+The workspace build, 64 focused tests across three files, CLI type check and
+focused ESLint pass. Native fixture exports pass the reference validator with
+zero errors and zero warnings. [verification.json](verification.json) records
+the checked source revision and focused results. See [PROPOSAL.md](PROPOSAL.md)
+for the scope.
 
-The package's [synthetic export](samples/asr/session.jsonl) has zero validator
-errors. Any expected extension or pairing warnings are explained by the proposal
-or printed by the package check. Package checks make no model requests.
+Current live-model status is unverified. Earlier live evidence is partial and
+applies to an older revision. No model run was performed for this refresh.
+
+Submission prerequisites: An approved linked feature issue is required. The
+upstream diff stays below 1,200 changed lines.

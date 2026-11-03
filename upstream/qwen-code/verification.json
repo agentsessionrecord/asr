@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-03",
+  "platform": "linux-x64",
+  "base": "632b06094e338cf368f075d5b719cfcbc10f99a3",
+  "head": "e28107b5be100793d1e711ea32ba90ed86df05bc",
+  "projectChecks": "The workspace build, 64 focused tests across three files, CLI type check and focused ESLint pass.",
+  "nativeFixtures": {
+    "records": [
+      7
+    ],
+    "validatorErrors": 0,
+    "validatorWarnings": 0,
+    "exactPackagedSampleReplay": true
+  },
+  "liveModelRun": "not performed",
+  "privacyNote": "Four exact patch metadata lines name the public docs/users/features/commands.md path. They are pinned false positives for the home-path detector."
+}

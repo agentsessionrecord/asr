@@ -1,56 +1,28 @@
-# Native ASR export for Qwen Code
+# Native Agent Session Record export
 
-Export a saved session in an open format that search and code history tools can read. The export keeps the source facts available for later review.
+Export current and saved Qwen chats in a stable format that other tools can
+read.
 
-This patch adds `qwen sessions export --format agent-session`. It exports saved
-legacy transcripts without starting a model session.
-
-It applies to upstream commit
-`9ebd2de1713039b8cb5f60c9982e3d4c450e3a8b` from
-<https://github.com/QwenLM/qwen-code>.
+For [Qwen Code](https://github.com/QwenLM/qwen-code):
 
 ```sh
-git am patches/0001-native-agent-session-export.patch
 qwen sessions export --format agent-session --session SESSION_ID
-qwen sessions export --format agent-session --input transcript.jsonl --session SESSION_ID
-qwen sessions export --format agent-session --output exports
 ```
 
-A single selector writes JSONL to standard output. Directory output supports
-repeated selectors, hashes filenames and creates private files without replacing
-existing output. `--since` selects by native file modification time. Default
-source discovery uses the current project's active and archived transcripts.
-Explicit input bypasses global configuration. Managed transaction journals are
-refused because their protocol needs a separate mapping.
+Adds `agent-session` to the existing `/export` menu alongside JSON and JSONL.
+`/export agent-session [directory]` and offline `sessions export` share one
+projection. Same-UUID fragments and repeated results fold at completion.
 
-The exporter uses native `ChatRecord` types. It preserves text, tool arguments,
-model-facing results, native IDs and all retained branches. Same-UUID fragments
-are assembled at completion. Duplicate tool results fold once per call at the
-last observation. Intervening messages retain their positions. Explicit human
-provenance establishes human authorship. Recorded approval policies, prompt-time
-approval modes, custom titles and explicit parent-session links are preserved.
-Unknown native content stays in vendor content parts. Corruption creates gaps.
-Known secrets and opaque provider state are excluded. Large native integers stay
-exact strings.
+The exporter writes ASR 0.1 from legacy ChatRecord transcripts. It preserves
+retained text, reasoning and tool results, declares missing facts and filters
+known credentials. Review exports before sharing them.
 
-Approval decisions, full settings, model-call accounting, file-change
-normalization, commits, offered tools, complete instructions and copy detection
-remain declared losses. Tool success does not imply approval. No inference is
-invented from message boundaries. No current Git state or account identity is
-borrowed as history. This patch does not write live ASR or install discovery
-files. Full input is held in memory. `discovery.json` is an optional template.
+Managed transaction journals are rejected. Approval decisions, model-call
+boundaries, complete settings, accounting, edits, commits and copy detection
+remain unavailable. Loaded unsafe integers fail slash export. Offline wide
+integers remain exact strings.
 
-Focused Vitest tests cover mapping, source discovery, message fragments,
-completion order, corruption, precision, secret exclusion and output handling.
-Focused lint, helper type checks and command builds pass. The existing sessions
-registration test covers the added subcommand. ASR CI replays the patch and
-compares and validates its synthetic sample. Qwen Code 0.26.5 completed isolated
-synthetic message and read-tool runs through a OpenAI-compatible or Anthropic-compatible endpoint. The patched
-command exported those recordings with zero validation errors or warnings.
-Full upstream workspace release checks and an installed build of this pinned
-source were not run.
-
-## Verification scope
-
-The live evidence above is from a prior revision. The current source has focused
-regressions and package checks. Its full agent and model path has not been rerun.
+The workspace build, 64 focused tests across three files, CLI type check and
+focused ESLint pass. Synthetic native fixture exports pass the ASR validator
+with zero errors and zero warnings. Tests cover mapping, ordering, corrupt
+input, credential filtering and output selection.

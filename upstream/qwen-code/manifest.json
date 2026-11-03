@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "agent": "qwen-code",
-  "base": "9ebd2de1713039b8cb5f60c9982e3d4c450e3a8b",
-  "head": "613c42412ddb98da8b449c552fe17fac99ca9114",
+  "base": "632b06094e338cf368f075d5b719cfcbc10f99a3",
+  "head": "e28107b5be100793d1e711ea32ba90ed86df05bc",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "613c42412ddb98da8b449c552fe17fac99ca9114",
-      "sha256": "4049f650f67d5c2a4d55b4cf9d41bba610857b6781a9456b13a74f985fead3da"
+      "commit": "e28107b5be100793d1e711ea32ba90ed86df05bc",
+      "sha256": "b070e4be9a7082ea5f1e0368c013958e3e3fdb70830e520d158ad26682af9b3a"
     }
   ],
   "checks": [
@@ -18,20 +18,51 @@
     ]
   ],
   "provenance": {
-    "base": "9ebd2de1713039b8cb5f60c9982e3d4c450e3a8b",
-    "commit": "613c42412ddb98da8b449c552fe17fac99ca9114"
+    "base": "632b06094e338cf368f075d5b719cfcbc10f99a3",
+    "commit": "e28107b5be100793d1e711ea32ba90ed86df05bc",
+    "repository": "https://github.com/QwenLM/qwen-code"
   },
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
-    "PROPOSAL.md": "05b1cd02a3c0f9b42766e83f16a7a6d61b929bbdad3c432b7d34b81bb1a612cc",
-    "README.md": "09ddab38cb8e33ff6d1f7d426f04ef9e2ce5aa5ba50bb5f78cbcaf1999e769f7",
+    "PROPOSAL.md": "b0dded5f0fd0b26f8324582ca76f21acc4d74cd53b18867d21e8398850d63bbc",
+    "README.md": "e3dc72c5725f21c6ecf2e2ed2a334657f8a93fb3201efe744d8ebd337b51fa4e",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "discovery.json": "acc1eab0427ab3edcbbbad0fe0cf5cf7cc52c909b31e3da9c23a494e3fc76a24",
-    "patches/0001-native-agent-session-export.patch": "4049f650f67d5c2a4d55b4cf9d41bba610857b6781a9456b13a74f985fead3da",
+    "patches/0001-native-agent-session-export.patch": "b070e4be9a7082ea5f1e0368c013958e3e3fdb70830e520d158ad26682af9b3a",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
     "samples/README.md": "fdc756cb38f014e6ad31a32a3e4a56769a5c44e1ac67a88e70b3a19bb3569db0",
-    "samples/asr/session.jsonl": "3dbb8d9c155a5c42b72f3376f4ebe9cfc210169c058737fb237a6cedebbdc546",
+    "samples/asr/session.jsonl": "4fded3916bfa45b76f877fdb9d9a92d8746a879dcb63681c1a2ad557efe86ee2",
     "samples/native/native.jsonl": "0496bbe9beefe2fc3ca9f53a6797d663be47e9997e6d7af0c8553261fcb5bd5f",
-    "test.mjs": "c7bec76aecac591c3ef6f0ad873a45d909d7735dd303b0d4cc28ccd5e1283f5f"
+    "test.mjs": "c7bec76aecac591c3ef6f0ad873a45d909d7735dd303b0d4cc28ccd5e1283f5f",
+    "verification.json": "a879ddcd12d0c2747b117d7bf709c7bf87bec36b8b54bbdc61bc0e679a73f65d",
+    "verify-native.mjs": "91f978205ddcba729237ed18105c16acb5b0ec2d24131a3f9d276f415f1dd063"
+  },
+  "privacyExceptions": {
+    "patches/0001-native-agent-session-export.patch": [
+      {
+        "line": 10,
+        "code": "private-home-path",
+        "lineSha256": "75ebd3b03dcc93111f9eda935c9c7a96d45179d1b70479f9e9fb5354fe80c1cc",
+        "reason": "Public Qwen repository path docs/users/features/commands.md. This is not a user home directory."
+      },
+      {
+        "line": 82,
+        "code": "private-home-path",
+        "lineSha256": "69e8befca122782bca84a856520d8949a620e881ed60812620f3b0acaa601b4e",
+        "reason": "Public Qwen repository path docs/users/features/commands.md. This is not a user home directory."
+      },
+      {
+        "line": 84,
+        "code": "private-home-path",
+        "lineSha256": "4f2d022043e1e2f79423d15422811fa17d7d7c4baa886038b281bb74c08181dc",
+        "reason": "Public Qwen repository path docs/users/features/commands.md. This is not a user home directory."
+      },
+      {
+        "line": 85,
+        "code": "private-home-path",
+        "lineSha256": "bf87297986344aee7184f240baa9f4dfd30a41a262e29344cd810631cae57081",
+        "reason": "Public Qwen repository path docs/users/features/commands.md. This is not a user home directory."
+      }
+    ]
   }
 }
