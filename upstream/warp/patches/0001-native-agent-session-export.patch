@@ -1,8 +1,9 @@
-From 1370c8db2f68066fe583c7ce7bceeb055c2804a7 Mon Sep 17 00:00:00 2001
+From 3581388011b36340bca02a204996d608c4f947fc Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] Export retained conversation text as Agent Session Record
 
+Keep the projection in persistence so local tools can inspect saved text without opening the client.
 ---
  Cargo.lock                                    |   1 +
  crates/persistence/Cargo.toml                 |   4 +-
@@ -266,5 +267,6 @@ index e40ceb2..57f207a 100644
  pub mod model;
  pub mod schema;
  
+-- 
+2.43.0
 
-base-commit: 89de3f5c9945eeee277e713f111d707d39857dff

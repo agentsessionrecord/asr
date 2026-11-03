@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "agent": "warp",
-  "base": "89de3f5c9945eeee277e713f111d707d39857dff",
-  "head": "1370c8db2f68066fe583c7ce7bceeb055c2804a7",
+  "base": "3dca8f995cc116814f17fc818ee0c37ec1141eaa",
+  "head": "3581388011b36340bca02a204996d608c4f947fc",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "1370c8db2f68066fe583c7ce7bceeb055c2804a7",
-      "sha256": "b784d1c3327cc1c42d160c17ce7ae60835ae63f451f3be2fb502846a1bcdab9c"
+      "commit": "3581388011b36340bca02a204996d608c4f947fc",
+      "sha256": "21d459eb0cce59a5a67e8dba30e97f62d86359826be6110cbdaaa83851edf4c9"
     }
   ],
   "checks": [
@@ -19,31 +19,43 @@
   ],
   "provenance": {
     "agent": "warp",
-    "base": "89de3f5c9945eeee277e713f111d707d39857dff",
-    "commit": "1370c8db2f68066fe583c7ce7bceeb055c2804a7",
+    "base": "3dca8f995cc116814f17fc818ee0c37ec1141eaa",
+    "commit": "3581388011b36340bca02a204996d608c4f947fc",
     "patch": "patches/0001-native-agent-session-export.patch",
     "files": {
       ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
-      "patches/0001-native-agent-session-export.patch": "b784d1c3327cc1c42d160c17ce7ae60835ae63f451f3be2fb502846a1bcdab9c",
-      "PROPOSAL.md": "8d9b1a2f652fb7511c2b7f4eea0f776fa58632d5ee2ba080a8e9742bf5e8935e",
+      "PROPOSAL.md": "7c2222a4d2bade78812b36c692a8bb43cdbc98b824ad3af9cd65e78b4c4cf5cf",
+      "README.md": "a6429bfb0068568b9bfe907f6c6549f77b90c258b8fc0595da7e3a613a37d86b",
       "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
-      "evidence.json": "da982767197064bcaef66a09ec14a12f1eb90fd22e5215b1d7dbde128bfa177a",
-      "samples/native/source.sql": "5fccda9b78263ffb90b5187cb2c514459558ff3fc5c5bd05eb2f9caec65776fa",
+      "contracts.mjs": "5c01b8aa3b167c9ace70eb09ea39b2b37343381ed63ecec3d1f68d640efc268d",
+      "evidence.json": "2ea98d350532f5bb4d8c275ba19fa33e3bc7d8720e95e8ed6d53bb68f00a6d6a",
+      "patches/0001-native-agent-session-export.patch": "21d459eb0cce59a5a67e8dba30e97f62d86359826be6110cbdaaa83851edf4c9",
+      "refresh.json": "c5d8f6bc92b91848066f63f8aa9a2b42119efb46579f3ad2fa143379915f1039",
+      "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
       "reproduce.py": "5e11b396cee54ff135bda9f28ef2f9823c365eef4e1d413c6b8c417787f25e4f",
-      "samples/asr/session.jsonl": "4c54b7a0b578cd79b06ce4b9d7308ca9285316c7966575529de201fd1026eb00"
-    }
+      "samples/asr/session.jsonl": "4c54b7a0b578cd79b06ce4b9d7308ca9285316c7966575529de201fd1026eb00",
+      "samples/native/source.sql": "5fccda9b78263ffb90b5187cb2c514459558ff3fc5c5bd05eb2f9caec65776fa",
+      "specs/GH7834/product.md": "d28faee98ef8c7b0fd1542fe9adc9668fb99ad44b7dd010595513e04ba071023",
+      "specs/GH7834/tech.md": "a088f4d0e484ce3a518c5cab481f4c69868cf095594ec3d8d5293817b06926b8"
+    },
+    "repository": "https://github.com/warpdotdev/warp",
+    "head": "3581388011b36340bca02a204996d608c4f947fc",
+    "branch": "codex/patch-rust"
   },
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
-    "PROPOSAL.md": "8d9b1a2f652fb7511c2b7f4eea0f776fa58632d5ee2ba080a8e9742bf5e8935e",
-    "README.md": "0b9c251f3ce62b0b0e9f857b6fd7e68f19c694267461afb32f5708c2573ab549",
+    "PROPOSAL.md": "7c2222a4d2bade78812b36c692a8bb43cdbc98b824ad3af9cd65e78b4c4cf5cf",
+    "README.md": "a6429bfb0068568b9bfe907f6c6549f77b90c258b8fc0595da7e3a613a37d86b",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "contracts.mjs": "5c01b8aa3b167c9ace70eb09ea39b2b37343381ed63ecec3d1f68d640efc268d",
-    "evidence.json": "da982767197064bcaef66a09ec14a12f1eb90fd22e5215b1d7dbde128bfa177a",
-    "patches/0001-native-agent-session-export.patch": "b784d1c3327cc1c42d160c17ce7ae60835ae63f451f3be2fb502846a1bcdab9c",
+    "evidence.json": "2ea98d350532f5bb4d8c275ba19fa33e3bc7d8720e95e8ed6d53bb68f00a6d6a",
+    "patches/0001-native-agent-session-export.patch": "21d459eb0cce59a5a67e8dba30e97f62d86359826be6110cbdaaa83851edf4c9",
+    "refresh.json": "c5d8f6bc92b91848066f63f8aa9a2b42119efb46579f3ad2fa143379915f1039",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
     "reproduce.py": "5e11b396cee54ff135bda9f28ef2f9823c365eef4e1d413c6b8c417787f25e4f",
     "samples/asr/session.jsonl": "4c54b7a0b578cd79b06ce4b9d7308ca9285316c7966575529de201fd1026eb00",
-    "samples/native/source.sql": "5fccda9b78263ffb90b5187cb2c514459558ff3fc5c5bd05eb2f9caec65776fa"
+    "samples/native/source.sql": "5fccda9b78263ffb90b5187cb2c514459558ff3fc5c5bd05eb2f9caec65776fa",
+    "specs/GH7834/product.md": "d28faee98ef8c7b0fd1542fe9adc9668fb99ad44b7dd010595513e04ba071023",
+    "specs/GH7834/tech.md": "a088f4d0e484ce3a518c5cab481f4c69868cf095594ec3d8d5293817b06926b8"
   }
 }
