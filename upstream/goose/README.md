@@ -3,7 +3,7 @@
 ## Install
 
 Use a separate writable checkout of the upstream project. The supported base is
-`090dedb7625c8aadb9bb05d68028fd00f36b429e`. [manifest.json](manifest.json) pins
+`0aa212e61d43e35ee2875ca5aa23c28ebac882c7`. [manifest.json](manifest.json) pins
 this base, the ordered patches and their digests. Read [PROPOSAL.md](PROPOSAL.md)
 for the upstream repository, runtime requirements and native build instructions.
 These patches are local source changes. They are not installed by the ASR CLI.
@@ -25,8 +25,8 @@ Run with the patched agent. Replace example IDs and input paths with a selected
 native session. See the proposal for selection and output options.
 
 ```sh
-goose sessions export --format agent-session --session SESSION_ID
-goose sessions export --format agent-session --session SESSION_ID --output exports
+goose session export --format agent-session --session-id SESSION_ID
+goose session export --format agent-session --session-id SESSION_ID --output exports
 ```
 
 ## What it records
@@ -59,10 +59,6 @@ temporary Git index against the pinned source commits. It preserves the source
 checkout. It needs both pinned commits in that checkout and does not build or
 run the agent. Upstream build and test evidence is in the proposal.
 
-Live-test status: **partial**.
-The evidence below is from a prior revision. A live run of the current code has not been verified.
-An isolated real agent turn used the OpenAI-compatible or Anthropic-compatible endpoint. The real CLI exported persisted history. ASR validation passed with zero errors and warnings.
-
-The package's [synthetic export](samples/asr/session.jsonl) has zero validator
-errors. Any expected extension or pairing warnings are explained by the proposal
-or printed by the package check. Package checks make no model requests.
+Current project verification and fixture results are in [refresh.json](refresh.json).
+No current live inference test is claimed. Historical live evidence does not
+certify this refreshed source.

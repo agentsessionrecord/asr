@@ -1,34 +1,25 @@
-From 33d74d5d10c3ecfa4d905a53e9a4f589b3f6ab1e Mon Sep 17 00:00:00 2001
+From f6ea649b9a383ad821f4da9d92f93067ccf0a6df Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] feat(session): export saved sessions as Agent Session Record
 
 ---
- crates/goose-cli/src/cli.rs                   |  11 +-
+ crates/goose-cli/src/cli.rs                   |   7 +-
  crates/goose-cli/src/commands/session.rs      |  33 +-
  .../goose/src/session/export_agent_session.rs | 293 ++++++++++++++++++
  crates/goose/src/session/mod.rs               |   2 +
  crates/goose/src/session/session_manager.rs   |  50 ++-
  crates/goose/tests/agent_session_export.rs    | 201 ++++++++++++
  .../tests/fixtures/agent_session/session.json | 147 +++++++++
- 7 files changed, 716 insertions(+), 21 deletions(-)
+ 7 files changed, 714 insertions(+), 19 deletions(-)
  create mode 100644 crates/goose/src/session/export_agent_session.rs
  create mode 100644 crates/goose/tests/agent_session_export.rs
  create mode 100644 crates/goose/tests/fixtures/agent_session/session.json
 
 diff --git a/crates/goose-cli/src/cli.rs b/crates/goose-cli/src/cli.rs
-index 752d609..603266f 100644
+index 752d609..8fb702e 100644
 --- a/crates/goose-cli/src/cli.rs
 +++ b/crates/goose-cli/src/cli.rs
-@@ -96,7 +96,7 @@ pub struct Identifier {
- 
-     #[arg(
-         long = "session-id",
--        alias = "id",
-+        aliases = ["id", "session"],
-         value_name = "SESSION_ID",
-         help = "Session ID (e.g., '20250921_143022')",
-         long_help = "Specify a session ID to resume. Requires --resume."
 @@ -566,14 +566,14 @@ enum SessionCommand {
              short,
              long,
@@ -46,21 +37,12 @@ index 752d609..603266f 100644
              default_value = "markdown"
          )]
          format: String,
-@@ -916,7 +916,7 @@ enum Command {
-     /// Start or resume interactive chat sessions
-     #[command(
-         about = "Start or resume interactive chat sessions",
--        visible_alias = "s"
-+        visible_aliases = ["s", "sessions"]
-     )]
-     Session {
-         #[command(subcommand)]
 @@ -1945,6 +1945,9 @@ async fn handle_session_subcommand(command: SessionCommand) -> Result<()> {
              output,
              format,
          } => {
 +            if format == "agent-session" && identifier.is_none() {
-+                anyhow::bail!("agent-session export requires --session <ID> or --name <NAME>");
++                anyhow::bail!("agent-session export requires --session-id <ID> or --name <NAME>");
 +            }
              let session_manager = SessionManager::instance();
              let session_identifier = if let Some(id) = identifier {
@@ -889,5 +871,6 @@ index 0000000..3a461ec
 +    }
 +  ]
 +}
+-- 
+2.43.0
 
-base-commit: 090dedb7625c8aadb9bb05d68028fd00f36b429e

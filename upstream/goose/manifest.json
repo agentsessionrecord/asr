@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "agent": "goose",
-  "base": "090dedb7625c8aadb9bb05d68028fd00f36b429e",
-  "head": "33d74d5d10c3ecfa4d905a53e9a4f589b3f6ab1e",
+  "base": "0aa212e61d43e35ee2875ca5aa23c28ebac882c7",
+  "head": "f6ea649b9a383ad821f4da9d92f93067ccf0a6df",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "33d74d5d10c3ecfa4d905a53e9a4f589b3f6ab1e",
-      "sha256": "d0c441efa1b1cb19b53c0caf114c533ae73f38660781aa637e91d9f78fd1e2af"
+      "commit": "f6ea649b9a383ad821f4da9d92f93067ccf0a6df",
+      "sha256": "76f951ac813cecc7956c691f0c9f4e978ea6aa0b5519a5d3ea22859ded1a6d84"
     }
   ],
   "checks": [
@@ -18,21 +18,25 @@
     ]
   ],
   "provenance": {
-    "repository": "https://github.com/block/goose",
-    "base": "090dedb7625c8aadb9bb05d68028fd00f36b429e",
-    "commit": "33d74d5d10c3ecfa4d905a53e9a4f589b3f6ab1e",
+    "repository": "https://github.com/aaif-goose/goose",
+    "base": "0aa212e61d43e35ee2875ca5aa23c28ebac882c7",
+    "commit": "f6ea649b9a383ad821f4da9d92f93067ccf0a6df",
     "patch": "patches/0001-native-agent-session-export.patch",
-    "patchSha256": "d0c441efa1b1cb19b53c0caf114c533ae73f38660781aa637e91d9f78fd1e2af"
+    "patchSha256": "76f951ac813cecc7956c691f0c9f4e978ea6aa0b5519a5d3ea22859ded1a6d84",
+    "head": "f6ea649b9a383ad821f4da9d92f93067ccf0a6df",
+    "branch": "codex/patch-rust"
   },
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
-    "PROPOSAL.md": "6ff1319ac562280ce7b593c7cda87264b6a98b61ba6b9f36853e9232cdb6b08c",
-    "README.md": "864724acbdc081f87122d6b8cb53464a109a0bd8bb29adb15f57ae7a77d92d6a",
+    "PROPOSAL.md": "cfb11f4d4a3d771c5d80729d7121bc93fa8288944b72782203fc5b4c1cd02a21",
+    "README.md": "bfead4c9156b34607f0902b3669816c28d0b1c8d6b3f7e7541aba751b3a2bbeb",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "check.test.mjs": "dfbbc5ae855eec050e941077646b26632581e123ab6fb01aed46daa52e0bd0a8",
     "live-test.recipe.yaml": "3a211ecc7f30cb8f07054f26640de25b8276fc96b202795459de5686042e5556",
-    "patches/0001-native-agent-session-export.patch": "d0c441efa1b1cb19b53c0caf114c533ae73f38660781aa637e91d9f78fd1e2af",
-    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "patches/0001-native-agent-session-export.patch": "76f951ac813cecc7956c691f0c9f4e978ea6aa0b5519a5d3ea22859ded1a6d84",
+    "refresh.json": "fb7ea9982d3727264309021598bb19d1f37d01b67c31a53d005defb7b16c0b23",
+    "reproduce.mjs": "3dcda59110f4578ad14c19e0b6050f30f0a7851e229801b6de8101a9ccae959f",
+    "reproduce.py": "ac87981d86ab7d3dcb4a47c785035dec536401666133870bb01ce3b4cb312cad",
     "samples/asr/session.jsonl": "21875bb9346c22269a24aabb2d24f12e505421acc2cd74a931d2c7d302f1a2df",
     "samples/native/native.json": "4f11f31725059df737a52b04261974b42fdd095dc3794dfe9e0433a7060e5d18"
   }
