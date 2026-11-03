@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "agent": "astrbot",
-  "base": "3d92821ad9d90df33fc242e7b159a3260075eb2c",
-  "head": "d9372ee62258d11a0e26fa604e132205451dbddc",
+  "base": "f926af99ec5f8bd85b64413f8bfad55da76ef73b",
+  "head": "6109a6bf43a7bda5ec871a0d40e5ca813e977dcc",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "d9372ee62258d11a0e26fa604e132205451dbddc",
-      "sha256": "dffbe4faa8901f22f43652c3a70059c18b903214a4476db2ae99eefeba7205d4"
+      "commit": "6109a6bf43a7bda5ec871a0d40e5ca813e977dcc",
+      "sha256": "a249af8039f129349e01101801364fd7bb015596d6dc01457911901b47b82733"
     }
   ],
   "checks": [
@@ -19,17 +19,20 @@
   ],
   "provenance": {
     "patch": "patches/0001-native-agent-session-export.patch",
-    "sha256": "dffbe4faa8901f22f43652c3a70059c18b903214a4476db2ae99eefeba7205d4",
-    "baseCommit": "3d92821ad9d90df33fc242e7b159a3260075eb2c",
-    "commit": "d9372ee62258d11a0e26fa604e132205451dbddc"
+    "sha256": "a249af8039f129349e01101801364fd7bb015596d6dc01457911901b47b82733",
+    "baseCommit": "f926af99ec5f8bd85b64413f8bfad55da76ef73b",
+    "commit": "6109a6bf43a7bda5ec871a0d40e5ca813e977dcc",
+    "repository": "https://github.com/AstrBotDevs/AstrBot"
   },
   "files": {
-    "PROPOSAL.md": "9dcb780a0a0f6ec86c56d7b4b30d3bc7d29a06ee7f4f2ec2aa9de88ee130043a",
-    "README.md": "646b77f8219715b603d8dd278580cfcdd1e957e0c12c2fb10eb229983af414b5",
+    ".gitattributes": "9976f1d74b4ea85bef7b85c40f9d253267a9b26312905efa19c6651d70779d39",
+    "PROPOSAL.md": "20e9141c6414fb1cb9315bb225f4836df142fc8bfdb6ac8ec0536cfc1cd76c1a",
+    "README.md": "aa799d7d5382816b6e9940a05af2ea56fe01cc6b8d892ec604d80df39fe978f2",
+    "TEST-RESULTS.md": "98807fa698e499623284169dc4841a9a43e23cec47b8ff9e8b7c2c93fd4b9cc4",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
-    "patches/0001-native-agent-session-export.patch": "dffbe4faa8901f22f43652c3a70059c18b903214a4476db2ae99eefeba7205d4",
+    "patches/0001-native-agent-session-export.patch": "a249af8039f129349e01101801364fd7bb015596d6dc01457911901b47b82733",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
-    "samples/asr/session.jsonl": "9a38859904e247d6be8b1bd24cae008c61a8bd7e14fa3466674ddb95fbf45623",
+    "samples/asr/session.jsonl": "8f785b5bc89420a716c90e5da5e4c6f7427da695c429a98a521ea88a642445ec",
     "samples/native/native.json": "5b9ffd70640d707e81eb9e42310841bab2822962a05b263457236d5b6ec29c95"
   }
 }

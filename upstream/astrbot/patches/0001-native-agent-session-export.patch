@@ -1,30 +1,30 @@
-From d9372ee62258d11a0e26fa604e132205451dbddc Mon Sep 17 00:00:00 2001
+From 6109a6bf43a7bda5ec871a0d40e5ca813e977dcc Mon Sep 17 00:00:00 2001
 From: ASR contributors <contributors@agentsessionrecord.org>
 Date: Sun, 1 Nov 2026 12:54:14 -0500
-Subject: [PATCH] feat: export saved conversations as Agent Session Record
+Subject: [PATCH] feat(cli): export saved conversations as Agent Session Record
 
 ---
  astrbot/cli/__main__.py              |   7 +-
- astrbot/cli/commands/cmd_sessions.py | 277 +++++++++++++++++++++++++++
+ astrbot/cli/commands/cmd_sessions.py | 279 +++++++++++++++++++++++++++
  tests/test_session_export.py         | 153 +++++++++++++++
- 3 files changed, 436 insertions(+), 1 deletion(-)
+ 3 files changed, 438 insertions(+), 1 deletion(-)
  create mode 100644 astrbot/cli/commands/cmd_sessions.py
  create mode 100644 tests/test_session_export.py
 
 diff --git a/astrbot/cli/__main__.py b/astrbot/cli/__main__.py
-index 3dc0d0e..b2f7c02 100644
+index 3dc0d0e4..b2f7c02b 100644
 --- a/astrbot/cli/__main__.py
 +++ b/astrbot/cli/__main__.py
 @@ -6,6 +6,7 @@ import click
-
+ 
  from . import __version__
  from .commands import conf, init, password, plug, run
 +from .commands.cmd_sessions import sessions
-
+ 
  logo_tmpl = r"""
       ___           _______.___________..______      .______     ______   .___________.
 @@ -19,8 +20,11 @@ logo_tmpl = r"""
-
+ 
  @click.group()
  @click.version_option(__version__, prog_name="AstrBot")
 -def cli() -> None:
@@ -41,15 +41,15 @@ index 3dc0d0e..b2f7c02 100644
  cli.add_command(conf)
  cli.add_command(password)
 +cli.add_command(sessions)
-
+ 
  if __name__ == "__main__":
      cli()
 diff --git a/astrbot/cli/commands/cmd_sessions.py b/astrbot/cli/commands/cmd_sessions.py
 new file mode 100644
-index 0000000..03c91bd
+index 00000000..0df00bff
 --- /dev/null
 +++ b/astrbot/cli/commands/cmd_sessions.py
-@@ -0,0 +1,277 @@
+@@ -0,0 +1,279 @@
 +"""Export stored conversations as Agent Session Record JSONL."""
 +
 +import hashlib
@@ -61,6 +61,8 @@ index 0000000..03c91bd
 +from typing import TYPE_CHECKING
 +
 +import click
++
++from astrbot import __version__
 +
 +if TYPE_CHECKING:
 +    from astrbot.core.db.po import ConversationV2
@@ -131,7 +133,7 @@ index 0000000..03c91bd
 +            "sessionId": conversation.conversation_id,
 +            "producer": {
 +                "name": "astrbot",
-+                "version": "4.29.3",
++                "version": __version__,
 +                "method": "native",
 +                "source": "conversation-v2",
 +            },
@@ -329,7 +331,7 @@ index 0000000..03c91bd
 +        raise click.ClickException(str(error)) from error
 diff --git a/tests/test_session_export.py b/tests/test_session_export.py
 new file mode 100644
-index 0000000..5d28fee
+index 00000000..5d28fee8
 --- /dev/null
 +++ b/tests/test_session_export.py
 @@ -0,0 +1,153 @@
@@ -486,3 +488,6 @@ index 0000000..5d28fee
 +    ]
 +    assert records[1]["content"] == [{"type": "text", "text": "kept"}]
 +    assert [record["reason"] for record in records[2:]] == ["unparseable"] * 5
+-- 
+2.43.0
+
