@@ -1,33 +1,33 @@
-From 840e70fb11bfc85a76a587f8d3f47f47d582c970 Mon Sep 17 00:00:00 2001
+From 5ecdd85463e37bb7915dc342b6b4a653d9a8fadf Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] feat(cli): add Agent Session Record export format
 
 ---
- packages/cli/src/agent-session.ts             | 339 ++++++++++++++++++
- packages/cli/src/commands/commands.ts         |   5 +-
- .../src/commands/handlers/session/export.ts   |  16 +
+ packages/cli/src/agent-session.ts             | 322 ++++++++++++++++++
+ packages/cli/src/commands/commands.ts         |   4 +-
+ .../src/commands/handlers/session/export.ts   |  15 +
  packages/cli/src/server-process.ts            |   1 +
  packages/cli/test/agent-session.test.ts       |  90 +++++
  .../test/fixtures/agent-session/native.json   | 205 +++++++++++
- packages/cli/test/import-export.test.ts       |   9 +
- 7 files changed, 664 insertions(+), 1 deletion(-)
+ packages/cli/test/import-export.test.ts       |  69 ++++
+ .../www/src/docs/content/cli/commands.mdx     |  11 +
+ 8 files changed, 716 insertions(+), 1 deletion(-)
  create mode 100644 packages/cli/src/agent-session.ts
  create mode 100644 packages/cli/test/agent-session.test.ts
  create mode 100644 packages/cli/test/fixtures/agent-session/native.json
 
 diff --git a/packages/cli/src/agent-session.ts b/packages/cli/src/agent-session.ts
 new file mode 100644
-index 0000000..4c79521
+index 0000000..94697ec
 --- /dev/null
 +++ b/packages/cli/src/agent-session.ts
-@@ -0,0 +1,339 @@
+@@ -0,0 +1,322 @@
 +export * as AgentSession from "./agent-session"
 +
 +import type { ExperimentalSessionApi } from "@opencode/client/promise/api"
 +import { createHash } from "node:crypto"
 +import fs from "node:fs/promises"
-+import os from "node:os"
 +import path from "node:path"
 +import { OPENCODE_VERSION } from "./version"
 +
@@ -320,7 +320,6 @@ index 0000000..4c79521
 +  sessionID: string
 +  events: AsyncIterable<ExperimentalSessionLogOutput>
 +  output?: string
-+  discovery?: boolean
 +}) {
 +  const events: Event[] = []
 +  for await (const event of input.events) if (event.type !== "log.synced") events.push(event)
@@ -335,37 +334,22 @@ index 0000000..4c79521
 +    await fs.mkdir(input.output, { mode: 0o700 })
 +    await fs.writeFile(path.join(input.output, digest(input.sessionID) + ".jsonl"), text, { mode: 0o600, flag: "wx" })
 +  }
-+  if (input.discovery) {
-+    const root =
-+      process.platform === "win32"
-+        ? (process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"))
-+        : (process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), ".config"))
-+    const directory = path.join(root, "agent-sessions", "sources")
-+    await fs.mkdir(directory, { recursive: true, mode: 0o700 })
-+    await fs.writeFile(
-+      path.join(directory, "opencode.json"),
-+      JSON.stringify({
-+        agent: "opencode",
-+        exportCommand: ["opencode", "sessions", "export", "--format", "agent-session"],
-+        formatVersions: ["0.1"],
-+        supportsDeletionHook: false,
-+      }) + "\n",
-+      { mode: 0o600, flag: "wx" },
-+    )
-+  }
 +  if (!input.output) process.stdout.write(text)
 +}
 +
-+function asrReasoning(text: unknown, summary = false): { type: string; visibility?: string; text?: string; summary?: string[] } {
-+  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
-+  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
-+  return { type: "reasoning", text };
++function asrReasoning(
++  text: unknown,
++  summary = false,
++): { type: string; visibility?: string; text?: string; summary?: string[] } {
++  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" }
++  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] }
++  return { type: "reasoning", text }
 +}
 diff --git a/packages/cli/src/commands/commands.ts b/packages/cli/src/commands/commands.ts
-index 85a3bf7..db5d773 100644
+index 5ca37aa..4988f29 100644
 --- a/packages/cli/src/commands/commands.ts
 +++ b/packages/cli/src/commands/commands.ts
-@@ -464,12 +464,15 @@ const Root = Spec.make(typeof OPENCODE_CLI_NAME === "string" ? OPENCODE_CLI_NAME
+@@ -475,12 +475,14 @@ const Root = Spec.make(typeof OPENCODE_CLI_NAME === "string" ? OPENCODE_CLI_NAME
            },
          }),
          Spec.make("export", {
@@ -378,12 +362,11 @@ index 85a3bf7..db5d773 100644
              ),
 +            format: Flag.Literals("format", ["json", "agent-session"]).pipe(Flag.withDefault("json")),
 +            output: Flag.String("output").pipe(Flag.withDescription("New output directory"), Flag.optional),
-+            discovery: Flag.Boolean("write-discovery").pipe(Flag.withDefault(false)),
              sanitize: Flag.Boolean("sanitize").pipe(
                Flag.withDescription("Redact sensitive transcript and file data"),
                Flag.withDefault(false),
 diff --git a/packages/cli/src/commands/handlers/session/export.ts b/packages/cli/src/commands/handlers/session/export.ts
-index f52ef72..df223b7 100644
+index f52ef72..e15cafa 100644
 --- a/packages/cli/src/commands/handlers/session/export.ts
 +++ b/packages/cli/src/commands/handlers/session/export.ts
 @@ -6,6 +6,7 @@ import { EOL } from "node:os"
@@ -394,7 +377,7 @@ index f52ef72..df223b7 100644
  import { errorMessage } from "../../../util/error"
  
  export default Runtime.handler(
-@@ -67,6 +68,21 @@ export default Runtime.handler(
+@@ -67,6 +68,20 @@ export default Runtime.handler(
              return selected
            })
        if (!sessionID) return
@@ -405,13 +388,12 @@ index f52ef72..df223b7 100644
 +            sessionID,
 +            events: client.experimental.session.log({ sessionID, follow: false }),
 +            output: Option.getOrUndefined(input.output),
-+            discovery: input.discovery,
 +          }),
 +        )
 +        return
 +      }
-+      if (Option.isSome(input.output) || input.discovery) {
-+        yield* Effect.fail(new Error("--output and --write-discovery require --format agent-session"))
++      if (Option.isSome(input.output)) {
++        yield* Effect.fail(new Error("--output requires --format agent-session"))
 +      }
        const data = yield* Effect.tryPromise({
          try: () => client.experimental.session.export({ sessionID, sanitize: input.sanitize }),
@@ -736,10 +718,18 @@ index 0000000..4546d86
 +  }
 +]
 diff --git a/packages/cli/test/import-export.test.ts b/packages/cli/test/import-export.test.ts
-index d17d90b..fe162b6 100644
+index d17d90b..167baab 100644
 --- a/packages/cli/test/import-export.test.ts
 +++ b/packages/cli/test/import-export.test.ts
-@@ -230,3 +230,12 @@ test("import reports an existing session without a stack trace", async () => {
+@@ -3,6 +3,7 @@ import fs from "node:fs/promises"
+ import os from "node:os"
+ import path from "node:path"
+ import { OPENCODE_VERSION } from "../src/version"
++import { isolatedEnv } from "./fixture/environment"
+ 
+ const info = {
+   id: "ses_export_test",
+@@ -230,3 +231,71 @@ test("import reports an existing session without a stack trace", async () => {
      await fs.rm(root, { recursive: true, force: true })
    }
  })
@@ -752,5 +742,89 @@ index d17d90b..fe162b6 100644
 +  const [rootHelp] = await run(["--help"])
 +  expect(rootHelp).not.toMatch(/^  sessions[ ,]/m)
 +})
++
++test("agent-session format exports native history through the existing command", async () => {
++  const root = await fs.mkdtemp(path.join(os.tmpdir(), "opencode-asr-command-"))
++  const events = await Bun.file(path.join(import.meta.dir, "fixtures/agent-session/native.json")).json()
++  const server = Bun.serve({
++    port: 0,
++    fetch(request) {
++      const url = new URL(request.url)
++      if (url.pathname === "/api/info") return status()
++      if (url.pathname === "/api/experimental/session/ses_synthetic/log") {
++        return new Response(events.map((event: unknown) => `data: ${JSON.stringify(event)}\n\n`).join(""), {
++          headers: { "content-type": "text/event-stream" },
++        })
++      }
++      return new Response("Not found", { status: 404 })
++    },
++  })
++  try {
++    const child = Bun.spawn(
++      [
++        process.execPath,
++        "run",
++        "src/index.ts",
++        "session",
++        "export",
++        "ses_synthetic",
++        "--format",
++        "agent-session",
++        "--server",
++        server.url.toString(),
++      ],
++      {
++        cwd: path.join(import.meta.dir, ".."),
++        env: isolatedEnv(root),
++        stdin: "ignore",
++        stdout: "pipe",
++        stderr: "pipe",
++      },
++    )
++    const [stdout, stderr, code] = await Promise.all([
++      new Response(child.stdout).text(),
++      new Response(child.stderr).text(),
++      child.exited,
++    ])
++    expect(stderr).toBe("")
++    expect(code).toBe(0)
++    const records = stdout
++      .trimEnd()
++      .split("\n")
++      .map((line) => JSON.parse(line))
++    expect(records[0]).toMatchObject({ type: "session", sessionId: "ses_synthetic" })
++    expect(records.find((record) => record.type === "tool_result").content).toEqual([
++      { type: "text", text: "synthetic\n" },
++    ])
++  } finally {
++    await server.stop(true)
++    await fs.rm(root, { recursive: true, force: true })
++  }
++})
+diff --git a/services/www/src/docs/content/cli/commands.mdx b/services/www/src/docs/content/cli/commands.mdx
+index 86ca9ad..3cfbebc 100644
+--- a/services/www/src/docs/content/cli/commands.mdx
++++ b/services/www/src/docs/content/cli/commands.mdx
+@@ -144,6 +144,17 @@ Export session data as JSON.
+ $ opencode session export ses_4f2a1c
+ ```
+ 
++Export retained durable history as Agent Session Record JSON Lines. Start the
++server with `OPENCODE_AGENT_SESSION_HISTORY=1` before recording the session.
++
++```bash
++$ opencode session export ses_4f2a1c --format agent-session > session.jsonl
++```
++
++Use `--output new-directory` to create a private file. Missing creation history
++and forked history fail explicitly. Review exports before sharing. Approvals,
++complete settings, file changes, and commits remain incomplete.
++
+ Redact sensitive transcript and file data when exporting.
+ 
+ ```bash
 
-base-commit: bf5d12c588911a35ec56ad991c3b83cf937f424a
+base-commit: 156bb610108c3da91c6963056f439e2acc1614f0
+-- 
+2.43.0
+

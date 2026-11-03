@@ -1,72 +1,50 @@
 # OpenCode native ASR export patch
 
-Sessions must be recorded with `OPENCODE_AGENT_SESSION_HISTORY=1` enabled before
-recording begins. Restart an existing server with that setting.
+Export recorded OpenCode sessions in a format that search and audit tools can
+read.
 
-## Install
+Upstream: https://github.com/anomalyco/opencode
 
-Use a separate writable checkout of the upstream project. The supported base is
-`bf5d12c588911a35ec56ad991c3b83cf937f424a`. [manifest.json](manifest.json) pins
-this base, the ordered patches and their digests. Read [PROPOSAL.md](PROPOSAL.md)
-for the upstream repository, runtime requirements and native build instructions.
-These patches are local source changes. They are not installed by the ASR CLI.
-
-Set `ASR_PACKAGE` to this package's absolute path. Run in a clean upstream
-checkout at the pinned base:
+The pinned base is `156bb610108c3da91c6963056f439e2acc1614f0`. The manifest
+records the local feature commit, patch digest and all package file digests.
+Apply from a separate clean upstream checkout at that base:
 
 ```sh
 git am "$ASR_PACKAGE"/patches/*.patch
-```
-
-Build and install the patched agent using its own instructions and the focused
-checks in the proposal. To remove the feature, use a clean unpatched build.
-Existing exported files remain in their output directory.
-
-## Use
-
-Run with the patched agent. Replace example IDs and input paths with a selected
-native session. See the proposal for selection and output options.
-
-```sh
-OPENCODE_AGENT_SESSION_HISTORY=1 opencode serve
 opencode session export SESSION_ID --format agent-session
-opencode session export SESSION_ID --format agent-session --output new-directory
 ```
 
-## What it records
+Adds ASR to the existing `session export` format selector. Capture requires
+`OPENCODE_AGENT_SESSION_HISTORY=1` before recording begins. Restart an existing
+server with this setting.
 
-Opt-in durable event history supplies messages, reasoning, tools, requested models, usage, native costs and mode and permission changes in recording order. Restart an existing server with history capture enabled.
+The source is opt-in durable session events. Missing creation or fork history
+fails explicitly. Unsupported shell events and content revisions produce gaps.
+Served models, complete approvals, settings, media, edits, commits and lineage
+remain incomplete. Known credential filtering does not establish that an export
+is safe to share.
 
-Output uses ASR 0.1 with `producer.method: native`. Known credential fields and
-recognized secret text are excluded. Keep exports private and review content
-before sharing. Pattern filtering cannot identify every secret.
-
-## Limits
-
-Missing creation history and fork history fail explicitly. Shell history and content revisions can produce gaps. Served models, complete approvals, settings, file changes, commits, media and lineage remain incomplete.
-
-The [proposal](PROPOSAL.md) describes the source profile and detailed losses.
-Valid ASR does not establish complete source capture.
-
-## Tests and status
-
-Run from the ASR repository root with its Node dependencies installed:
+Run package checks from the ASR repository root:
 
 ```sh
 node upstream/opencode/check.mjs
 node upstream/opencode/reproduce.mjs /path/to/upstream-checkout
+bun upstream/opencode/verify-native.mjs /path/to/upstream-checkout
 ```
 
-The package check verifies file hashes, patch syntax, synthetic source contracts
-and ASR sample validation. The reproduce command also replays the series in a
-temporary Git index against the pinned source commits. It preserves the source
-checkout. It needs both pinned commits in that checkout and does not build or
-run the agent. Upstream build and test evidence is in the proposal.
+Reproduction compares a temporary Git index with the pinned feature tree. It
+preserves the source checkout and does not run a model. The native driver loads
+the source exporter, validates a synthetic stream and compares the sample. It
+does not exercise an installed full CLI and model session.
 
-Live-test status: **partial**.
-The evidence below is from a prior revision. A live run of the current code has not been verified.
-Isolated scratch session through a local OpenAI-compatible endpoint. Native export passed the reference validator with 8 records, zero errors and zero warnings.
+CLI oxlint, 12 focused tests, CLI type check, the Node bundle build and
+documentation type check and build pass. Native fixture exports pass the
+reference validator with zero errors and zero warnings.
+[verification.json](verification.json) records the checked source revision and
+focused results. See [PROPOSAL.md](PROPOSAL.md) for the scope.
 
-The package's [synthetic export](samples/asr/session.jsonl) has zero validator
-errors. Any expected extension or pairing warnings are explained by the proposal
-or printed by the package check. Package checks make no model requests.
+Current live-model status is unverified. Earlier live evidence is partial and
+applies to an older revision. No model run was performed for this refresh.
+
+Submission prerequisites: Feature request and design approval are required
+before submission. Issue #59904 is discussing export formats.

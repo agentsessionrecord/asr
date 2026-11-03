@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "agent": "opencode",
-  "base": "bf5d12c588911a35ec56ad991c3b83cf937f424a",
-  "head": "840e70fb11bfc85a76a587f8d3f47f47d582c970",
+  "base": "156bb610108c3da91c6963056f439e2acc1614f0",
+  "head": "5ecdd85463e37bb7915dc342b6b4a653d9a8fadf",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "840e70fb11bfc85a76a587f8d3f47f47d582c970",
-      "sha256": "97a8d830912cfdb3d8aabc34aebf1ee1f6039b0bea8c788dbdd5bc5bb3b1b2bf"
+      "commit": "5ecdd85463e37bb7915dc342b6b4a653d9a8fadf",
+      "sha256": "b8c92753f7d92e6bb0e3980b9752da7d4c05e9361b0316d8f0371d69cc6b2cc0"
     }
   ],
   "checks": [
@@ -19,23 +19,25 @@
   ],
   "provenance": {
     "repository": "https://github.com/anomalyco/opencode",
-    "base": "bf5d12c588911a35ec56ad991c3b83cf937f424a",
-    "commit": "840e70fb11bfc85a76a587f8d3f47f47d582c970",
+    "base": "156bb610108c3da91c6963056f439e2acc1614f0",
+    "commit": "5ecdd85463e37bb7915dc342b6b4a653d9a8fadf",
     "patch": "patches/0001-native-agent-session-export.patch",
-    "patchSha256": "97a8d830912cfdb3d8aabc34aebf1ee1f6039b0bea8c788dbdd5bc5bb3b1b2bf",
+    "patchSha256": "b8c92753f7d92e6bb0e3980b9752da7d4c05e9361b0316d8f0371d69cc6b2cc0",
     "module": "packages/cli/src/agent-session.ts",
     "fixture": "packages/cli/test/fixtures/agent-session/native.json",
     "test": "packages/cli/test/agent-session.test.ts"
   },
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
-    "PROPOSAL.md": "ebf1a89fdd74e6edd84e36eda5067d394f4642ec1575a57cab5ca0926d6ec837",
-    "README.md": "5121f43cdb540fc8ad6d97a0e723c11aafe1b5ee9059214a20563f84ed47bad3",
+    "PROPOSAL.md": "2535e5a3fbd0a8a21067bc2ad519716286b86167e2cff33c7b31982de6a2bda6",
+    "README.md": "919043bfda150e2fc93ba56abd5be18e460d50d6803b57c856edb4412870691c",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "check.test.mjs": "b55217d792ef55cabb91c692bcecd32c2270e2a65259687592c8d399a29d14f9",
-    "patches/0001-native-agent-session-export.patch": "97a8d830912cfdb3d8aabc34aebf1ee1f6039b0bea8c788dbdd5bc5bb3b1b2bf",
+    "patches/0001-native-agent-session-export.patch": "b8c92753f7d92e6bb0e3980b9752da7d4c05e9361b0316d8f0371d69cc6b2cc0",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
     "samples/asr/session.jsonl": "802a2bf80a04fcfb50e1fe9a8103be9c36b38e1709af9b9e47f9046e6d65a976",
-    "samples/native/native.json": "4f1f33ee54bba0d6763853b78388f379bf5789343ff6f7972cb67874338cb1fe"
+    "samples/native/native.json": "4f1f33ee54bba0d6763853b78388f379bf5789343ff6f7972cb67874338cb1fe",
+    "verification.json": "2223e58da59ae97132a56be3789f531ad650ffd6b4797e700911b54c72b9570a",
+    "verify-native.mjs": "484d8628b68448dd1ef2fa33525b5495e6436875a16f126e21be12d1634af121"
   }
 }

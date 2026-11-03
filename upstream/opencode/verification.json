@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-03",
+  "platform": "linux-x64",
+  "base": "156bb610108c3da91c6963056f439e2acc1614f0",
+  "head": "5ecdd85463e37bb7915dc342b6b4a653d9a8fadf",
+  "projectChecks": "CLI oxlint, 12 focused tests, CLI type check, the Node bundle build and documentation type check and build pass.",
+  "nativeFixtures": {
+    "records": [
+      9
+    ],
+    "validatorErrors": 0,
+    "validatorWarnings": 0,
+    "exactPackagedSampleReplay": true
+  },
+  "liveModelRun": "not performed"
+}
