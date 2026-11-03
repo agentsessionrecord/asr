@@ -2,7 +2,7 @@
 
 The converters support the native profiles listed in the adapter guides and
 committed fixtures. A role describes model context. It does not identify a person.
-The table covers all 43 converter selections. Separate storage profiles can share
+The table covers all 44 converter selections. Separate storage profiles can share
 an implementation.
 
 `Unknown` means the supported profile supplies no discriminator that establishes
@@ -31,7 +31,8 @@ a person's input. The converter leaves human authorship absent. Explicit native
 | `cursor` | Unknown in agent transcript role | Recorded session metadata when supplied |
 | `gemini-cli` | Unknown in saved `user` messages | Recording metadata when supplied |
 | `mistral-vibe` | Unknown in saved user role | Legacy `origin_directory` or `environment.working_directory`, `git_branch`, `git_commit`. Unified `session_metadata` |
-| `xum`, `mux` | Unknown in chat messages | Recorded `metadata.projectPath`, no inferred Git branch from its name |
+| `mux` | Unknown in chat messages | Recorded `metadata.projectPath`, no inferred Git branch from its name |
+| `xum` | Unknown in chat messages | Recorded `metadata.projectPath`, no inferred Git branch from its name |
 | `fx` | Unknown in turn snapshots | `session_started.payload.workspace_root` |
 | `antigravity` | Unknown in rendered transcript entries | Recorded header metadata when supplied |
 | `tabnine` | Unknown in saved messages | Recorded header metadata when supplied |
