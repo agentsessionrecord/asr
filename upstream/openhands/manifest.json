@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "agent": "openhands",
-  "base": "4ce9c4b874c178297d591f9d01a7e21dc50d757a",
-  "head": "956b40cb78ca2c2542056f2db34eead395fbed2a",
+  "base": "934612b3b6cee05d3a4400b98b48a9c69215401d",
+  "head": "1d0b4552feed1eeb635f04b1fdac02d02e7f6fd3",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "956b40cb78ca2c2542056f2db34eead395fbed2a",
-      "sha256": "b9be9b7ecd844c86d0ec28e90b65f297f5ee94146dbc030e974d0eeeedb16f24"
+      "commit": "1d0b4552feed1eeb635f04b1fdac02d02e7f6fd3",
+      "sha256": "ddd668813cd19f60c822f6320d2774cf082737ddd95ceb67ba6c8791e6ccd68e"
     }
   ],
   "checks": [
@@ -19,18 +19,21 @@
   ],
   "provenance": {
     "patch": "patches/0001-native-agent-session-export.patch",
-    "sha256": "b9be9b7ecd844c86d0ec28e90b65f297f5ee94146dbc030e974d0eeeedb16f24",
-    "baseCommit": "4ce9c4b874c178297d591f9d01a7e21dc50d757a",
-    "commit": "956b40cb78ca2c2542056f2db34eead395fbed2a"
+    "sha256": "ddd668813cd19f60c822f6320d2774cf082737ddd95ceb67ba6c8791e6ccd68e",
+    "baseCommit": "934612b3b6cee05d3a4400b98b48a9c69215401d",
+    "commit": "1d0b4552feed1eeb635f04b1fdac02d02e7f6fd3",
+    "repository": "https://github.com/OpenHands/OpenHands"
   },
   "files": {
-    "PROPOSAL.md": "317b62e8b4fa29729251cc15ed852f6b3f187673c4787840e3d95434b6c495bd",
-    "README.md": "9fb7541da92bdb474cfba8539813dac4c135f4c57006e902fee0c1ea157303df",
+    ".gitattributes": "9976f1d74b4ea85bef7b85c40f9d253267a9b26312905efa19c6651d70779d39",
+    "PROPOSAL.md": "11aa4a039bf7340d5c9c6e1972198927d9b6e313c9463dc3fb00cdb3b3ea058d",
+    "README.md": "98987718d0c99d591e72bec765aac70f7f6c18b10a19d546211757e39adf075b",
+    "TEST-RESULTS.md": "7d1e427c1f7c40d17fa957dece2811bb1b31e8f356a5fdb40909586e5804caa7",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "contracts.mjs": "99fb438a4c3c097612f68a99a07d0c47c8b9c705361fb720e4c65d44a01d6420",
-    "patches/0001-native-agent-session-export.patch": "b9be9b7ecd844c86d0ec28e90b65f297f5ee94146dbc030e974d0eeeedb16f24",
+    "patches/0001-native-agent-session-export.patch": "ddd668813cd19f60c822f6320d2774cf082737ddd95ceb67ba6c8791e6ccd68e",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
-    "samples/asr/session.jsonl": "8ede6832a517905d5bae0ea319b1b779c934a9a61c92d09f2e62015aff31df53",
+    "samples/asr/session.jsonl": "7b973f66598913c37c994789b39af1c94201e9bfae12057021b81317aaa150bd",
     "samples/native/native.json": "48971a4e62a016667f2b903d0df4ba6db4a2d7365d3d672a2c27ecc44f290b5b"
   }
 }
