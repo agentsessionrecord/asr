@@ -1,0 +1,4 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"run-1","producer":{"name":"example-export","version":"1","method":"native"}}
+{"type":"tool_call","id":"call","callId":"c1","name":"edit"}
+{"type":"tool_result","id":"result","callId":"c1","status":"failed"}
+{"type":"tool_result","id":"second","callId":"c1","status":"completed"}

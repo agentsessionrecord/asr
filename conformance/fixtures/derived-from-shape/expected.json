@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-060",
+    "code": "schema.required",
+    "line": 1,
+    "pointer": "/derivedFrom"
+  }
+]

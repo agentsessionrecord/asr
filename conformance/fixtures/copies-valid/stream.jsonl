@@ -1,0 +1,3 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"run-1","producer":{"name":"example-export","version":"1","method":"native"},"parent":{"session":"codex:parent","kind":"fork","copiedThrough":"message"}}
+{"type":"message","id":"message","role":"user","content":[]}
+{"type":"inference","id":"model","model":{"requested":"example-model"},"copiedFrom":{"session":"codex:parent","record":"model"}}

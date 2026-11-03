@@ -1,0 +1,893 @@
+From 33d74d5d10c3ecfa4d905a53e9a4f589b3f6ab1e Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:28 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ crates/goose-cli/src/cli.rs                   |  11 +-
+ crates/goose-cli/src/commands/session.rs      |  33 +-
+ .../goose/src/session/export_agent_session.rs | 293 ++++++++++++++++++
+ crates/goose/src/session/mod.rs               |   2 +
+ crates/goose/src/session/session_manager.rs   |  50 ++-
+ crates/goose/tests/agent_session_export.rs    | 201 ++++++++++++
+ .../tests/fixtures/agent_session/session.json | 147 +++++++++
+ 7 files changed, 716 insertions(+), 21 deletions(-)
+ create mode 100644 crates/goose/src/session/export_agent_session.rs
+ create mode 100644 crates/goose/tests/agent_session_export.rs
+ create mode 100644 crates/goose/tests/fixtures/agent_session/session.json
+
+diff --git a/crates/goose-cli/src/cli.rs b/crates/goose-cli/src/cli.rs
+index 752d609..603266f 100644
+--- a/crates/goose-cli/src/cli.rs
++++ b/crates/goose-cli/src/cli.rs
+@@ -96,7 +96,7 @@ pub struct Identifier {
+ 
+     #[arg(
+         long = "session-id",
+-        alias = "id",
++        aliases = ["id", "session"],
+         value_name = "SESSION_ID",
+         help = "Session ID (e.g., '20250921_143022')",
+         long_help = "Specify a session ID to resume. Requires --resume."
+@@ -566,14 +566,14 @@ enum SessionCommand {
+             short,
+             long,
+             help = "Output file path (default: stdout)",
+-            long_help = "Path to save the exported Markdown. If not provided, output will be sent to stdout"
++            long_help = "Output file, or output directory for agent-session. Without this option, write to stdout"
+         )]
+         output: Option<PathBuf>,
+ 
+         #[arg(
+             long = "format",
+             value_name = "FORMAT",
+-            help = "Output format (markdown, json, yaml, html)",
++            help = "Output format (markdown, json, yaml, html, agent-session)",
+             default_value = "markdown"
+         )]
+         format: String,
+@@ -916,7 +916,7 @@ enum Command {
+     /// Start or resume interactive chat sessions
+     #[command(
+         about = "Start or resume interactive chat sessions",
+-        visible_alias = "s"
++        visible_aliases = ["s", "sessions"]
+     )]
+     Session {
+         #[command(subcommand)]
+@@ -1945,6 +1945,9 @@ async fn handle_session_subcommand(command: SessionCommand) -> Result<()> {
+             output,
+             format,
+         } => {
++            if format == "agent-session" && identifier.is_none() {
++                anyhow::bail!("agent-session export requires --session <ID> or --name <NAME>");
++            }
+             let session_manager = SessionManager::instance();
+             let session_identifier = if let Some(id) = identifier {
+                 lookup_session_id(id).await?
+diff --git a/crates/goose-cli/src/commands/session.rs b/crates/goose-cli/src/commands/session.rs
+index f46ec84..553ee14 100644
+--- a/crates/goose-cli/src/commands/session.rs
++++ b/crates/goose-cli/src/commands/session.rs
+@@ -3,8 +3,9 @@ use anyhow::{Context, Result};
+ use cliclack::{confirm, multiselect, select};
+ use etcetera::home_dir;
+ use goose::session::{
+-    export_session_to_html, export_session_to_markdown, generate_diagnostics, DiagnosticsLevel,
+-    Session, SessionManager, SessionType,
++    agent_session_namespace, export_session_to_agent_session, export_session_to_html,
++    export_session_to_markdown, generate_diagnostics, DiagnosticsLevel, Session, SessionManager,
++    SessionType,
+ };
+ use goose::utils::safe_truncate;
+ use regex::Regex;
+@@ -296,7 +297,14 @@ pub async fn handle_session_export(
+     format: String,
+ ) -> Result<()> {
+     let session_manager = SessionManager::instance();
+-    let session = match session_manager.get_session(&session_id, true).await {
++    let stored = if format == "agent-session" {
++        session_manager
++            .get_session_for_agent_session_export(&session_id)
++            .await
++    } else {
++        session_manager.get_session(&session_id, true).await
++    };
++    let session = match stored {
+         Ok(session) => session,
+         Err(e) => {
+             return Err(anyhow::anyhow!(
+@@ -318,16 +326,31 @@ pub async fn handle_session_export(
+             export_session_to_markdown(conversation.user_visible_messages(), &session.name)
+         }
+         "html" => export_session_to_html(&session)?,
++        "agent-session" => export_session_to_agent_session(&session, &agent_session_namespace()?)?,
+         _ => return Err(anyhow::anyhow!("Unsupported format: {}", format)),
+     };
+ 
+     if let Some(output_path) = output_path {
++        let output_path = if format == "agent-session" {
++            use sha2::{Digest, Sha256};
++            fs::create_dir_all(&output_path)?;
++            let digest: String = Sha256::digest(session.id.as_bytes())
++                .iter()
++                .map(|byte| format!("{byte:02x}"))
++                .collect();
++            output_path.join(format!("{digest}.jsonl"))
++        } else {
++            output_path
++        };
+         fs::write(&output_path, output).with_context(|| {
+             format!("Failed to write to output file: {}", output_path.display())
+         })?;
+-        println!("Session exported to {}", output_path.display());
++        eprintln!("Session exported to {}", output_path.display());
+     } else {
+-        println!("{}", output);
++        print!("{}", output);
++        if !output.ends_with('\n') {
++            println!();
++        }
+     }
+ 
+     Ok(())
+diff --git a/crates/goose/src/session/export_agent_session.rs b/crates/goose/src/session/export_agent_session.rs
+new file mode 100644
+index 0000000..ffaec22
+--- /dev/null
++++ b/crates/goose/src/session/export_agent_session.rs
+@@ -0,0 +1,293 @@
++use std::collections::{HashMap, HashSet};
++
++use anyhow::{Result, anyhow};
++use chrono::DateTime;
++use rmcp::model::Role;
++use serde_json::{Value, json};
++use sha2::{Digest, Sha256};
++
++use crate::conversation::message::{ActionRequiredData, MessageContent};
++use crate::permission::Permission;
++use crate::session::Session;
++
++const VENDOR: &str = "com.block.goose";
++
++pub fn agent_session_namespace() -> Result<String> {
++    use std::io::Write;
++    let dir = crate::config::paths::Paths::data_dir();
++    std::fs::create_dir_all(&dir)?;
++    let path = dir.join("agent-session-namespace");
++    match std::fs::read_to_string(&path) {
++        Ok(value) if !value.trim().is_empty() => Ok(value.trim().to_string()),
++        Ok(_) => Err(anyhow!("Empty agent-session namespace file")),
++        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
++            let value = uuid::Uuid::now_v7().to_string();
++            let mut file = std::fs::OpenOptions::new()
++                .write(true)
++                .create_new(true)
++                .open(path)?;
++            writeln!(file, "{value}")?;
++            Ok(value)
++        }
++        Err(error) => Err(error.into()),
++    }
++}
++
++/// Export stored history without applying the UI or active-context projection.
++pub fn export_session_to_agent_session(session: &Session, namespace: &str) -> Result<String> {
++    if session.id.is_empty() || namespace.is_empty() {
++        return Err(anyhow!(
++            "Session ID and installation namespace must be non-empty"
++        ));
++    }
++    let conversation = session
++        .conversation
++        .as_ref()
++        .ok_or_else(|| anyhow!("Session has no stored conversation"))?;
++    let mut records = vec![json!({
++        "type": "session", "id": "header", "formatVersion": "0.1",
++        "agent": {"name": "goose"}, "sessionId": session.id, "namespace": namespace,
++        "producer": {"name": "goose-session-export", "version": env!("CARGO_PKG_VERSION"),
++            "method": "native", "source": "goose-sqlite"},
++        "startedAt": session.created_at.to_rfc3339(),
++        "missing": ["approvals", "agent_settings", "tools", "usage", "model", "copies",
++            "subagents", "file_changes", "commits", "exit_codes", "inference_settings",
++            "native_metadata", "source_text_sanitization", "secrets", "history"]
++    })];
++    if session.working_dir.is_absolute() {
++        records[0]["cwd"] = json!(session.working_dir);
++    }
++    let mut native_ids = HashMap::new();
++    let mut last_results = HashMap::new();
++    for (mi, message) in conversation.messages().iter().enumerate() {
++        if let Some(id) = &message.id {
++            *native_ids.entry(id.as_str()).or_insert(0) += 1;
++        }
++        for (ci, part) in message.content.iter().enumerate() {
++            if let MessageContent::ToolResponse(response) = part {
++                last_results.insert(response.id.as_str(), (mi, ci));
++            }
++        }
++    }
++    let mut used_ids = HashSet::from(["header".to_string(), "snapshot".to_string()]);
++    for (mi, message) in conversation.messages().iter().enumerate() {
++        let mut pending = Vec::new();
++        let mut items = Vec::new();
++        for (ci, part) in message.content.iter().enumerate() {
++            let item = match part {
++                MessageContent::Text(text) => {
++                    pending.push(json!({"type": "text", "text": text.text}));
++                    continue;
++                }
++                MessageContent::Image(image) => {
++                    pending.push(serde_json::to_value(image)?);
++                    let last = pending.last_mut().unwrap();
++                    last["type"] = json!("image");
++                    continue;
++                }
++                MessageContent::Thinking(thinking) => {
++                    pending.push(asr_reasoning(&thinking.thinking, false));
++                    continue;
++                }
++                MessageContent::RedactedThinking(_) => {
++                    pending.push(json!({"type": "reasoning", "visibility": "encrypted"}));
++                    continue;
++                }
++                MessageContent::ToolRequest(request) => {
++                    let mut call = json!({"type": "tool_call", "callId": request.id});
++                    if let Ok(params) = &request.tool_call {
++                        call["name"] = json!(params.name);
++                        if let Some(arguments) = &params.arguments {
++                            call["input"] = json!(arguments);
++                        }
++                    }
++                    call
++                }
++                MessageContent::ToolResponse(response) => {
++                    if last_results.get(response.id.as_str()) != Some(&(mi, ci)) {
++                        json!({"type": "gap", "reason": "not_retained",
++                            "detail": "An intermediate tool result was folded into its last stored result."})
++                    } else {
++                        // This projection keeps model-facing output when MCP supplies two audiences.
++                        let projected = part.filter_for_audience(Role::Assistant).unwrap();
++                        let MessageContent::ToolResponse(response) = projected else {
++                            unreachable!()
++                        };
++                        match response.tool_result {
++                            Ok(result) => json!({"type": "tool_result", "callId": response.id,
++                                "status": match result.is_error { Some(true) => "failed", Some(false) => "completed", None => "unknown" },
++                                "content": result.content}),
++                            Err(error) => json!({"type": "tool_result", "callId": response.id,
++                                "status": "failed", "error": {"message": error.message, "code": error.code}}),
++                        }
++                    }
++                }
++                MessageContent::ActionRequired(action) => match &action.data {
++                    ActionRequiredData::ToolConfirmationResponse { id, permission } => {
++                        let (decision, scope) = match permission {
++                            Permission::AllowOnce => ("approved", Some("once")),
++                            Permission::AlwaysAllow => ("approved", Some("always")),
++                            Permission::DenyOnce => ("denied", Some("once")),
++                            Permission::AlwaysDeny => ("denied", Some("always")),
++                            Permission::Cancel => ("cancelled", None),
++                        };
++                        let mut approval = json!({"type": "approval", "callId": id,
++                            "decision": decision, "native": permission});
++                        if let Some(scope) = scope {
++                            approval["scope"] = json!(scope);
++                            approval["by"] = json!("user");
++                        }
++                        approval
++                    }
++                    ActionRequiredData::ElicitationResponse { .. } => json!({"type": "gap",
++                        "reason": "redacted", "detail": "Elicitation answers may contain secrets and are excluded."}),
++                    _ => json!({"type": "gap", "reason": "not_recorded",
++                        "detail": "The native interaction has no ASR mapping."}),
++                },
++                MessageContent::SystemNotification(notice) => {
++                    json!({"type": "message", "role": "user",
++                    "author": "harness", "origin": "notice", "content": [{"type": "text", "text": notice.msg}]})
++                }
++                _ => json!({"type": "gap", "reason": "not_recorded",
++                    "detail": "The native content part has no ASR mapping."}),
++            };
++            flush_message(&mut items, &mut pending, &message.role);
++            items.push(item);
++        }
++        flush_message(&mut items, &mut pending, &message.role);
++        if items.is_empty() {
++            items.push(json!({"type": "message", "role": message.role, "content": []}));
++        }
++        let single = items.len() == 1;
++        for (index, mut record) in items.into_iter().enumerate() {
++            let native = message.id.as_deref().filter(|id| {
++                single && native_ids.get(id) == Some(&1) && valid_id(id) && !used_ids.contains(*id)
++            });
++            let mut id = native.map(str::to_string).unwrap_or_else(|| {
++                let key = match message.id.as_deref() {
++                    Some(id) if native_ids.get(id) == Some(&1) => format!("message:{id}"),
++                    _ => format!("position:{mi}:{}", message.id.as_deref().unwrap_or("")),
++                };
++                format!(
++                    "asr-{}-{index}",
++                    Sha256::digest(key.as_bytes())
++                        .iter()
++                        .map(|byte| format!("{byte:02x}"))
++                        .collect::<String>()
++                )
++            });
++            while !used_ids.insert(id.clone()) {
++                id.push('x');
++            }
++            record["id"] = json!(id);
++            if let Some(ts) = DateTime::from_timestamp(message.created, 0) {
++                record["ts"] = json!(ts.to_rfc3339());
++            }
++            record["_meta"] = json!({VENDOR: {"messageId": message.id, "messagePosition": mi,
++                "userVisible": message.metadata.user_visible, "agentVisible": message.metadata.agent_visible}});
++            records.push(record);
++        }
++    }
++    // Mutable session settings establish only a latest-value snapshot at the tail.
++    records.push(
++        json!({"type": "session_info", "id": "snapshot", "title": session.name,
++        "agentSettings": {"mode": session.goose_mode},
++        "_meta": {VENDOR: {"gooseMode": session.goose_mode, "provider": session.provider_name,
++            "requestedModel": session.model_config.as_ref().map(|config| &config.model_name)}}}),
++    );
++    let mut output = String::new();
++    for mut record in records {
++        if clean_value(&mut record) {
++            record["truncated"] = json!(true);
++        }
++        output.push_str(&serde_json::to_string(&record)?);
++        output.push('\n');
++    }
++    Ok(output)
++}
++
++fn valid_id(id: &str) -> bool {
++    !id.is_empty() && id.chars().count() <= 256 && !id.chars().any(char::is_control)
++}
++
++fn flush_message(items: &mut Vec<Value>, pending: &mut Vec<Value>, role: &Role) {
++    if !pending.is_empty() {
++        let mut record =
++            json!({"type": "message", "role": role, "content": std::mem::take(pending)});
++        if *role == Role::Assistant {
++            record["author"] = json!("model");
++        }
++        items.push(record);
++    }
++}
++
++fn clean_value(value: &mut Value) -> bool {
++    match value {
++        Value::Number(number)
++            if number
++                .as_i64()
++                .is_some_and(|n| n.unsigned_abs() > 9_007_199_254_740_991)
++                || number.as_u64().is_some_and(|n| n > 9_007_199_254_740_991) =>
++        {
++            *value = Value::String(number.to_string());
++            false
++        }
++        Value::Number(number)
++            if number
++                .as_f64()
++                .is_some_and(|n| n.abs() > 9_007_199_254_740_991.0) =>
++        {
++            *value = Value::String(number.to_string());
++            false
++        }
++        Value::Array(values) => {
++            let mut changed = false;
++            for value in values {
++                changed = clean_value(value) || changed;
++            }
++            changed
++        }
++        Value::Object(values) => {
++            let mut changed = false;
++            for (key, value) in values {
++                if [
++                    "password",
++                    "api_key",
++                    "apikey",
++                    "access_token",
++                    "refresh_token",
++                    "authorization",
++                    "secret",
++                ]
++                .contains(&key.to_ascii_lowercase().as_str())
++                {
++                    *value = json!("[redacted]");
++                    changed = true;
++                } else {
++                    changed = clean_value(value) || changed;
++                }
++            }
++            changed
++        }
++        Value::String(text) => {
++            static SECRETS: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
++                regex::Regex::new(r#"(?i)(?:bearer\s+[^\s\"']+|(?:api[_-]?key|password|access_token|refresh_token|secret)\s*[=:]\s*[^\s,;\"']+|(?:sk-|gh[pousr]_|github_pat_|xox[baprs]-)[a-zA-Z0-9_-]{16,}|eyJ[a-zA-Z0-9_-]{12,}\.[a-zA-Z0-9_-]{12,}\.[a-zA-Z0-9_-]{12,}|(?:AKIA|ASIA)[A-Z0-9]{16}|https?://[^\s/@]+:[^\s/@]+@|-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----)"#).unwrap()
++            });
++            let cleaned = SECRETS.replace_all(text, "[redacted]").into_owned();
++            let changed = *text != cleaned;
++            *text = cleaned;
++            changed
++        }
++        _ => false,
++    }
++}
++
++fn asr_reasoning(text: &str, summary: bool) -> serde_json::Value {
++    if text.is_empty() {
++        serde_json::json!({"type":"reasoning", "visibility":"omitted"})
++    } else if summary {
++        serde_json::json!({"type":"reasoning", "visibility":"summary", "summary":[text]})
++    } else {
++        serde_json::json!({"type":"reasoning", "text":text})
++    }
++}
+diff --git a/crates/goose/src/session/mod.rs b/crates/goose/src/session/mod.rs
+index 8396098..dbcb181 100644
+--- a/crates/goose/src/session/mod.rs
++++ b/crates/goose/src/session/mod.rs
+@@ -1,5 +1,6 @@
+ mod chat_history_search;
+ mod diagnostics;
++mod export_agent_session;
+ mod export_html;
+ mod export_markdown;
+ pub mod extension_data;
+@@ -15,6 +16,7 @@ pub use diagnostics::{
+     DiagnosticsLevel, DiagnosticsLogs, DiagnosticsPrompt, DiagnosticsReport,
+     DiagnosticsScheduledRecipe, DiagnosticsTextFile, SystemInfo,
+ };
++pub use export_agent_session::{agent_session_namespace, export_session_to_agent_session};
+ pub use export_html::export_session_to_html;
+ pub use export_markdown::{
+     export_session_to_markdown, message_to_markdown, user_projected_message_to_markdown,
+diff --git a/crates/goose/src/session/session_manager.rs b/crates/goose/src/session/session_manager.rs
+index bad31ff..4d3c204 100644
+--- a/crates/goose/src/session/session_manager.rs
++++ b/crates/goose/src/session/session_manager.rs
+@@ -488,6 +488,13 @@ impl SessionManager {
+         self.storage.get_session(id, include_messages).await
+     }
+ 
++    pub async fn get_session_for_agent_session_export(&self, id: &str) -> Result<Session> {
++        let mut session = self.storage.get_session(id, false).await?;
++        let conversation = self.storage.get_conversation_ordered(id, true).await?;
++        session.conversation = Some(conversation);
++        Ok(session)
++    }
++
+     pub fn update(&self, id: &str) -> SessionUpdateBuilder<'_> {
+         SessionUpdateBuilder::new(self, id.to_string())
+     }
+@@ -2116,16 +2123,25 @@ impl SessionStorage {
+     }
+ 
+     async fn get_conversation(&self, session_id: &str) -> Result<Conversation> {
++        self.get_conversation_ordered(session_id, false).await
++    }
++
++    async fn get_conversation_ordered(
++        &self,
++        session_id: &str,
++        insertion_order: bool,
++    ) -> Result<Conversation> {
+         let pool = self.pool().await?;
+-        let rows = sqlx::query_as::<_, (String, String, i64, Option<String>, Option<String>)>(
+-            // Order by created_timestamp, then by id to break ties. created_timestamp is in seconds,
+-            // so messages created in the same second (e.g., tool request and response) need to
+-            // maintain their insertion order via the auto-increment id.
+-            "SELECT role, content_json, created_timestamp, metadata_json, message_id FROM messages WHERE session_id = ? ORDER BY created_timestamp, id",
+-        )
+-            .bind(session_id)
+-            .fetch_all(pool)
+-            .await?;
++        let query = if insertion_order {
++            "SELECT role, content_json, created_timestamp, metadata_json, message_id FROM messages WHERE session_id = ? ORDER BY id"
++        } else {
++            "SELECT role, content_json, created_timestamp, metadata_json, message_id FROM messages WHERE session_id = ? ORDER BY created_timestamp, id"
++        };
++        let rows =
++            sqlx::query_as::<_, (String, String, i64, Option<String>, Option<String>)>(query)
++                .bind(session_id)
++                .fetch_all(pool)
++                .await?;
+ 
+         let mut messages = Vec::new();
+         for (role_str, content_json, created_timestamp, metadata_json, message_id) in
+@@ -2134,13 +2150,23 @@ impl SessionStorage {
+             let role = match role_str.as_str() {
+                 "user" => Role::User,
+                 "assistant" => Role::Assistant,
++                _ if insertion_order => {
++                    return Err(anyhow::anyhow!("Unsupported stored message role"))
++                }
+                 _ => continue,
+             };
+ 
+             let content = serde_json::from_str(&content_json)?;
+-            let metadata = metadata_json
+-                .and_then(|json| serde_json::from_str(&json).ok())
+-                .unwrap_or_default();
++            let metadata = if insertion_order {
++                metadata_json
++                    .map(|json| serde_json::from_str(&json))
++                    .transpose()?
++                    .unwrap_or_default()
++            } else {
++                metadata_json
++                    .and_then(|json| serde_json::from_str(&json).ok())
++                    .unwrap_or_default()
++            };
+ 
+             let mut message = Message::new(role, created_timestamp, content);
+             message.metadata = metadata;
+diff --git a/crates/goose/tests/agent_session_export.rs b/crates/goose/tests/agent_session_export.rs
+new file mode 100644
+index 0000000..3d3029d
+--- /dev/null
++++ b/crates/goose/tests/agent_session_export.rs
+@@ -0,0 +1,201 @@
++use goose::conversation::message::{Message, MessageContent};
++use goose::permission::Permission;
++use goose::session::{export_session_to_agent_session, Session};
++use serde_json::{json, Value};
++
++fn fixture() -> Session {
++    serde_json::from_str(include_str!("fixtures/agent_session/session.json")).unwrap()
++}
++
++fn records(session: &Session) -> Vec<Value> {
++    export_session_to_agent_session(session, "synthetic-installation")
++        .unwrap()
++        .lines()
++        .map(|line| serde_json::from_str(line).unwrap())
++        .collect()
++}
++
++#[test]
++fn preserves_order_folds_results_and_keeps_explicit_approval() {
++    let session = fixture();
++    let rows = records(&session);
++    assert_eq!(rows[0]["sessionId"], session.id);
++    assert_eq!(rows[0]["producer"]["method"], "native");
++    assert_eq!(rows[1]["id"], "prompt");
++    assert_eq!(rows[1]["content"][0]["text"], "Read fixture.txt.\n");
++    assert!(rows[1].get("author").is_none());
++    assert!(rows[0].get("endedAt").is_none());
++    assert_eq!(rows[3]["type"], "tool_call");
++    assert_eq!(rows[3]["input"]["nativeCounter"], "9007199254740993");
++    assert!(rows[3].get("requestedBy").is_none());
++    assert_eq!(rows[4]["type"], "gap");
++    assert_eq!(rows[5]["type"], "approval");
++    assert_eq!(rows[5]["decision"], "approved");
++    assert_eq!(rows[5]["scope"], "once");
++    assert_eq!(rows[6]["type"], "tool_result");
++    assert_eq!(rows[6]["content"][0]["text"], "sample\n");
++    assert_eq!(
++        rows[7]["content"][0],
++        json!({"type":"reasoning","visibility":"encrypted"})
++    );
++    assert!(rows[1]["ts"].as_str().unwrap() > rows[2]["ts"].as_str().unwrap());
++    assert_eq!(rows, records(&session));
++    let mut retained = session.clone();
++    retained
++        .conversation
++        .as_mut()
++        .unwrap()
++        .messages_mut()
++        .remove(0);
++    let after_removal = records(&retained);
++    assert_eq!(rows[3]["id"], after_removal[2]["id"]);
++}
++
++#[test]
++fn excludes_secrets_and_secret_answers_and_keeps_unique_ids() {
++    let mut session = fixture();
++    let messages = session.conversation.as_mut().unwrap().messages_mut();
++    messages.push(
++        Message::user()
++            .with_id("prompt")
++            .with_text("password=synthetic-value"),
++    );
++    messages.push(Message::user().with_content(
++        MessageContent::action_required_elicitation_response(
++            "secret-answer",
++            json!({"answer":"synthetic-answer"}),
++            rmcp::model::ElicitationAction::Accept,
++        ),
++    ));
++    messages.push(Message::user().with_content(
++        MessageContent::action_required_tool_confirmation_response("read-1", Permission::Cancel),
++    ));
++    let output = export_session_to_agent_session(&session, "synthetic-installation").unwrap();
++    assert!(!output.contains("synthetic-value"));
++    assert!(!output.contains("synthetic-answer"));
++    let rows = records(&session);
++    let ids: std::collections::HashSet<_> =
++        rows.iter().map(|row| row["id"].as_str().unwrap()).collect();
++    assert_eq!(ids.len(), rows.len());
++    let cancel = rows
++        .iter()
++        .find(|row| row["decision"] == "cancelled")
++        .unwrap();
++    assert!(cancel.get("scope").is_none());
++    assert!(cancel.get("by").is_none());
++    assert!(rows.iter().any(|row| row["truncated"] == true));
++}
++
++#[test]
++fn rejects_unavailable_history_and_missing_identity() {
++    let mut session = fixture();
++    assert!(export_session_to_agent_session(&session, "").is_err());
++    session.conversation = None;
++    assert!(export_session_to_agent_session(&session, "synthetic-installation").is_err());
++}
++
++#[test]
++fn large_native_floats_are_strings_without_claiming_text_loss() {
++    let mut session = fixture();
++    let messages = session.conversation.as_mut().unwrap().messages_mut();
++    for message in messages {
++        for part in &mut message.content {
++            if let MessageContent::ToolRequest(request) = part {
++                request.tool_call.as_mut().unwrap().arguments = Some(
++                    json!({"large": 1.0e30, "small": 0.25})
++                        .as_object()
++                        .unwrap()
++                        .clone(),
++                );
++            }
++        }
++    }
++    let rows = records(&session);
++    assert_eq!(rows[3]["input"]["large"], "1e+30");
++    assert_eq!(rows[3]["input"]["small"], 0.25);
++    assert!(rows[3].get("truncated").is_none());
++}
++
++#[test]
++fn fixture_export_for_external_validation() {
++    if let Some(path) = std::env::var_os("ASR_TEST_OUTPUT") {
++        std::fs::write(
++            path,
++            export_session_to_agent_session(&fixture(), "synthetic-installation").unwrap(),
++        )
++        .unwrap();
++    }
++}
++
++#[tokio::test]
++async fn storage_export_keeps_insertion_order_when_clocks_regress() {
++    use goose::config::GooseMode;
++    use goose::session::{SessionManager, SessionType};
++    let directory = tempfile::tempdir().unwrap();
++    let manager = SessionManager::new(directory.path().to_path_buf());
++    let session = manager
++        .create_session(
++            directory.path().to_path_buf(),
++            "Synthetic".into(),
++            SessionType::User,
++            GooseMode::Auto,
++        )
++        .await
++        .unwrap();
++    let mut first = Message::user().with_text("first");
++    first.created = 10;
++    let mut second = Message::assistant()
++        .with_text("second")
++        .with_visibility(false, true);
++    second.created = 9;
++    manager.add_message(&session.id, &first).await.unwrap();
++    manager.add_message(&session.id, &second).await.unwrap();
++    let database = directory.path().join("sessions/sessions.db");
++    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", database.display()))
++        .await
++        .unwrap();
++    sqlx::query(
++        "UPDATE messages SET created_timestamp = 9 WHERE session_id = ? AND role = 'assistant'",
++    )
++    .bind(&session.id)
++    .execute(&pool)
++    .await
++    .unwrap();
++    pool.close().await;
++    let loaded = manager
++        .get_session_for_agent_session_export(&session.id)
++        .await
++        .unwrap();
++    let rows = records(&loaded);
++    assert_eq!(rows[1]["content"][0]["text"], "first");
++    assert_eq!(rows[2]["content"][0]["text"], "second");
++    assert!(rows[1]["ts"].as_str().unwrap() > rows[2]["ts"].as_str().unwrap());
++    assert_eq!(rows[2]["_meta"]["com.block.goose"]["userVisible"], false);
++}
++
++#[test]
++fn tool_status_requires_an_explicit_native_outcome() {
++    for (flag, expected) in [
++        (None, "unknown"),
++        (Some(false), "completed"),
++        (Some(true), "failed"),
++    ] {
++        let mut session = fixture();
++        for message in session.conversation.as_mut().unwrap().messages_mut() {
++            for part in &mut message.content {
++                if let MessageContent::ToolResponse(response) = part {
++                    if let Ok(result) = &mut response.tool_result {
++                        result.is_error = flag;
++                    }
++                }
++            }
++        }
++        let rows = records(&session);
++        assert_eq!(
++            rows.iter()
++                .find(|row| row["type"] == "tool_result")
++                .unwrap()["status"],
++            expected
++        );
++    }
++}
+diff --git a/crates/goose/tests/fixtures/agent_session/session.json b/crates/goose/tests/fixtures/agent_session/session.json
+new file mode 100644
+index 0000000..3a461ec
+--- /dev/null
++++ b/crates/goose/tests/fixtures/agent_session/session.json
+@@ -0,0 +1,147 @@
++{
++  "id": "synthetic-goose-1",
++  "working_dir": "/work/example",
++  "name": "Read the fixture",
++  "created_at": "2026-11-01T12:00:00Z",
++  "updated_at": "2026-11-01T12:00:10Z",
++  "extension_data": {},
++  "message_count": 6,
++  "conversation": [
++    {
++      "id": "prompt",
++      "role": "user",
++      "created": 1793534400,
++      "content": [
++        {
++          "type": "text",
++          "text": "Read fixture.txt.\n"
++        }
++      ],
++      "metadata": {
++        "userVisible": true,
++        "agentVisible": true
++      }
++    },
++    {
++      "id": "request",
++      "role": "assistant",
++      "created": 1793534399,
++      "content": [
++        {
++          "type": "text",
++          "text": "Inspecting.\n"
++        },
++        {
++          "type": "toolRequest",
++          "id": "read-1",
++          "toolCall": {
++            "status": "success",
++            "value": {
++              "name": "developer__read",
++              "arguments": {
++                "path": "fixture.txt",
++                "nativeCounter": 9007199254740993
++              }
++            }
++          }
++        }
++      ],
++      "metadata": {
++        "userVisible": true,
++        "agentVisible": true
++      }
++    },
++    {
++      "id": "intermediate",
++      "role": "user",
++      "created": 1793534401,
++      "content": [
++        {
++          "type": "toolResponse",
++          "id": "read-1",
++          "toolResult": {
++            "status": "success",
++            "value": {
++              "content": [
++                {
++                  "type": "text",
++                  "text": "loading"
++                }
++              ],
++              "isError": false
++            }
++          }
++        }
++      ],
++      "metadata": {
++        "userVisible": true,
++        "agentVisible": true
++      }
++    },
++    {
++      "id": "approval",
++      "role": "user",
++      "created": 1793534402,
++      "content": [
++        {
++          "type": "actionRequired",
++          "data": {
++            "actionType": "toolConfirmationResponse",
++            "id": "read-1",
++            "permission": "allow_once"
++          }
++        }
++      ],
++      "metadata": {
++        "userVisible": true,
++        "agentVisible": true
++      }
++    },
++    {
++      "id": "result",
++      "role": "user",
++      "created": 1793534403,
++      "content": [
++        {
++          "type": "toolResponse",
++          "id": "read-1",
++          "toolResult": {
++            "status": "success",
++            "value": {
++              "content": [
++                {
++                  "type": "text",
++                  "text": "sample\n"
++                }
++              ],
++              "isError": false
++            }
++          }
++        }
++      ],
++      "metadata": {
++        "userVisible": true,
++        "agentVisible": true
++      }
++    },
++    {
++      "id": "reply",
++      "role": "assistant",
++      "created": 1793534404,
++      "content": [
++        {
++          "type": "redactedThinking",
++          "data": "opaque-state"
++        },
++        {
++          "type": "text",
++          "text": "The fixture contains sample.\n"
++        }
++      ],
++      "metadata": {
++        "userVisible": true,
++        "agentVisible": true
++      }
++    }
++  ]
++}
+
+base-commit: 090dedb7625c8aadb9bb05d68028fd00f36b429e

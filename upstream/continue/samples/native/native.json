@@ -1,0 +1,72 @@
+{
+  "sessionId": "synthetic-session",
+  "title": "Read a synthetic note",
+  "workspaceDirectory": "/work/example",
+  "mode": "agent",
+  "history": [
+    {
+      "message": {
+        "role": "user",
+        "content": "Read the synthetic note.\n"
+      },
+      "contextItems": []
+    },
+    {
+      "message": {
+        "role": "assistant",
+        "content": "I will read it.",
+        "toolCalls": [
+          {
+            "id": "read-1",
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"path\":\"/work/example/note.txt\"}"
+            }
+          }
+        ]
+      },
+      "contextItems": [],
+      "toolCallStates": [
+        {
+          "toolCallId": "read-1",
+          "toolCall": {
+            "id": "read-1",
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"path\":\"/work/example/note.txt\"}"
+            }
+          },
+          "status": "done",
+          "parsedArgs": {
+            "path": "/work/example/note.txt"
+          }
+        }
+      ]
+    },
+    {
+      "message": {
+        "role": "tool",
+        "toolCallId": "read-1",
+        "content": "Synthetic note.\n"
+      },
+      "contextItems": []
+    },
+    {
+      "message": {
+        "role": "assistant",
+        "content": "The note contains synthetic text.\n"
+      },
+      "contextItems": []
+    }
+  ],
+  "usage": {
+    "promptTokens": 100,
+    "completionTokens": 12,
+    "totalCost": 0,
+    "promptTokensDetails": {
+      "cachedTokens": 0
+    }
+  }
+}

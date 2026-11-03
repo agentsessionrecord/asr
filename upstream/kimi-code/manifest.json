@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "agent": "kimi-code",
+  "base": "9ab1286b8fe4e6bcd116949a27ce5e0ac3389c82",
+  "head": "1a1c083f1d10883182229b0001363a115e8d791f",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "1a1c083f1d10883182229b0001363a115e8d791f",
+      "sha256": "049f1e452c7a355581dffbc42ba361b3a694566c76648da383fab601b7b17ac6"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "contracts.mjs",
+      "kimi-code"
+    ]
+  ],
+  "provenance": {
+    "repository": "https://github.com/MoonshotAI/kimi-cli",
+    "base": "9ab1286b8fe4e6bcd116949a27ce5e0ac3389c82",
+    "head": "1a1c083f1d10883182229b0001363a115e8d791f",
+    "branch": "codex/fix2-repo",
+    "files": {
+      "patches/0001-native-agent-session-export.patch": "049f1e452c7a355581dffbc42ba361b3a694566c76648da383fab601b7b17ac6",
+      "live-test.json": "c4a59c2690646ccafed06f49b9e89d44cb27d9846151df94c6fc45e4434e039a",
+      "samples/native/native.jsonl": "93b23c560802cdeb772c26db606f3f7f37590f822d38b69b3ba9177c23790464",
+      "samples/asr/session.jsonl": "ba62010470a06dce987827032f865cbfc9430b69f161c8cc06d38fe63e5298cf",
+      "PROPOSAL.md": "9527f3f237a764249bbd3f0c506d015b28a011be0ed420be690c544f7e856363",
+      "TESTS.json": "8c32833d3c5050c22b71e4377528f2ca951821f28008b5afd216a3a8d02be79e",
+      ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944"
+    }
+  },
+  "files": {
+    ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
+    "PROPOSAL.md": "9527f3f237a764249bbd3f0c506d015b28a011be0ed420be690c544f7e856363",
+    "README.md": "613e6417516bde438557b7eb376d4bfe44fd9e2910b8650c21511814661da9eb",
+    "TESTS.json": "8c32833d3c5050c22b71e4377528f2ca951821f28008b5afd216a3a8d02be79e",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "contracts.mjs": "2dd782079bf0d905c92abca3d299c4b941ec56a21aa65e75582bd577283f5f24",
+    "live-test.json": "c4a59c2690646ccafed06f49b9e89d44cb27d9846151df94c6fc45e4434e039a",
+    "patches/0001-native-agent-session-export.patch": "049f1e452c7a355581dffbc42ba361b3a694566c76648da383fab601b7b17ac6",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "ba62010470a06dce987827032f865cbfc9430b69f161c8cc06d38fe63e5298cf",
+    "samples/native/native.jsonl": "93b23c560802cdeb772c26db606f3f7f37590f822d38b69b3ba9177c23790464"
+  }
+}

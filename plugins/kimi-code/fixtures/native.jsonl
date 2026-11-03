@@ -1,0 +1,5 @@
+{"session_id": "synthetic-session", "cwd": "/work/synthetic", "hook_event_name": "SessionStart", "source": "startup"}
+{"session_id": "synthetic-session", "cwd": "/work/synthetic", "hook_event_name": "PreToolUse", "tool_use_id": "call-1", "tool_name": "shell", "tool_input": {"command": "printf requested"}}
+{"session_id": "synthetic-session", "cwd": "/work/synthetic", "hook_event_name": "PostToolUse", "tool_use_id": "call-1", "tool_name": "shell", "tool_input": {"command": "printf effective"}, "tool_output": "effective\n"}
+{"session_id": "synthetic-session", "cwd": "/work/synthetic", "hook_event_name": "Stop"}
+{"session_id": "synthetic-session", "cwd": "/work/synthetic", "hook_event_name": "SessionEnd", "reason": "exit"}

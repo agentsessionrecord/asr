@@ -1,0 +1,55 @@
+[
+  {
+    "session_id": "synthetic-session",
+    "event_type": "SessionStart",
+    "working_dir": "/workspace/synthetic"
+  },
+  {
+    "session_id": "synthetic-session",
+    "event_type": "PreToolUse",
+    "tool_name": "terminal",
+    "tool_input": {
+      "command": "printf ready"
+    }
+  },
+  {
+    "session_id": "synthetic-session",
+    "event_type": "PreToolUse",
+    "tool_name": "terminal",
+    "tool_input": {
+      "command": "printf ready"
+    }
+  },
+  {
+    "session_id": "synthetic-session",
+    "event_type": "PostToolUse",
+    "tool_name": "terminal",
+    "tool_input": {
+      "command": "printf ready"
+    },
+    "tool_response": {
+      "output": "ready\n",
+      "exit_code": 0
+    }
+  },
+  {
+    "session_id": "synthetic-session",
+    "event_type": "PostToolUse",
+    "tool_name": "terminal",
+    "tool_input": {
+      "command": "printf ready"
+    },
+    "tool_response": {
+      "output": "ready\n",
+      "exit_code": 0
+    }
+  },
+  {
+    "session_id": "synthetic-session",
+    "event_type": "Stop"
+  },
+  {
+    "session_id": "synthetic-session",
+    "event_type": "SessionEnd"
+  }
+]

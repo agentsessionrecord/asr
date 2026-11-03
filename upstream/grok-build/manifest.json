@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "agent": "grok-build",
+  "base": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+  "head": "1747e0cb3a829d7382ebdb697818da77884ad6bb",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "1747e0cb3a829d7382ebdb697818da77884ad6bb",
+      "sha256": "a769207ad45a5d4949bdb4a6c1f07b46c0bc797e5298e7494113af54ea75ba30"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "../kimi-code/contracts.mjs",
+      "grok-build"
+    ]
+  ],
+  "provenance": {
+    "repository": "https://github.com/xai-org/grok-build",
+    "base": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+    "head": "1747e0cb3a829d7382ebdb697818da77884ad6bb",
+    "branch": "codex/w3-misc",
+    "files": {
+      "patches/0001-native-agent-session-export.patch": "a769207ad45a5d4949bdb4a6c1f07b46c0bc797e5298e7494113af54ea75ba30",
+      "samples/native/native.jsonl": "5d68c737399da9256758398c396cd159036c5b574ebcce6fde45d59a5e7d1429",
+      "samples/asr/session.jsonl": "e195707aa867bbc0d1411d4e8c276a163dd4e7ff15d121230fc68b52600fabd4",
+      "PROPOSAL.md": "eb747e99873fd3e24c9b7573441e00f2adb4a37020f986f379c6ccc5dcd3774e",
+      "TESTS.json": "f5e67b6c6f9a4567c0b624273964dc4637bea741f6813016ae08791743864ccf",
+      ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944"
+    }
+  },
+  "files": {
+    ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
+    "PROPOSAL.md": "eb747e99873fd3e24c9b7573441e00f2adb4a37020f986f379c6ccc5dcd3774e",
+    "README.md": "9969a47a18a867048722f622df265e81678f77c9c6b30634ae277ba3c7953929",
+    "TESTS.json": "f5e67b6c6f9a4567c0b624273964dc4637bea741f6813016ae08791743864ccf",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "patches/0001-native-agent-session-export.patch": "a769207ad45a5d4949bdb4a6c1f07b46c0bc797e5298e7494113af54ea75ba30",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "e195707aa867bbc0d1411d4e8c276a163dd4e7ff15d121230fc68b52600fabd4",
+    "samples/native/native.jsonl": "5d68c737399da9256758398c396cd159036c5b574ebcce6fde45d59a5e7d1429"
+  }
+}

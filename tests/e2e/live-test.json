@@ -1,0 +1,66 @@
+{
+  "agents": [
+    "claude-code",
+    "codex",
+    "pi"
+  ],
+  "checkedAt": "2026-11-01",
+  "collection": {
+    "exactBytes": true,
+    "manifests": 2,
+    "objects": 3,
+    "receipts": 3,
+    "unchangedRestart": true
+  },
+  "collectionValidation": {
+    "codes": {
+      "missing-tool-name": 1,
+      "unknown-extension": 3,
+      "unknown-type": 38
+    },
+    "errors": 0,
+    "files": 5,
+    "warnings": 42
+  },
+  "exports": {
+    "otelDiagnosticCodes": {
+      "session_timing_unavailable": 3,
+      "span_timing_unavailable": 10,
+      "unknown_record_type": 38
+    },
+    "otelLogs": 54,
+    "otelSpans": 0,
+    "otelUnknownRecordsSkipped": 38,
+    "rawContent": true,
+    "recordCoverage": true,
+    "searchChunks": 61,
+    "searchDocuments": 92,
+    "tableRecords": 92
+  },
+  "installationPins": {
+    "claude-code": "2.1.305",
+    "codex": "0.163.0",
+    "minioSource": "0d7408fc9969caf07de6a8c3a84f9fbb10a6739e",
+    "node": "22.22.2",
+    "pi": "1.3.0",
+    "pnpm": "12.11.2",
+    "rust": "1.97.1"
+  },
+  "passed": true,
+  "pluginValidation": {
+    "codes": {
+      "unknown-extension": 3,
+      "unknown-type": 28
+    },
+    "errors": 0,
+    "files": 3,
+    "warnings": 31
+  },
+  "plugins": 3,
+  "viewer": {
+    "files": 3,
+    "networkRequests": 0,
+    "pageErrors": 0,
+    "records": 92
+  }
+}

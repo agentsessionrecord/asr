@@ -1,0 +1,21 @@
+# Set ASR_OUTPUT_DIR to a private directory before starting the proxy.
+# Supply credentials in the environment. Use a single proxy worker.
+litellm_settings:
+  callbacks:
+    - asr_litellm.callback.recorder
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  pass_through_endpoints:
+    - path: /asr/anthropic
+      target: http://127.0.0.1:PORT
+      include_subpath: true
+      forward_headers: true
+      headers:
+        Authorization: os.environ/ASR_UPSTREAM_AUTHORIZATION
+    - path: /asr/openai
+      target: http://127.0.0.1:PORT
+      include_subpath: true
+      forward_headers: true
+      headers:
+        Authorization: os.environ/ASR_UPSTREAM_AUTHORIZATION

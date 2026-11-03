@@ -1,0 +1,13 @@
+{
+  "name": "@agent-session/github-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm run build && node --test test/*.test.mjs",
+    "ci": "pnpm test",
+    "start": "node dist/cli.js"
+  }
+}

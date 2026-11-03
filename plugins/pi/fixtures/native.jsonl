@@ -1,0 +1,5 @@
+{"type": "session_start", "reason": "new"}
+{"type": "tool_call", "toolCallId": "call-1", "toolName": "bash", "input": {"command": "printf requested"}}
+{"type": "tool_result", "toolCallId": "call-1", "toolName": "bash", "input": {"command": "printf effective"}, "content": [{"type": "text", "text": "effective\n"}], "isError": false}
+{"type": "tool_execution_end", "toolCallId": "call-1", "toolName": "bash", "result": {"content": [{"type": "text", "text": "effective\n"}]}, "isError": false, "durationMs": 0}
+{"type": "session_shutdown", "reason": "reload"}

@@ -1,0 +1,16 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-064",
+    "code": "supersedes-not-earlier",
+    "line": 1,
+    "pointer": "/supersedes"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-064",
+    "code": "supersedes-not-earlier",
+    "line": 2,
+    "pointer": "/supersedes"
+  }
+]

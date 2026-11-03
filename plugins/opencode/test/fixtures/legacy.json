@@ -1,0 +1,11 @@
+[
+  {"name":"event","input":{"event":{"type":"session.created","properties":{"info":{"id":"synthetic-session","directory":"/work/synthetic","version":"fixture-1","time":{"created":1793534400000}}}}}},
+  {"name":"chat.message","input":{"sessionID":"synthetic-session","agent":"plan"}},
+  {"name":"tool.execute.before","input":{"sessionID":"synthetic-session","tool":"bash","callID":"call-1"},"output":{"args":{"command":"printf requested"}}},
+  {"name":"event","input":{"event":{"type":"permission.asked","properties":{"id":"request-1","sessionID":"synthetic-session","permission":"bash","patterns":["printf *"],"always":["printf *"],"tool":{"messageID":"message-1","callID":"call-1"}}}}},
+  {"name":"event","input":{"event":{"type":"permission.replied","properties":{"sessionID":"synthetic-session","requestID":"request-1","reply":"once"}}}},
+  {"name":"tool.execute.after","input":{"sessionID":"synthetic-session","tool":"bash","callID":"call-1","args":{"command":"printf effective","workdir":"/work/synthetic"}},"output":{"output":"earlier output","metadata":{"exit":0}}},
+  {"name":"event","input":{"event":{"type":"session.status","properties":{"sessionID":"synthetic-session","status":{"type":"busy"}}}}},
+  {"name":"event","input":{"event":{"type":"message.part.updated","properties":{"part":{"type":"tool","id":"part-1","sessionID":"synthetic-session","callID":"call-1","tool":"bash","state":{"status":"completed","input":{"command":"printf effective","workdir":"/work/synthetic"},"output":"effective\n","metadata":{"exit":0},"time":{"start":10,"end":25}}}}}}},
+  {"name":"event","input":{"event":{"type":"session.idle","properties":{"sessionID":"synthetic-session"}}}}
+]

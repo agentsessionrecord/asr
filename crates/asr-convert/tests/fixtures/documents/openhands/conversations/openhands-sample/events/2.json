@@ -1,0 +1,13 @@
+{
+  "id": "action",
+  "kind": "ActionEvent",
+  "source": "agent",
+  "timestamp": "2026-10-31T12:00:01Z",
+  "tool_call_id": "read-1",
+  "action": {
+    "kind": "read_file",
+    "arguments": {
+      "path": "src/parser.py"
+    }
+  }
+}

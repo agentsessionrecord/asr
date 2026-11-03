@@ -1,0 +1,48 @@
+[
+	{
+		"id": "prompt-1",
+		"role": "user",
+		"ts": 1000,
+		"content": "Read the synthetic note.\n"
+	},
+	{
+		"id": "reply-1",
+		"role": "assistant",
+		"ts": 2000,
+		"content": [
+			{
+				"type": "thinking",
+				"thinking": "I will read it.",
+				"signature": "opaque-fixture"
+			},
+			{
+				"type": "tool_use",
+				"id": "read-1",
+				"name": "read_file",
+				"input": {
+					"path": "/work/example/note.txt"
+				}
+			}
+		]
+	},
+	{
+		"id": "result-message",
+		"role": "user",
+		"ts": 3000,
+		"content": [
+			{
+				"type": "tool_result",
+				"tool_use_id": "read-1",
+				"name": "read_file",
+				"is_error": false,
+				"content": "Synthetic note.\n"
+			}
+		]
+	},
+	{
+		"id": "reply-2",
+		"role": "assistant",
+		"ts": 4000,
+		"content": "The note contains synthetic text.\n"
+	}
+]

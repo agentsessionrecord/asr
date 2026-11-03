@@ -1,0 +1,37 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-074",
+    "code": "schema.type",
+    "line": 2,
+    "pointer": "/tools"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-074",
+    "code": "schema.required",
+    "line": 3,
+    "pointer": "/tools/0"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-074",
+    "code": "schema.type",
+    "line": 3,
+    "pointer": "/tools/1/description"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-074",
+    "code": "schema.type",
+    "line": 3,
+    "pointer": "/tools/1/name"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-074",
+    "code": "schema.type",
+    "line": 3,
+    "pointer": "/tools/1/source"
+  }
+]

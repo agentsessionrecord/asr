@@ -1,0 +1,7 @@
+{"agent":{"name":"forgecode"},"formatVersion":"0.1","id":"header","missing":["history","timestamps","usage","model","approvals","agent_settings","tools","file_changes","commits","subagents","copies","images","provider_state","content_order"],"producer":{"method":"native","name":"forgecode-agent-session","source":"forge-context","version":"0.1.0"},"sessionId":"00000000-0000-4000-8000-000000000001","startedAt":"2026-01-01T00:00:00+00:00","type":"session"}
+{"detail":"Only retained model context is available. Earlier context and intermediate events may be absent.","id":"retained-context","reason":"unknown","type":"gap"}
+{"content":[{"text":"Read the synthetic item.\n","type":"text"}],"id":"context-0","role":"user","type":"message"}
+{"author":"model","content":[{"text":"","type":"text"},{"type":"reasoning","visibility":"summary","summary":["Check the item.\n"]}],"id":"context-1","role":"assistant","type":"message"}
+{"callId":"call-1","id":"context-1-call-0","inputText":"{\"number\":9007199254740993}","name":"read","requestedBy":"model","type":"tool_call"}
+{"callId":"call-1","content":[{"text":"item\n","type":"text"}],"id":"context-2","status":"completed","type":"tool_result"}
+{"author":"model","content":[{"text":"Finished.\n","type":"text"}],"id":"context-3","phase":"final","role":"assistant","type":"message"}

@@ -1,0 +1,16 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-010",
+    "code": "schema.minLength",
+    "line": 1,
+    "pointer": "/namespace"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-010",
+    "code": "schema.minLength",
+    "line": 1,
+    "pointer": "/sessionId"
+  }
+]

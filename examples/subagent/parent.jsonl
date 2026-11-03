@@ -1,0 +1,4 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"parent-1","producer":{"name":"example-export","version":"1.0","method":"native"}}
+{"type":"message","id":"prompt","role":"user","content":[{"type":"text","text":"Review the empty-input check."}],"author":"human","origin":"prompt"}
+{"type":"tool_call","id":"spawn","callId":"spawn-1","name":"start_agent","subagent":{"session":"com.example.agent:child-1","role":"reviewer","description":"Check empty-input handling."}}
+{"type":"tool_result","id":"spawn-result","callId":"spawn-1","status":"completed","content":[{"type":"text","text":"The check handles empty input."}],"subagent":{"session":"com.example.agent:child-1"}}

@@ -1,0 +1,41 @@
+---
+title: "Collect and receive sessions"
+description: "Store changed native sessions as exact ASR files with receipt manifests."
+---
+
+Use `asr collect` to discover supported native logs, convert changed sessions
+and store their exact bytes. Use `asr receive` for authenticated HTTP uploads.
+Install both through the [CLI](/tools).
+
+| Tool README | Live-test status |
+| --- | --- |
+| [ASR reference collection receiver](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-collect/README.md) | `partial` |
+| [ASR session collector](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-collect/README.md) | `partial` |
+
+```sh
+asr collect --source codex=./native-history \
+  --target ./received --state ./collector-state --uploader configured-account
+```
+
+Add `--watch` to scan on file events with periodic recovery scans. Keep state
+and output outside the native source directory. Explicit `--source` arguments
+bound discovery. The README lists default roots and identity namespaces.
+
+## Storage and receipts
+
+Local directories, a reference HTTP receiver and S3-compatible, GCS and Azure
+adapters are available. The receiver uses a private authentication file that
+binds each token to an uploader and permitted machines. Remote HTTP collection
+needs TLS through an operator-managed proxy.
+
+Receipt manifests identify exact received bytes and link prior manifest windows.
+Re-exports preserve prior versions. An identity mismatch is recorded for review.
+Receipts and empty windows do not establish complete capture, machine availability
+or the author of a session. Collection inherits each converter's source losses.
+
+## Test evidence
+
+Local watch, polling and authenticated receiver checks passed. A local MinIO
+container qualified multipart uploads, exact bytes and digest metadata. Production
+S3, GCS and Azure services were not used. Local-history checks retained private
+output and aggregate evidence. The README gives offline and optional MinIO checks.

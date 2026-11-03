@@ -1,0 +1,12 @@
+{
+  "tests": 24,
+  "passed": 24,
+  "failed": 0,
+  "validatedStreams": 23,
+  "validatedRecords": 150,
+  "diagnostics": {
+    "unknown-extension": 23,
+    "unknown-type": 69,
+    "call-without-result": 4
+  }
+}

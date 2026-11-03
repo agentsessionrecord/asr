@@ -1,0 +1,17 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent","version":"1.0"},"sessionId":"tables:parent","producer":{"name":"synthetic-fixture","version":"1.0","method":"native"},"user":{"id":"synthetic-user","source":"configured"},"cwd":"/work/app","repos":[{"path":"/work/app"}],"missing":["approvals"]}
+{"type":"session_info","id":"settings-1","agentSettings":{"mode":"ask","asks":"always","sandbox":{"write":false},"externalSandbox":{"kind":"container","source":"setting"},"modelSettings":{"temperature":0,"reasoningEffort":"high"}},"tools":[]}
+{"type":"message","id":"prompt 1","ts":"2026-10-31T12:00:03Z","role":"user","author":"human","origin":"prompt","content":[{"type":"text","text":"Return an empty list."},{"type":"text","author":"harness","origin":"injected","text":"Synthetic injected part."}]}
+{"type":"tool_call","id":"call","ts":"2026-10-31T12:00:01Z","inferenceId":"inference-1","callId":"edit-1","name":"replace","kind":"edit","input":{"path":"src/parser.py","newText":"return []"}}
+{"type":"approval","id":"approval","callId":"edit-1","decision":"approved","by":"user","scope":"once","person":{"id":"synthetic-decider"},"native":{"choice":"allow_once"}}
+{"type":"tool_result","id":"result","callId":"edit-1","status":"completed","input":null,"content":[],"durationMs":0,"exec":{"exitCode":0,"stdout":""}}
+{"type":"file_change","id":"change","callId":"edit-1","path":"src/parser.py","op":"modify","status":"applied","edits":[{"oldText":"return text.split(',')","newText":"return text.split(',') if text else []"}]}
+{"type":"inference","id":"inference-1","model":{"provider":"example","id":"served-model","requested":"alias"},"settings":{"temperature":0},"usage":{"inputTokens":100,"cacheReadTokens":20,"cacheWriteTokens":10,"outputTokens":40,"reasoningTokens":5},"cost":{"amount":0.1,"currency":"USD","source":"provider_reported"},"_meta":{"com.example.fixture":{"nativeId":"900719925474099312345"}}}
+{"type":"inference","id":"unknown-cost","model":{"requested":"alias"}}
+{"type":"inference","id":"free-call","model":{"requested":"alias"},"usage":{"inputTokens":0,"outputTokens":0},"cost":{"amount":0,"currency":"USD","source":"provider_reported"}}
+{"type":"tool_call","id":"spawn","callId":"spawn-1","name":"start_agent","subagent":{"session":"com.example.agent:tables%3Achild","role":"reviewer"}}
+{"type":"tool_result","id":"spawn-result","callId":"spawn-1","status":"completed","subagent":{"session":"com.example.agent:tables%3Achild"}}
+{"type":"vcs","id":"commit","action":"commit","status":"completed","evidence":"observed","repo":"/work/app","commit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","subject":"Handle empty input","actor":"harness"}
+{"type":"session_info","id":"total-1","usage":{"inputTokens":900,"outputTokens":300,"includesSubagents":true},"cost":{"amount":25,"currency":"USD"}}
+{"type":"session_info","id":"settings-2","agentSettings":{"mode":"act","externalSandbox":{},"modelSettings":{"reasoningEffort":null}},"missing":["timestamps"]}
+{"type":"session_info","id":"settings-3","agentSettings":{"modelSettings":null,"sandbox":null},"missing":[]}
+{"type":"session_info","id":"total-2","usage":{"inputTokens":1000,"includesSubagents":true},"cost":{"amount":30,"currency":"USD"},"title":"Synthetic table example"}

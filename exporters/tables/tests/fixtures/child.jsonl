@@ -1,0 +1,7 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"tables:child","producer":{"name":"synthetic-fixture","version":"1.0","method":"native"},"parent":{"session":"com.example.agent:tables%3Aparent","kind":"subagent","callId":"spawn-1","copiedThrough":"inherited-inference"}}
+{"type":"message","id":"inherited-prompt","role":"user","author":"human","origin":"prompt","content":[{"type":"text","text":"Return an empty list."}]}
+{"type":"inference","id":"inherited-inference","model":{"requested":"alias"},"usage":{"inputTokens":100},"cost":{"amount":0.1,"currency":"USD"}}
+{"type":"inference","id":"child-inference","model":{"requested":"review-alias"},"usage":{"inputTokens":30,"outputTokens":10},"cost":{"amount":0.03,"currency":"USD","source":"provider_reported"}}
+{"type":"inference","id":"individual-copy","copiedFrom":{"session":"com.example.agent:unavailable","record":"model-call"},"model":{"requested":"alias"},"usage":{"inputTokens":777},"cost":{"amount":7.77,"currency":"USD"}}
+{"type":"gap","id":"gap","reason":"not_retained","count":0,"detail":"Synthetic missing history position."}
+{"type":"session_info","id":"child-total","usage":{"inputTokens":30,"includesSubagents":false},"cost":{"amount":0.03,"currency":"USD"}}

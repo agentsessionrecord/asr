@@ -1,0 +1,33 @@
+[
+  {
+    "session_id": "synthetic-session",
+    "hook_event_name": "pre_tool",
+    "tool_name": "file_system.bash",
+    "tool_call_id": "synthetic-call",
+    "tool_input": {
+      "command": "printf original"
+    }
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook_event_name": "post_tool",
+    "tool_name": "file_system.bash",
+    "tool_call_id": "synthetic-call",
+    "tool_input": {
+      "command": "printf ready"
+    },
+    "tool_status": "success",
+    "tool_output_text": "ready\n",
+    "tool_output": {
+      "stdout": "ready\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    "duration_ms": 0
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook_event_name": "post_agent",
+    "agent_name": "ask"
+  }
+]

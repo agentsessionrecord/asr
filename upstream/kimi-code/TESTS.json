@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "3 focused pytest tests",
+    "Ruff lint and format",
+    "Pyright with zero errors and warnings"
+  ],
+  "sampleRecords": 7,
+  "sampleErrors": 0,
+  "sampleWarnings": [],
+  "liveTestStatus": "partial"
+}

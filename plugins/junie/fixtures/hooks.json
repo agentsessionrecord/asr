@@ -1,0 +1,65 @@
+[
+  {
+    "event": "SessionStart",
+    "payload": {
+      "hook_event_name": "SessionStart",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "project_path": "/work/synthetic",
+      "source": "startup"
+    }
+  },
+  {
+    "event": "UserPromptSubmit",
+    "payload": {
+      "hook_event_name": "UserPromptSubmit",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "prompt": "Run the synthetic check."
+    }
+  },
+  {
+    "event": "PreToolUse",
+    "payload": {
+      "hook_event_name": "PreToolUse",
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "printf synthetic",
+        "run_in_background": false,
+        "timeout": 30
+      }
+    }
+  },
+  {
+    "event": "PermissionRequest",
+    "payload": {
+      "hook_event_name": "PermissionRequest",
+      "tool_name": "Bash",
+      "tool_input": {},
+      "permission_reason": "Synthetic permission prompt."
+    }
+  },
+  {
+    "event": "Stop",
+    "payload": {
+      "hook_event_name": "Stop",
+      "stop_hook_active": false,
+      "last_assistant_message": "Synthetic submission."
+    }
+  },
+  {
+    "event": "StopFailure",
+    "payload": {
+      "hook_event_name": "StopFailure",
+      "error": "rate_limit",
+      "error_details": "Synthetic provider failure."
+    }
+  },
+  {
+    "event": "SessionEnd",
+    "payload": {
+      "hook_event_name": "SessionEnd",
+      "reason": "other"
+    }
+  }
+]

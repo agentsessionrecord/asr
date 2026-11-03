@@ -1,0 +1,88 @@
+[
+  {
+    "event": "sessionStart",
+    "payload": {
+      "sessionId": "synthetic-session",
+      "timestamp": 1793534400000,
+      "cwd": "/work/synthetic",
+      "source": "startup"
+    }
+  },
+  {
+    "event": "userPromptSubmitted",
+    "payload": {
+      "sessionId": "synthetic-session",
+      "timestamp": 1793534400000,
+      "cwd": "/work/synthetic",
+      "prompt": "Print a synthetic marker."
+    }
+  },
+  {
+    "event": "preToolUse",
+    "payload": {
+      "sessionId": "synthetic-session",
+      "timestamp": 1793534400000,
+      "cwd": "/work/synthetic",
+      "toolName": "bash",
+      "toolArgs": {
+        "command": "printf marker"
+      }
+    }
+  },
+  {
+    "event": "postToolUse",
+    "payload": {
+      "sessionId": "synthetic-session",
+      "timestamp": 1793534400000,
+      "cwd": "/work/synthetic",
+      "toolName": "bash",
+      "toolArgs": {
+        "command": "printf marker"
+      },
+      "toolResult": {
+        "resultType": "success",
+        "textResultForLlm": "marker\n"
+      }
+    }
+  },
+  {
+    "event": "permissionRequest",
+    "payload": {
+      "sessionId": "synthetic-session",
+      "timestamp": 1793534400000,
+      "cwd": "/work/synthetic",
+      "toolName": "bash",
+      "kind": "shell"
+    }
+  },
+  {
+    "event": "notification",
+    "payload": {
+      "sessionId": "synthetic-session",
+      "timestamp": 1793534400000,
+      "cwd": "/work/synthetic",
+      "message": "Synthetic notice.",
+      "hook_event_name": "Notification"
+    }
+  },
+  {
+    "event": "agentStop",
+    "payload": {
+      "sessionId": "synthetic-session",
+      "timestamp": 1793534400000,
+      "cwd": "/work/synthetic",
+      "transcriptPath": "/work/synthetic/transcript.jsonl",
+      "stopReason": "end_turn",
+      "stop_hook_active": false
+    }
+  },
+  {
+    "event": "sessionEnd",
+    "payload": {
+      "sessionId": "synthetic-session",
+      "timestamp": 1793534400000,
+      "cwd": "/work/synthetic",
+      "reason": "complete"
+    }
+  }
+]

@@ -1,0 +1,54 @@
+{
+  "date": "2026-11-01",
+  "nodeVersion": "24.22.2",
+  "credentialDelivery": "private provider settings file after route verification",
+  "fixtureKind": "counts-only live evidence",
+  "rawCapturesCommitted": false,
+  "versions": {
+    "xum": "0.32.1"
+  },
+  "streams": [
+    {
+      "records": 14,
+      "hooks": [
+        "UserPromptSubmit",
+        "PreToolUse",
+        "PostToolUse",
+        "Stop"
+      ],
+      "toolCalls": 1,
+      "toolResults": 1,
+      "messages": 2,
+      "gaps": 1,
+      "validator": {
+        "errors": 0,
+        "warnings": {
+          "warning:unknown-extension": 1,
+          "warning:unknown-type": 4
+        }
+      }
+    }
+  ],
+  "totals": {
+    "streams": 1,
+    "records": 14,
+    "errors": 0
+  },
+  "coverage": {
+    "managedInstall": true,
+    "source": "temporary local Git fixture",
+    "consentVerified": true,
+    "trustedHookDefinitions": 4,
+    "workspaceMcpEnabled": true,
+    "projectTrustRequired": true,
+    "liveHookEvents": [
+      "UserPromptSubmit",
+      "PreToolUse",
+      "PostToolUse",
+      "Stop"
+    ],
+    "postToolStatus": "unknown",
+    "voidApiOutputValidationIssue": "settings applied and confirmed by readback"
+  },
+  "providerProtocol": "openai-compatible"
+}

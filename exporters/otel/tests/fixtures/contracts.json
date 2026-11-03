@@ -1,0 +1,14 @@
+{
+  "producers": [
+    {
+      "producer": {"name": "asr-otel-fixture", "version": "0.1", "method": "recorder", "source": "synthetic"},
+      "inferenceTimestamp": "start",
+      "toolCallTimestamp": "start",
+      "toolResultTimestamp": "end",
+      "basis": "receipt",
+      "inferenceIdIsResponse": false,
+      "serviceTier": "request",
+      "reasoningEffortIsRequest": true
+    }
+  ]
+}

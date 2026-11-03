@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "agent": "opencode",
+  "base": "bf5d12c588911a35ec56ad991c3b83cf937f424a",
+  "head": "840e70fb11bfc85a76a587f8d3f47f47d582c970",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "840e70fb11bfc85a76a587f8d3f47f47d582c970",
+      "sha256": "97a8d830912cfdb3d8aabc34aebf1ee1f6039b0bea8c788dbdd5bc5bb3b1b2bf"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "--test",
+      "check.test.mjs"
+    ]
+  ],
+  "provenance": {
+    "repository": "https://github.com/anomalyco/opencode",
+    "base": "bf5d12c588911a35ec56ad991c3b83cf937f424a",
+    "commit": "840e70fb11bfc85a76a587f8d3f47f47d582c970",
+    "patch": "patches/0001-native-agent-session-export.patch",
+    "patchSha256": "97a8d830912cfdb3d8aabc34aebf1ee1f6039b0bea8c788dbdd5bc5bb3b1b2bf",
+    "module": "packages/cli/src/agent-session.ts",
+    "fixture": "packages/cli/test/fixtures/agent-session/native.json",
+    "test": "packages/cli/test/agent-session.test.ts"
+  },
+  "files": {
+    ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
+    "PROPOSAL.md": "ebf1a89fdd74e6edd84e36eda5067d394f4642ec1575a57cab5ca0926d6ec837",
+    "README.md": "5121f43cdb540fc8ad6d97a0e723c11aafe1b5ee9059214a20563f84ed47bad3",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "check.test.mjs": "b55217d792ef55cabb91c692bcecd32c2270e2a65259687592c8d399a29d14f9",
+    "patches/0001-native-agent-session-export.patch": "97a8d830912cfdb3d8aabc34aebf1ee1f6039b0bea8c788dbdd5bc5bb3b1b2bf",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "802a2bf80a04fcfb50e1fe9a8103be9c36b38e1709af9b9e47f9046e6d65a976",
+    "samples/native/native.json": "4f1f33ee54bba0d6763853b78388f379bf5789343ff6f7972cb67874338cb1fe"
+  }
+}

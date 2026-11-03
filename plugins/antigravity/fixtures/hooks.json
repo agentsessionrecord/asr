@@ -1,0 +1,107 @@
+[
+  {
+    "event": "SessionStart",
+    "payload": {
+      "conversationId": "synthetic-session",
+      "workspacePaths": [
+        "/work/synthetic"
+      ],
+      "modelName": "synthetic-model"
+    }
+  },
+  {
+    "event": "PreInvocation",
+    "payload": {
+      "conversationId": "synthetic-session",
+      "workspacePaths": [
+        "/work/synthetic"
+      ],
+      "modelName": "synthetic-model",
+      "invocationNum": 0,
+      "initialNumSteps": 0
+    }
+  },
+  {
+    "event": "PreToolUse",
+    "payload": {
+      "conversationId": "synthetic-session",
+      "workspacePaths": [
+        "/work/synthetic"
+      ],
+      "modelName": "synthetic-model",
+      "stepIdx": 1,
+      "toolCall": {
+        "name": "run_command",
+        "args": {
+          "CommandLine": "printf requested",
+          "Cwd": "/work/synthetic",
+          "WaitMsBeforeAsync": 5000
+        }
+      }
+    }
+  },
+  {
+    "event": "PostToolUse",
+    "payload": {
+      "conversationId": "synthetic-session",
+      "workspacePaths": [
+        "/work/synthetic"
+      ],
+      "modelName": "synthetic-model",
+      "stepIdx": 1,
+      "toolCall": {
+        "name": "run_command",
+        "args": {
+          "CommandLine": "printf effective",
+          "Cwd": "/work/synthetic",
+          "WaitMsBeforeAsync": 5000
+        }
+      },
+      "error": ""
+    }
+  },
+  {
+    "event": "PostToolUse",
+    "payload": {
+      "conversationId": "synthetic-session",
+      "workspacePaths": [
+        "/work/synthetic"
+      ],
+      "modelName": "synthetic-model",
+      "stepIdx": 2,
+      "toolCall": {
+        "name": "view_file",
+        "args": {
+          "AbsolutePath": "/work/synthetic/missing"
+        }
+      },
+      "error": "Synthetic failure."
+    }
+  },
+  {
+    "event": "PostInvocation",
+    "payload": {
+      "conversationId": "synthetic-session",
+      "workspacePaths": [
+        "/work/synthetic"
+      ],
+      "modelName": "synthetic-model",
+      "invocationNum": 0,
+      "initialNumSteps": 0
+    }
+  },
+  {
+    "event": "Stop",
+    "payload": {
+      "conversationId": "synthetic-session",
+      "workspacePaths": [
+        "/work/synthetic"
+      ],
+      "modelName": "synthetic-model",
+      "executionNum": 1,
+      "terminationReason": "model_stop",
+      "error": "",
+      "fullyIdle": true
+    }
+  }
+]

@@ -1,0 +1,37 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-073",
+    "code": "schema.required",
+    "line": 3,
+    "pointer": ""
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-073",
+    "code": "schema.type",
+    "line": 4,
+    "pointer": "/by"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-073",
+    "code": "schema.type",
+    "line": 4,
+    "pointer": "/decision"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-073",
+    "code": "schema.type",
+    "line": 4,
+    "pointer": "/scope"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-073",
+    "code": "schema.type",
+    "line": 4,
+    "pointer": "/subject"
+  }
+]

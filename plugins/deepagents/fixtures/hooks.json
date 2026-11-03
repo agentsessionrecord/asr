@@ -1,0 +1,47 @@
+[
+  {
+    "session_id": "synthetic-session",
+    "hook_event_name": "SessionStart",
+    "source": "startup",
+    "cwd": "/workspace/synthetic",
+    "permission_mode": "default"
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_use_id": "synthetic-call",
+    "tool_input": {
+      "command": "printf original"
+    }
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook_event_name": "PermissionRequest",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "printf original"
+    }
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_use_id": "synthetic-call",
+    "tool_input": {
+      "command": "printf ready"
+    },
+    "tool_response": "ready\n",
+    "duration_ms": 7
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook_event_name": "Stop",
+    "last_assistant_message": "ready"
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook_event_name": "SessionEnd",
+    "reason": "prompt_input_exit"
+  }
+]

@@ -1,0 +1,5 @@
+{
+  "name": "asr-recorder",
+  "version": "0.1.0",
+  "description": "Record local agent session observations."
+}

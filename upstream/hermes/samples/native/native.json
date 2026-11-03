@@ -1,0 +1,66 @@
+{
+  "session": {
+    "id": "synthetic-hermes-1",
+    "started_at": 1793534400,
+    "cwd": "/work/example",
+    "title": "Read the fixture",
+    "model": "example-model"
+  },
+  "messages": [
+    {
+      "id": 1,
+      "role": "user",
+      "timestamp": 1793534400,
+      "content": "Read fixture.txt.\n",
+      "active": 1
+    },
+    {
+      "id": 2,
+      "role": "assistant",
+      "timestamp": 1793534399,
+      "content": "Inspecting.\n",
+      "tool_calls": [
+        {
+          "id": "read-1",
+          "function": {
+            "name": "read_file",
+            "arguments": "{\"path\":\"fixture.txt\",\"nativeCounter\":9007199254740993}"
+          }
+        }
+      ],
+      "active": 1
+    },
+    {
+      "id": 3,
+      "role": "tool",
+      "timestamp": 1793534401,
+      "tool_call_id": "read-1",
+      "content": "loading",
+      "active": 1
+    },
+    {
+      "id": 4,
+      "role": "user",
+      "timestamp": 1793534402,
+      "content": "Keep the newline.\n",
+      "active": 1
+    },
+    {
+      "id": 5,
+      "role": "tool",
+      "timestamp": 1793534403,
+      "tool_call_id": "read-1",
+      "content": "display form",
+      "api_content": "sample\n",
+      "active": 1
+    },
+    {
+      "id": 6,
+      "role": "assistant",
+      "timestamp": 1793534404,
+      "reasoning_content": "The fixture is readable.",
+      "content": "The fixture contains sample.\n",
+      "active": 1
+    }
+  ]
+}

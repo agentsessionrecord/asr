@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentsessionrecord.org/schema/v0/discovery.schema.json",
+  "title": "Agent Session Record discovery file",
+  "type": "object",
+  "properties": {
+    "agent": {
+      "$ref": "https://agentsessionrecord.org/schema/v0/agent-session.schema.json#/$defs/AgentName"
+    },
+    "namespace": {
+      "type": "string"
+    },
+    "exportCommand": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "nativePaths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "formatVersions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9]+\\.[0-9]+(?![\\s\\S])"
+      }
+    },
+    "supportsDeletionHook": {
+      "type": "boolean"
+    },
+    "_meta": {
+      "$ref": "https://agentsessionrecord.org/schema/v0/agent-session.schema.json#/$defs/Meta"
+    }
+  },
+  "required": [
+    "agent"
+  ]
+}

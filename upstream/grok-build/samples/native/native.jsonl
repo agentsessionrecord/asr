@@ -1,0 +1,3 @@
+{"ts":"2026-11-01T18:05:28.591Z","type":"turn_started","session_id":"synthetic-grok","turn_number":1,"model_id":"requested","yolo_mode":false,"conversation_message_count":0,"session_relationship":"primary","schema_version":"1.0"}
+{"ts":"2026-11-01T18:05:28.591Z","type":"permission_resolved","tool_name":"read","decision":"deny","wait_ms":0}
+{"ts":"2026-11-01T18:05:28.591Z","type":"tool_completed","tool_name":"read","duration_ms":0,"outcome":"permission_rejected","tool_call_id":"call-1"}

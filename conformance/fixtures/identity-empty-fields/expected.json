@@ -1,0 +1,23 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-019",
+    "code": "schema.minLength",
+    "line": 1,
+    "pointer": "/user/id"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-019",
+    "code": "schema.minLength",
+    "line": 2,
+    "pointer": "/person/email"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-019",
+    "code": "schema.minLength",
+    "line": 3,
+    "pointer": "/person/name"
+  }
+]

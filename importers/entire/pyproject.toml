@@ -1,0 +1,18 @@
+[project]
+name = "asr-entire"
+version = "0.1.0"
+description = "Read local Entire checkpoint branches into ASR"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["asr-importer-core", "asr-anthropic-compliance"]
+
+[project.scripts]
+asr-import-entire = "asr_entire.__main__:main"
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+asr-importer-core = { workspace = true }
+asr-anthropic-compliance = { workspace = true }

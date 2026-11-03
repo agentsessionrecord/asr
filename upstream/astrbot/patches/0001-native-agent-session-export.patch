@@ -1,0 +1,488 @@
+From d9372ee62258d11a0e26fa604e132205451dbddc Mon Sep 17 00:00:00 2001
+From: ASR contributors <contributors@agentsessionrecord.org>
+Date: Sun, 1 Nov 2026 12:54:14 -0500
+Subject: [PATCH] feat: export saved conversations as Agent Session Record
+
+---
+ astrbot/cli/__main__.py              |   7 +-
+ astrbot/cli/commands/cmd_sessions.py | 277 +++++++++++++++++++++++++++
+ tests/test_session_export.py         | 153 +++++++++++++++
+ 3 files changed, 436 insertions(+), 1 deletion(-)
+ create mode 100644 astrbot/cli/commands/cmd_sessions.py
+ create mode 100644 tests/test_session_export.py
+
+diff --git a/astrbot/cli/__main__.py b/astrbot/cli/__main__.py
+index 3dc0d0e..b2f7c02 100644
+--- a/astrbot/cli/__main__.py
++++ b/astrbot/cli/__main__.py
+@@ -6,6 +6,7 @@ import click
+
+ from . import __version__
+ from .commands import conf, init, password, plug, run
++from .commands.cmd_sessions import sessions
+
+ logo_tmpl = r"""
+      ___           _______.___________..______      .______     ______   .___________.
+@@ -19,8 +20,11 @@ logo_tmpl = r"""
+
+ @click.group()
+ @click.version_option(__version__, prog_name="AstrBot")
+-def cli() -> None:
++@click.pass_context
++def cli(context: click.Context) -> None:
+     """The AstrBot CLI"""
++    if context.invoked_subcommand == "sessions":
++        return
+     click.echo(logo_tmpl)
+     click.echo("Welcome to AstrBot CLI!")
+     click.echo(f"AstrBot CLI version: {__version__}")
+@@ -55,6 +59,7 @@ cli.add_command(help)
+ cli.add_command(plug)
+ cli.add_command(conf)
+ cli.add_command(password)
++cli.add_command(sessions)
+
+ if __name__ == "__main__":
+     cli()
+diff --git a/astrbot/cli/commands/cmd_sessions.py b/astrbot/cli/commands/cmd_sessions.py
+new file mode 100644
+index 0000000..03c91bd
+--- /dev/null
++++ b/astrbot/cli/commands/cmd_sessions.py
+@@ -0,0 +1,277 @@
++"""Export stored conversations as Agent Session Record JSONL."""
++
++import hashlib
++import json
++import re
++import sqlite3
++from contextlib import closing
++from pathlib import Path
++from typing import TYPE_CHECKING
++
++import click
++
++if TYPE_CHECKING:
++    from astrbot.core.db.po import ConversationV2
++
++_SECRET = re.compile(
++    r"(?i)(?:bearer\s+\S+|sk-[\w-]{12,}|(?:api[_-]?key|password|token)[\"']?\s*[:=]\s*[\"']?[^\s,}]+)"
++)
++
++
++def _safe(value: object) -> object:
++    """Exclude credentials and encode large native integers exactly.
++
++    Args:
++        value: Native content or arguments.
++
++    Returns:
++        A JSON value without recognized credentials.
++    """
++    if isinstance(value, dict):
++        return {
++            key: "[REDACTED]"
++            if re.search(r"(?i)secret|password|token|api.?key|authorization", str(key))
++            else _safe(item)
++            for key, item in value.items()
++        }
++    if isinstance(value, list):
++        return [_safe(item) for item in value]
++    if isinstance(value, str):
++        return _SECRET.sub("[REDACTED]", value)
++    if isinstance(value, int) and abs(value) > 2**53 - 1:
++        return str(value)
++    return value
++
++
++def conversation_to_asr(conversation: "ConversationV2") -> str:
++    """Export the saved model-facing history without reading provider settings.
++
++    Args:
++        conversation: Native conversation snapshot.
++
++    Returns:
++        One LF-terminated JSONL stream with declared coverage limits.
++    """
++    missing = {
++        "usage",
++        "model",
++        "timestamps",
++        "approvals",
++        "agent_settings",
++        "tools",
++        "file_changes",
++        "commits",
++        "subagents",
++        "copies",
++        "history",
++        "message_author",
++        "media",
++        "instructions",
++        "exit_codes",
++        "reasoning",
++    }
++    records = [
++        {
++            "type": "session",
++            "id": "header",
++            "formatVersion": "0.1",
++            "agent": {"name": "astrbot"},
++            "sessionId": conversation.conversation_id,
++            "producer": {
++                "name": "astrbot",
++                "version": "4.29.3",
++                "method": "native",
++                "source": "conversation-v2",
++            },
++        }
++    ]
++    history = conversation.content or []
++    if not isinstance(history, list):
++        raise ValueError("Native conversation content is not a message array")
++    last_result = {
++        item.get("tool_call_id"): index
++        for index, item in enumerate(history)
++        if isinstance(item, dict)
++        and item.get("role") == "tool"
++        and item.get("tool_call_id")
++    }
++    for index, item in enumerate(history):
++        prefix = f"history:{index}"
++        if not isinstance(item, dict) or item.get("role") not in {
++            "user",
++            "assistant",
++            "system",
++            "developer",
++            "tool",
++        }:
++            records.append({"type": "gap", "id": prefix, "reason": "unparseable"})
++            continue
++        content = item.get("content")
++        if content is not None and not isinstance(content, (str, list)):
++            records.append({"type": "gap", "id": prefix, "reason": "unparseable"})
++            continue
++        parts = []
++        lost = False
++        for part in [content] if isinstance(content, str) else content or []:
++            if isinstance(part, str):
++                parts.append({"type": "text", "text": part})
++            elif (
++                isinstance(part, dict)
++                and part.get("type") == "text"
++                and isinstance(part.get("text"), str)
++            ):
++                parts.append({"type": "text", "text": part["text"]})
++            else:
++                lost = True
++        record = {"id": prefix, "content": parts}
++        if lost:
++            record["truncated"] = True
++            missing.add("content")
++        if item["role"] == "tool":
++            call_id = item.get("tool_call_id")
++            if call_id and last_result[call_id] != index:
++                continue
++            # OpenAI tool history carries no explicit success/error outcome.
++            record.update(type="tool_result", status="unknown")
++            if call_id:
++                record["callId"] = str(call_id)
++            records.append(record)
++            continue
++        record.update(type="message", role=item["role"])
++        if item["role"] in {"system", "developer"}:
++            record["origin"] = "instructions"
++        records.append(record)
++        for call_index, call in enumerate(item.get("tool_calls") or []):
++            try:
++                function = call["function"]
++                call_id = call["id"]
++                name = function["name"]
++                arguments = function.get("arguments")
++                if (
++                    not isinstance(call_id, str)
++                    or not call_id
++                    or not isinstance(name, str)
++                    or not name
++                    or (arguments is not None and not isinstance(arguments, str))
++                ):
++                    raise ValueError("Malformed native tool call")
++                tool = {
++                    "type": "tool_call",
++                    "id": f"{prefix}:call:{call_index}",
++                    "callId": call_id,
++                    "name": name,
++                }
++                if item["role"] == "assistant":
++                    tool["requestedBy"] = "model"
++                if arguments is not None:
++                    tool["inputText"] = arguments
++                records.append(tool)
++            except (KeyError, TypeError, AttributeError, ValueError):
++                records.append(
++                    {
++                        "type": "gap",
++                        "id": f"{prefix}:invalid:{call_index}",
++                        "reason": "unparseable",
++                    }
++                )
++                missing.add("tool_calls")
++    for record in records:
++        for field in ("content", "inputText"):
++            if field in record:
++                safe = _safe(record[field])
++                if safe != record[field]:
++                    record[field] = safe
++                    record["truncated"] = True
++                    missing.add("secrets")
++    records[0]["missing"] = sorted(missing)
++    return "".join(
++        json.dumps(record, ensure_ascii=False, allow_nan=False) + "\n"
++        for record in records
++    )
++
++
++@click.group()
++def sessions() -> None:
++    """Export saved conversations."""
++
++
++@sessions.command("export")
++@click.option(
++    "--format", "export_format", type=click.Choice(["agent-session"]), required=True
++)
++@click.option(
++    "--session",
++    "session_ids",
++    multiple=True,
++    help="Native conversation ID. Repeat to select several.",
++)
++@click.option("--output", type=click.Path(path_type=Path, file_okay=False))
++@click.option(
++    "--database",
++    type=click.Path(path_type=Path, exists=True, dir_okay=False),
++    help="Override the local SQLite database path.",
++)
++def export_sessions(
++    export_format: str,
++    session_ids: tuple[str, ...],
++    output: Path | None,
++    database: Path | None,
++) -> None:
++    """Write one JSONL file per selected conversation.
++
++    Args:
++        export_format: Requested export format.
++        session_ids: Native IDs, or all conversations with an output directory.
++        output: Destination directory, or stdout for one explicit ID.
++        database: Optional local database path.
++
++    Raises:
++        ClickException: Source is unavailable or output is ambiguous.
++    """
++    from astrbot.core.db.po import ConversationV2
++    from astrbot.core.utils.astrbot_path import get_astrbot_data_path
++
++    del export_format
++    if output is None and len(session_ids) != 1:
++        raise click.ClickException("Select exactly one --session or use --output")
++    database = database or Path(get_astrbot_data_path()) / "data_v4.db"
++    try:
++        with closing(
++            sqlite3.connect(database.resolve().as_uri() + "?mode=ro", uri=True)
++        ) as connection:
++            connection.row_factory = sqlite3.Row
++            connection.execute("BEGIN")
++            selected = tuple(dict.fromkeys(session_ids)) or tuple(
++                row[0]
++                for row in connection.execute(
++                    "SELECT conversation_id FROM conversations ORDER BY inner_conversation_id"
++                )
++            )
++            streams = []
++            for session_id in selected:
++                row = connection.execute(
++                    "SELECT conversation_id, platform_id, user_id, content FROM conversations WHERE conversation_id = ?",
++                    (session_id,),
++                ).fetchone()
++                if row is None:
++                    raise ValueError("Requested conversation is unavailable")
++                fields = dict(row)
++                fields["content"] = (
++                    json.loads(fields["content"]) if fields["content"] else []
++                )
++                streams.append(
++                    (session_id, conversation_to_asr(ConversationV2(**fields)))
++                )
++        for session_id, stream in streams:
++            if output is None:
++                click.echo(stream, nl=False)
++            else:
++                output.mkdir(parents=True, exist_ok=True, mode=0o700)
++                destination = output / (
++                    hashlib.sha256(session_id.encode()).hexdigest() + ".jsonl"
++                )
++                with destination.open("x", encoding="utf-8") as handle:
++                    destination.chmod(0o600)
++                    handle.write(stream)
++    except (OSError, ValueError, sqlite3.Error) as error:
++        raise click.ClickException(str(error)) from error
+diff --git a/tests/test_session_export.py b/tests/test_session_export.py
+new file mode 100644
+index 0000000..5d28fee
+--- /dev/null
++++ b/tests/test_session_export.py
+@@ -0,0 +1,153 @@
++"""Offline native session exports."""
++
++import json
++import sqlite3
++from contextlib import closing
++from pathlib import Path
++
++from click.testing import CliRunner
++
++from astrbot.cli.commands.cmd_sessions import conversation_to_asr, sessions
++from astrbot.core.db.po import ConversationV2
++
++
++def test_exact_content_and_unknown_facts():
++    conversation = ConversationV2(
++        conversation_id="synthetic-conversation",
++        platform_id="test",
++        user_id="synthetic-user",
++        content=[
++            {"role": "user", "content": " exact\n"},
++            {"role": "assistant", "content": "done"},
++        ],
++    )
++    stream = conversation_to_asr(conversation)
++    records = [json.loads(line) for line in stream.splitlines()]
++    assert records[1]["content"][0]["text"] == " exact\n"
++    assert "author" not in records[1]
++    assert "endedAt" not in records[0]
++    assert "synthetic-user" not in stream
++    assert stream == conversation_to_asr(conversation)
++
++
++def test_calls_fold_results_and_exclude_credentials():
++    conversation = ConversationV2(
++        conversation_id="synthetic",
++        platform_id="test",
++        user_id="synthetic-user",
++        content=[
++            {
++                "role": "assistant",
++                "content": None,
++                "tool_calls": [
++                    {
++                        "id": "call",
++                        "function": {
++                            "name": "echo",
++                            "arguments": '{"n":9007199254740993}',
++                        },
++                    }
++                ],
++            },
++            {"role": "tool", "tool_call_id": "call", "content": "old"},
++            {"role": "user", "content": "between"},
++            {
++                "role": "tool",
++                "tool_call_id": "call",
++                "content": "password=synthetic-secret",
++            },
++            {
++                "role": "assistant",
++                "content": [{"type": "redacted_thinking", "data": "opaque"}],
++            },
++        ],
++    )
++    stream = conversation_to_asr(conversation)
++    records = [json.loads(line) for line in stream.splitlines()]
++    call = next(record for record in records if record["type"] == "tool_call")
++    assert call["inputText"] == '{"n":9007199254740993}'
++    results = [record for record in records if record["type"] == "tool_result"]
++    assert len(results) == 1 and results[0]["status"] == "unknown"
++    assert results[0]["truncated"]
++    assert "synthetic-secret" not in stream and "opaque" not in stream
++
++
++def test_cli_readonly_selection_and_safe_paths(tmp_path: Path):
++    database = tmp_path / "native.db"
++    with closing(sqlite3.connect(database)) as connection:
++        connection.execute(
++            "CREATE TABLE conversations(inner_conversation_id INTEGER, conversation_id TEXT, platform_id TEXT, user_id TEXT, content TEXT)"
++        )
++        connection.execute(
++            "INSERT INTO conversations VALUES (1, ?, 'test', 'synthetic-user', ?)",
++            ("../../synthetic", json.dumps([{"role": "user", "content": "hello"}])),
++        )
++        connection.commit()
++    runner = CliRunner()
++    arguments = ["export", "--format", "agent-session", "--database", str(database)]
++    before = database.read_bytes()
++    result = runner.invoke(sessions, [*arguments, "--session", "../../synthetic"])
++    assert result.exit_code == 0, result.output
++    assert json.loads(result.output.splitlines()[0])["sessionId"] == "../../synthetic"
++    output = tmp_path / "out"
++    assert runner.invoke(sessions, [*arguments, "--output", str(output)]).exit_code == 0
++    assert len(list(output.glob("*.jsonl"))) == 1
++    assert database.read_bytes() == before
++    assert runner.invoke(sessions, arguments).exit_code != 0
++    assert runner.invoke(sessions, [*arguments, "--session", "absent"]).exit_code != 0
++    assert runner.invoke(sessions, [*arguments, "--output", str(output)]).exit_code != 0
++
++
++def test_quoted_credentials_in_string_arguments():
++    conversation = ConversationV2(
++        conversation_id="synthetic",
++        platform_id="test",
++        user_id="synthetic-user",
++        content=[
++            {
++                "role": "assistant",
++                "content": None,
++                "tool_calls": [
++                    {
++                        "id": "credential-call",
++                        "function": {
++                            "name": "configure",
++                            "arguments": '{"api_key":"synthetic-credential"}',
++                        },
++                    }
++                ],
++            }
++        ],
++    )
++    stream = conversation_to_asr(conversation)
++    assert "synthetic-credential" not in stream
++    assert "secrets" in json.loads(stream.splitlines()[0])["missing"]
++
++
++def test_malformed_saved_calls_become_gaps():
++    conversation = ConversationV2(
++        conversation_id="synthetic",
++        platform_id="test",
++        user_id="synthetic-user",
++        content=[
++            {
++                "role": "assistant",
++                "content": "kept",
++                "tool_calls": [
++                    {"id": None, "function": {"name": "echo"}},
++                    {"id": "bad-name", "function": {"name": 3}},
++                    {
++                        "id": "bad-arguments",
++                        "function": {"name": "echo", "arguments": {}},
++                    },
++                    {"id": "bad-function", "function": []},
++                ],
++            },
++            None,
++        ],
++    )
++    records = [
++        json.loads(line) for line in conversation_to_asr(conversation).splitlines()
++    ]
++    assert records[1]["content"] == [{"type": "text", "text": "kept"}]
++    assert [record["reason"] for record in records[2:]] == ["unparseable"] * 5

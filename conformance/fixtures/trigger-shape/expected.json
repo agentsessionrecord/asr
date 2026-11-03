@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-021",
+    "code": "schema.type",
+    "line": 2,
+    "pointer": "/origin"
+  }
+]

@@ -1,0 +1,6 @@
+{"sessionId":"synthetic-gemini-export","projectHash":"synthetic-project","startTime":"2026-10-30T12:00:00Z"}
+{"id":"prompt","type":"user","timestamp":"2026-10-30T12:00:00Z","content":"Read the synthetic example.\n"}
+{"id":"model","type":"gemini","timestamp":"2026-10-30T12:00:00Z","content":[],"toolCalls":[{"id":"read-1","name":"read_file","args":{"file_path":"/work/example.txt"},"status":"executing","timestamp":"2026-10-30T12:00:00Z"}]}
+{"id":"notice","type":"info","timestamp":"2026-10-30T12:00:00Z","content":"Synthetic intervening notice."}
+{"id":"model","type":"gemini","timestamp":"2026-10-30T12:00:00Z","content":[],"toolCalls":[{"id":"read-1","name":"read_file","args":{"file_path":"/work/example.txt"},"status":"success","timestamp":"2026-10-30T12:00:00Z","result":[{"functionResponse":{"id":"read-1","name":"read_file","response":{"output":"synthetic content\n"}}}]}]}
+{"$rewindTo":"model"}

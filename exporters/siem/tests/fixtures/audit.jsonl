@@ -1,0 +1,14 @@
+{"type":"session","id":"header","ts":"2026-10-30T12:00:00Z","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"audit:7","namespace":"synthetic","producer":{"name":"synthetic-fixture","version":"1","method":"native"},"missing":["copies","approvals"],"extensions":["org.agentsessionrecord.siem"]}
+{"type":"session_info","id":"settings","ts":"2026-10-30T12:00:01Z","agentSettings":{"mode":"ask","approval":{"rule":"allow"},"asks":"sometimes","modelSettings":{"temperature":0}}}
+{"type":"message","id":"prompt","ts":"2026-10-30T12:00:02Z","role":"user","author":"human","content":[{"type":"text","text":"SYNTHETIC_PRIVATE_PROMPT"}]}
+{"type":"tool_call","id":"command","ts":"2026-10-30T12:00:03Z","callId":"exec-1","name":"shell","kind":"execute","inputText":"printf SYNTHETIC_COMMAND"}
+{"type":"approval","id":"permit","ts":"2026-10-30T12:00:04Z","callId":"exec-1","decision":"approved","by":"policy","scope":"session","subject":"SYNTHETIC_SUBJECT"}
+{"type":"tool_result","id":"command-result","ts":"2026-10-30T12:00:05Z","callId":"exec-1","status":"completed","inputText":"printf SYNTHETIC_EFFECTIVE","exec":{"command":"printf SYNTHETIC_EFFECTIVE","exitCode":0,"output":"SYNTHETIC_OUTPUT"}}
+{"type":"file_change","id":"write","ts":"2026-10-30T12:00:06Z","path":"/work/example/result.txt","op":"add","status":"applied","actor":"human","after":{"text":"SYNTHETIC_FILE_CONTENT"}}
+{"type":"file_change","id":"proposal","ts":"2026-10-30T12:00:07Z","path":"/work/example/proposed.txt","op":"modify","status":"proposed","actor":"harness","edits":[{"oldText":"before","newText":"SYNTHETIC_PATCH"}]}
+{"type":"approval","id":"cancel","ts":"2026-10-30T12:00:08Z","decision":"cancelled","subject":"SYNTHETIC_SUBJECT"}
+{"type":"tool_call","id":"fetch","ts":"2026-10-30T12:00:09Z","callId":"fetch-1","name":"fetch","kind":"fetch","input":{"url":"https://example.com/instructions"}}
+{"type":"tool_result","id":"http-result","ts":"2026-10-30T12:00:10Z","callId":"fetch-1","status":"completed","_meta":{"org.agentsessionrecord.siem":{"network":{"observed":true,"dst":{"hostname":"example.com","port":443},"http":{"method":"GET","url":"https://example.com/resource?private=SYNTHETIC_QUERY","status":200}}}}}
+{"type":"tool_result","id":"network-result","ts":"2026-10-30T12:00:11Z","status":"unknown","_meta":{"org.agentsessionrecord.siem":{"network":{"observed":true,"dst":{"ip":"192.0.2.7","port":443},"activity":"open"}}}}
+{"type":"gap","id":"gap","ts":"2026-10-30T12:00:12Z","reason":"not_retained","count":0,"detail":"SYNTHETIC_GAP_DETAIL"}
+{"type":"session_info","id":"loss","ts":"2026-10-30T12:00:13Z","missing":["tool_output"],"agentSettings":{"mode":"plan","modelSettings":{"temperature":null}}}

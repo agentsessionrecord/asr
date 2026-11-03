@@ -1,0 +1,6 @@
+{"session_id": "synthetic-session", "cwd": "/work/synthetic", "source": "startup", "event": "SessionStart"}
+{"session_id": "synthetic-session", "cwd": "/work/synthetic", "tool_name": "shell", "tool_input": {"command": "printf requested"}, "event": "PreToolUse", "tool_call_id": "call-1"}
+{"session_id": "synthetic-session", "cwd": "/work/synthetic", "tool_name": "shell", "decision": "allow", "policy_evaluated": true, "event": "PreToolUseResult", "tool_call_id": "call-1"}
+{"session_id": "synthetic-session", "cwd": "/work/synthetic", "tool_name": "shell", "tool_input": {"command": "printf effective"}, "event": "PostToolUse", "tool_call_id": "call-1"}
+{"session_id": "synthetic-session", "cwd": "/work/synthetic", "event": "Stop"}
+{"session_id": "synthetic-session", "cwd": "/work/synthetic", "reason": "exit", "event": "SessionEnd"}

@@ -1,0 +1,5 @@
+{
+  "name": "asr-qwen-code",
+  "version": "0.1.0",
+  "description": "Passive local Agent Session Record hook recorder"
+}

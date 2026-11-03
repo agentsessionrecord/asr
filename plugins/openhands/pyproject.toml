@@ -1,0 +1,17 @@
+[project]
+name = "asr-openhands"
+version = "0.1.0"
+description = "Passive local ASR hook recorder support"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["asr-plugin-core==0.1.0"]
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+asr-plugin-core = { workspace = true }
+
+[project.scripts]
+asr-openhands-hook = "asr_openhands:main"

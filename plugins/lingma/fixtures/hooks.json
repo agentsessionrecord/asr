@@ -1,0 +1,55 @@
+[
+  {
+    "event": "UserPromptSubmit",
+    "payload": {
+      "hook_event_name": "UserPromptSubmit",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "prompt": "Run the synthetic check."
+    }
+  },
+  {
+    "event": "PreToolUse",
+    "payload": {
+      "hook_event_name": "PreToolUse",
+      "session_id": "synthetic-session",
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "printf requested"
+      }
+    }
+  },
+  {
+    "event": "PostToolUse",
+    "payload": {
+      "hook_event_name": "PostToolUse",
+      "session_id": "synthetic-session",
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "printf effective"
+      },
+      "tool_response": "effective\n"
+    }
+  },
+  {
+    "event": "PostToolUseFailure",
+    "payload": {
+      "hook_event_name": "PostToolUseFailure",
+      "session_id": "synthetic-session",
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "false"
+      },
+      "error": "Synthetic failure."
+    }
+  },
+  {
+    "event": "Stop",
+    "payload": {
+      "hook_event_name": "Stop",
+      "session_id": "synthetic-session",
+      "stop_hook_active": false,
+      "last_assistant_message": "Synthetic reply."
+    }
+  }
+]

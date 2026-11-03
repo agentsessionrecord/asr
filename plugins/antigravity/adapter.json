@@ -1,0 +1,52 @@
+{
+  "fields": [
+    "error"
+  ],
+  "kinds": {
+    "run_command": "execute",
+    "view_file": "read",
+    "write_to_file": "edit",
+    "replace_file_content": "edit",
+    "multi_replace_file_content": "edit",
+    "list_dir": "read",
+    "find_by_name": "search",
+    "grep_search": "search",
+    "search_web": "fetch",
+    "read_url_content": "fetch"
+  },
+  "secret_tools": [
+    "ask_question"
+  ],
+  "shell_tools": [],
+  "agent_tools": [],
+  "new_session_sources": [],
+  "post_status": "unknown",
+  "agent": "antigravity",
+  "events": {
+    "SessionStart": "SessionStart",
+    "PreToolUse": "PreToolUse",
+    "PostToolUse": "PostToolUse",
+    "PreInvocation": "PreInvocation",
+    "PostInvocation": "PostInvocation",
+    "Stop": "Stop"
+  },
+  "rename": {
+    "conversationId": "session_id",
+    "modelName": "model",
+    "terminationReason": "stop_reason"
+  },
+  "session_start_is_new": true,
+  "observations": [
+    "stepIdx",
+    "invocationNum",
+    "initialNumSteps",
+    "executionNum",
+    "fullyIdle"
+  ],
+  "missing": [
+    "call_ids",
+    "tool_output",
+    "session_end_event",
+    "inference_details"
+  ]
+}

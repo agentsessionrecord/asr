@@ -1,0 +1,18 @@
+[project]
+name = "asr-codex-hooks"
+version = "0.1.0"
+description = "Passive Codex command hooks for Agent Session Record"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["agent-session-record==0.1.0", "asr-plugin-core==0.1.0"]
+
+[project.scripts]
+asr-codex-hook = "asr_codex_hooks.__main__:main"
+
+[tool.uv.sources]
+agent-session-record = { workspace = true }
+asr-plugin-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"

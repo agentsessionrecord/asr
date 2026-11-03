@@ -1,0 +1,44 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-035",
+    "code": "schema.type",
+    "line": 2,
+    "pointer": "/settings"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-035",
+    "code": "schema.minimum",
+    "line": 3,
+    "pointer": "/settings/maxOutputTokens"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-035",
+    "code": "schema.type",
+    "line": 3,
+    "pointer": "/settings/reasoningEffort"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-035",
+    "code": "schema.type",
+    "line": 3,
+    "pointer": "/settings/serviceTier"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-035",
+    "code": "schema.type",
+    "line": 3,
+    "pointer": "/settings/temperature"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-035",
+    "code": "schema.type",
+    "line": 4,
+    "pointer": "/settings/maxOutputTokens"
+  }
+]

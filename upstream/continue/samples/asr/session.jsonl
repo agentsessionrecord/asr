@@ -1,0 +1,7 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"continue"},"sessionId":"synthetic-session","cwd":"/work/example","producer":{"name":"continue-agent-session-export","version":"0.1.0","method":"native","source":"continue-session"},"missing":["agent_settings","approvals","commits","context","copies","file_changes","inference_settings","instructions","message_author","model","native_metadata","provider_state","subagents","timestamps","tools","usage"]}
+{"type":"message","id":"asr-1","role":"user","content":[{"type":"text","text":"Read the synthetic note.\n"}]}
+{"type":"message","id":"asr-2","role":"assistant","author":"model","content":[{"type":"text","text":"I will read it."}]}
+{"type":"tool_call","id":"asr-3","callId":"read-1","name":"read_file","requestedBy":"model","inputText":"{\"path\":\"/work/example/note.txt\"}"}
+{"type":"tool_result","id":"asr-4","callId":"read-1","status":"completed","content":[{"type":"text","text":"Synthetic note.\n"}]}
+{"type":"message","id":"asr-5","role":"assistant","author":"model","content":[{"type":"text","text":"The note contains synthetic text.\n"}]}
+{"type":"session_info","id":"asr-6","title":"Read a synthetic note","agentSettings":{"mode":"agent"},"usage":{"inputTokens":100,"outputTokens":12,"cacheReadTokens":0},"cost":{"amount":0,"currency":"USD","source":"harness_estimated"}}

@@ -1,0 +1,16 @@
+[project]
+name = "asr-portkey"
+version = "0.1.0"
+description = "ASR capture through the portkey extension boundary"
+requires-python = ">=3.11"
+dependencies = ["asr-gateway-core==0.1.0"]
+
+[project.scripts]
+asr-portkey = "asr_portkey:main"
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+asr-gateway-core = { workspace = true }

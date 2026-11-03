@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-001",
+    "code": "duplicate-key",
+    "line": 2,
+    "pointer": "/extra/x"
+  }
+]

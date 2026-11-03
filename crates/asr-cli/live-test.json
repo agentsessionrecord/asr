@@ -1,0 +1,30 @@
+{
+  "synthetic": true,
+  "endpointVerified": true,
+  "runs": [
+    {
+      "protocol": "openai",
+      "exitCode": 0,
+      "records": 5,
+      "validationExitCode": 0,
+      "modelReported": true,
+      "usageReported": true,
+      "failed": false,
+      "toolCalls": 0,
+      "toolResults": 0,
+      "requestedModelConfigured": true
+    },
+    {
+      "protocol": "anthropic",
+      "exitCode": 0,
+      "records": 5,
+      "validationExitCode": 0,
+      "modelReported": true,
+      "usageReported": true,
+      "failed": false,
+      "toolCalls": 0,
+      "toolResults": 0,
+      "requestedModelConfigured": true
+    }
+  ]
+}

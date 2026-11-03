@@ -1,0 +1,46 @@
+{
+  "session_id": "rovo-sample",
+  "message_history": [
+    {
+      "kind": "request",
+      "parts": [
+        {
+          "part_kind": "system-prompt",
+          "content": "Keep exact text."
+        },
+        {
+          "part_kind": "user-prompt",
+          "content": "Read it."
+        }
+      ]
+    },
+    {
+      "kind": "response",
+      "parts": [
+        {
+          "part_kind": "text",
+          "content": "Reading."
+        },
+        {
+          "part_kind": "tool-call",
+          "tool_name": "read_file",
+          "tool_call_id": "read-1",
+          "args": {
+            "path": "src/parser.py"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "request",
+      "parts": [
+        {
+          "part_kind": "tool-return",
+          "tool_name": "read_file",
+          "tool_call_id": "read-1",
+          "content": "  ready\n"
+        }
+      ]
+    }
+  ]
+}

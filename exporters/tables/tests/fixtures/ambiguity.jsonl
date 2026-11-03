@@ -1,0 +1,10 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"namespace":"synthetic space","sessionId":"ambiguous#1","producer":{"name":"synthetic-fixture","version":"1.0","method":"native"}}
+{"type":"tool_call","id":"call-1","callId":"duplicate","name":"shell","inputText":"echo one"}
+{"type":"tool_call","id":"call-2","callId":"duplicate","name":"shell","inputText":"echo two"}
+{"type":"approval","id":"decision","callId":"duplicate","decision":"approved","by":"policy"}
+{"type":"tool_result","id":"unpaired-result","callId":"duplicate","status":"failed","inputText":"echo effective"}
+{"type":"tool_result","id":"orphan","status":"unknown","content":[{"type":"resource_link","name":"synthetic","uri":"https://example.invalid/do-not-fetch"}]}
+{"type":"tool_call","id":"unfinished","callId":"unfinished","name":"shell","inputText":""}
+{"type":"message","id":"notice","role":"user","author":"harness","origin":"notice","from":"com.example.agent:unavailable","inferenceId":"unavailable-inference","content":[{"type":"text","text":"Synthetic unknown reference."}]}
+{"type":"inference","id":"precise-cost","model":{"requested":"alias"},"cost":{"amount":0.123456789012345678901,"currency":"EUR"}}
+{"type":"com.example.fixture/future","id":"future","_meta":{"com.example.fixture":{"number":0.123456789012345678901234567890}},"futureField":{"enabled":false}}

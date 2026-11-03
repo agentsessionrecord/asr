@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-002",
+    "code": "schema.const",
+    "line": 1,
+    "pointer": "/formatVersion"
+  }
+]

@@ -1,0 +1,8 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"codex"},"sessionId":"synthetic-7","producer":{"name":"synthetic-fixture","version":"1","method":"native"},"cwd":"/recorded/project","repos":[{"path":"/recorded/project"}],"missing":["usage"]}
+{"type":"message","id":"prompt","turnId":"turn","role":"user","author":"human","origin":"prompt","content":[{"type":"text","text":"Replace the synthetic old value."}]}
+{"type":"inference","id":"inference","turnId":"turn","model":{"id":"synthetic-model","requested":"synthetic-alias"}}
+{"type":"tool_call","id":"call","callId":"edit-call","inferenceId":"inference","turnId":"turn","name":"replace","requestedBy":"model"}
+{"type":"file_change","id":"edit","path":"file.txt","op":"modify","status":"applied","callId":"edit-call","edits":[{"oldText":"old\n","newText":"new\n"}]}
+{"type":"approval","id":"approval","callId":"edit-call","decision":"approved","by":"policy","scope":"once"}
+{"type":"tool_result","id":"result","callId":"edit-call","status":"completed"}
+{"type":"vcs","id":"commit","action":"commit","status":"completed","evidence":"observed","commit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}

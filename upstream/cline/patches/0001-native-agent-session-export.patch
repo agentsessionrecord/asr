@@ -1,0 +1,932 @@
+From faac04e8d396046986926438daf0fdbdaaef8df4 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:27 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ apps/cli/src/commands/history-asr.test.ts     |  69 ++++
+ apps/cli/src/commands/history-command.ts      |  11 +-
+ apps/cli/src/commands/history.ts              |  30 +-
+ .../__tests__/agent-session.native.json       |  48 +++
+ .../session/__tests__/agent-session.test.ts   | 281 ++++++++++++++
+ apps/cli/src/session/agent-session.ts         | 343 ++++++++++++++++++
+ apps/cli/src/session/export.ts                |   3 +
+ apps/cli/src/session/history-export.ts        |  13 +-
+ apps/cli/src/session/session.ts               |   3 +
+ 9 files changed, 791 insertions(+), 10 deletions(-)
+ create mode 100644 apps/cli/src/commands/history-asr.test.ts
+ create mode 100644 apps/cli/src/session/__tests__/agent-session.native.json
+ create mode 100644 apps/cli/src/session/__tests__/agent-session.test.ts
+ create mode 100644 apps/cli/src/session/agent-session.ts
+
+diff --git a/apps/cli/src/commands/history-asr.test.ts b/apps/cli/src/commands/history-asr.test.ts
+new file mode 100644
+index 0000000..14bacb1
+--- /dev/null
++++ b/apps/cli/src/commands/history-asr.test.ts
+@@ -0,0 +1,69 @@
++import { describe, expect, it, vi } from "vitest";
++
++const read = vi.hoisted(() => vi.fn());
++const exportFile = vi.hoisted(() => vi.fn());
++vi.mock("../session/session", () => ({
++	readSessionMessagesArtifact: read,
++	deleteSession: vi.fn(),
++	listSessions: vi.fn(),
++	updateSession: vi.fn(),
++}));
++vi.mock("../session/history-export", () => ({
++	exportHistorySession: exportFile,
++}));
++
++import { runHistoryExport } from "./history";
++
++describe("history export --format agent-session", () => {
++	it("writes a single native stream to stdout", async () => {
++		read.mockResolvedValue({
++			sessionId: "native-id",
++			startedAt: "2026-01-01T00:00:00Z",
++			cwd: "/work/example",
++			messages: [{ id: "m", role: "user", content: "synthetic" }],
++		});
++		const write = vi
++			.spyOn(process.stdout, "write")
++			.mockImplementation(() => true);
++		const io = { writeln: vi.fn(), writeErr: vi.fn() };
++		let code = -1;
++		let output = "";
++		try {
++			code = await runHistoryExport(
++				"native-id",
++				undefined,
++				"text",
++				io,
++				"agent-session",
++			);
++			output = String(write.mock.calls[0][0]);
++		} finally {
++			write.mockRestore();
++		}
++		expect(code).toBe(0);
++		expect(JSON.parse(output.split("\n")[0])).toMatchObject({
++			type: "session",
++			sessionId: "native-id",
++			producer: { method: "native" },
++			cwd: "/work/example",
++			startedAt: "2026-01-01T00:00:00Z",
++		});
++		expect(exportFile).not.toHaveBeenCalled();
++		expect(io.writeln).not.toHaveBeenCalled();
++	});
++	it("rejects an unavailable native source with no stdout", async () => {
++		read.mockResolvedValue(undefined);
++		const io = { writeln: vi.fn(), writeErr: vi.fn() };
++		expect(
++			await runHistoryExport("absent", undefined, "text", io, "agent-session"),
++		).toBe(1);
++		expect(io.writeErr).toHaveBeenCalledOnce();
++	});
++	it("rejects unknown formats", async () => {
++		const io = { writeln: vi.fn(), writeErr: vi.fn() };
++		expect(await runHistoryExport("id", undefined, "text", io, "json")).toBe(1);
++		expect(io.writeErr).toHaveBeenCalledWith(
++			"Unsupported export format. Use html or agent-session.",
++		);
++	});
++});
+diff --git a/apps/cli/src/commands/history-command.ts b/apps/cli/src/commands/history-command.ts
+index 4a0ea46..dab0c1d 100644
+--- a/apps/cli/src/commands/history-command.ts
++++ b/apps/cli/src/commands/history-command.ts
+@@ -104,13 +104,20 @@ export function registerHistoryCommand({
+ 
+ 	const historyExportCmd = historyCmd
+ 		.command("export <sessionId>")
+-		.description("Export a session as a standalone HTML file")
++		.description("Export a saved session")
++		.option("--format <format>", "Export format: html or agent-session", "html")
+ 		.option("-o, --output <path>", "Output HTML file path")
+ 		.action(async (sessionId: string) => {
+ 			const opts = historyExportCmd.opts();
+ 			const outputMode = resolveHistoryOutputMode(program, historyCmd);
+ 			setExitCode(
+-				await runHistoryExport(sessionId, opts.output, outputMode, io),
++				await runHistoryExport(
++					sessionId,
++					opts.output,
++					outputMode,
++					io,
++					opts.format,
++				),
+ 			);
+ 		});
+ }
+diff --git a/apps/cli/src/commands/history.ts b/apps/cli/src/commands/history.ts
+index d0d5122..b3930aa 100644
+--- a/apps/cli/src/commands/history.ts
++++ b/apps/cli/src/commands/history.ts
+@@ -1,5 +1,14 @@
+-import { exportHistorySession } from "../session/history-export";
+-import { deleteSession, listSessions, updateSession } from "../session/session";
++import { exportAgentSession } from "../session/agent-session";
++import {
++	exportHistorySession,
++	type HistoryExportFormat,
++} from "../session/history-export";
++import {
++	deleteSession,
++	listSessions,
++	readSessionMessagesArtifact,
++	updateSession,
++} from "../session/session";
+ import { formatHistoryListLine } from "../utils/history-format";
+ import { writeln } from "../utils/output";
+ import type { CliOutputMode } from "../utils/types";
+@@ -106,16 +115,31 @@ async function runHistoryExport(
+ 	outputPath: string | undefined,
+ 	outputMode: CliOutputMode,
+ 	io: HistoryIo,
++	format: HistoryExportFormat = "html",
+ ): Promise<number> {
+ 	if (!sessionId) {
+ 		io.writeErr("history export requires <session-id>");
+ 		return 1;
+ 	}
+ 
++	if (format !== "html" && format !== "agent-session") {
++		io.writeErr("Unsupported export format. Use html or agent-session.");
++		return 1;
++	}
++
+ 	try {
++		if (format === "agent-session" && !outputPath) {
++			const data = await readSessionMessagesArtifact(sessionId);
++			if (!data)
++				throw new Error("Session is unavailable or has no retained messages");
++			process.stdout.write(
++				exportAgentSession(data.sessionId ?? sessionId, data.messages, data),
++			);
++			return 0;
++		}
+ 		const targetPath = await exportHistorySession({
+ 			sessionId,
+-			format: "html",
++			format,
+ 			outputPath,
+ 		});
+ 
+diff --git a/apps/cli/src/session/__tests__/agent-session.native.json b/apps/cli/src/session/__tests__/agent-session.native.json
+new file mode 100644
+index 0000000..16d3f48
+--- /dev/null
++++ b/apps/cli/src/session/__tests__/agent-session.native.json
+@@ -0,0 +1,48 @@
++[
++	{
++		"id": "prompt-1",
++		"role": "user",
++		"ts": 1000,
++		"content": "Read the synthetic note.\n"
++	},
++	{
++		"id": "reply-1",
++		"role": "assistant",
++		"ts": 2000,
++		"content": [
++			{
++				"type": "thinking",
++				"thinking": "I will read it.",
++				"signature": "opaque-fixture"
++			},
++			{
++				"type": "tool_use",
++				"id": "read-1",
++				"name": "read_file",
++				"input": {
++					"path": "/work/example/note.txt"
++				}
++			}
++		]
++	},
++	{
++		"id": "result-message",
++		"role": "user",
++		"ts": 3000,
++		"content": [
++			{
++				"type": "tool_result",
++				"tool_use_id": "read-1",
++				"name": "read_file",
++				"is_error": false,
++				"content": "Synthetic note.\n"
++			}
++		]
++	},
++	{
++		"id": "reply-2",
++		"role": "assistant",
++		"ts": 4000,
++		"content": "The note contains synthetic text.\n"
++	}
++]
+diff --git a/apps/cli/src/session/__tests__/agent-session.test.ts b/apps/cli/src/session/__tests__/agent-session.test.ts
+new file mode 100644
+index 0000000..076028a
+--- /dev/null
++++ b/apps/cli/src/session/__tests__/agent-session.test.ts
+@@ -0,0 +1,281 @@
++import { describe, expect, it } from "vitest";
++import { exportAgentSession } from "../agent-session";
++import fixture from "./agent-session.native.json";
++
++const records = (messages: unknown = fixture) =>
++	JSON.parse(
++		"[" +
++			exportAgentSession(
++				"synthetic-session",
++				messages as Parameters<typeof exportAgentSession>[1],
++			)
++				.trim()
++				.split("\n")
++				.join(",") +
++			"]",
++	);
++
++describe("Agent Session Record export", () => {
++	it("preserves native IDs, exact text, source order and explicit outcomes", () => {
++		const result = records();
++		expect(result[0]).toMatchObject({
++			sessionId: "synthetic-session",
++			producer: { method: "native" },
++			missing: expect.arrayContaining(["approvals", "model", "usage"]),
++		});
++		expect(result.map((record: { type: string }) => record.type)).toEqual([
++			"session",
++			"message",
++			"message",
++			"tool_call",
++			"tool_result",
++			"message",
++		]);
++		expect(result[1]).toMatchObject({
++			id: "prompt-1",
++			ts: "1970-01-01T00:00:01.000Z",
++			content: [{ type: "text", text: "Read the synthetic note.\n" }],
++		});
++		expect(result[1].author).toBeUndefined();
++		expect(result[3]).toMatchObject({
++			id: "read-1",
++			callId: "read-1",
++			name: "read_file",
++			requestedBy: "model",
++		});
++		expect(result[4]).toMatchObject({
++			callId: "read-1",
++			status: "completed",
++			content: [{ type: "text", text: "Synthetic note.\n" }],
++		});
++		expect(JSON.stringify(result)).not.toContain("opaque-fixture");
++	});
++	it("folds repeated results at their final source position without sorting clocks", () => {
++		const result = records([
++			{
++				role: "user",
++				ts: 9000,
++				content: [
++					{ type: "tool_result", tool_use_id: "call", content: "partial" },
++				],
++			},
++			{ role: "user", ts: 5000, content: "intervening" },
++			{
++				role: "user",
++				ts: 1000,
++				content: [
++					{
++						type: "tool_result",
++						tool_use_id: "call",
++						is_error: true,
++						content: "final",
++					},
++				],
++			},
++		]);
++		expect(result[1].content[0].text).toBe("intervening");
++		expect(result[2]).toMatchObject({
++			type: "tool_result",
++			status: "failed",
++			ts: "1970-01-01T00:00:01.000Z",
++			content: [{ type: "text", text: "final" }],
++		});
++		expect(result[0].missing).toContain("tool_result_updates");
++	});
++	it("keeps missing outcomes unknown and duplicate calls ambiguous", () => {
++		const result = records([
++			{
++				role: "assistant",
++				id: "header",
++				content: [
++					{ type: "tool_use", id: "same", name: "read", input: null },
++					{ type: "tool_use", id: "same", name: "read", input: false },
++				],
++			},
++			{
++				role: "user",
++				content: [{ type: "tool_result", tool_use_id: "same", content: "" }],
++			},
++		]);
++		expect(
++			new Set(result.map((record: { id: string }) => record.id)).size,
++		).toBe(result.length);
++		expect(
++			result
++				.filter((record: { type: string }) => record.type === "tool_call")
++				.map((record: { callId: string }) => record.callId),
++		).toEqual(["same", "same"]);
++		expect(result.at(-1).status).toBe("unknown");
++		expect(result[1].input).toBeNull();
++		expect(result[2].input).toBe(false);
++	});
++	it("marks unsupported native content and corrupt records with gaps", () => {
++		const result = records([
++			{ role: "user", content: [{ type: "future", payload: "hidden" }] },
++			{ role: "invalid", content: "x" },
++		]);
++		expect(
++			result.slice(1).map((record: { type: string }) => record.type),
++		).toEqual(["gap", "gap"]);
++		expect(result[0].missing).toEqual(
++			expect.arrayContaining(["history", "content"]),
++		);
++	});
++	it("filters credential fields and opaque reasoning payloads", () => {
++		const result = records([
++			{
++				role: "assistant",
++				content: [
++					{
++						type: "tool_use",
++						id: "secret-call",
++						name: "test",
++						input: { password: "synthetic-value", keep: 0 },
++					},
++					{ type: "redacted_thinking", data: "opaque-fixture" },
++				],
++			},
++		]);
++		expect(result[1]).toMatchObject({
++			input: { password: "[redacted]", keep: 0 },
++			truncated: true,
++		});
++		expect(result[2].content).toEqual([
++			{ type: "reasoning", visibility: "encrypted" },
++		]);
++		expect(result[0].missing).toContain("secrets");
++		expect(JSON.stringify(result)).not.toContain("synthetic-value");
++	});
++	it("fails rather than silently rounding unsafe native tool input", () => {
++		expect(() =>
++			records([
++				{
++					role: "assistant",
++					content: [
++						{
++							type: "tool_use",
++							id: "wide",
++							name: "test",
++							input: { wide: Number.MAX_SAFE_INTEGER + 1 },
++						},
++					],
++				},
++			]),
++		).toThrow("unsafe native number");
++		expect(
++			records([
++				{
++					role: "assistant",
++					content: [
++						{
++							type: "tool_use",
++							id: "wide",
++							name: "test",
++							input: { wide: "9007199254740993" },
++						},
++					],
++				},
++			])[1].input.wide,
++		).toBe("9007199254740993");
++	});
++	it("does not infer model calls or successful edits from messages", () => {
++		const result = records([
++			{
++				role: "assistant",
++				modelInfo: { id: "requested-alias", provider: "example" },
++				metrics: { inputTokens: 2 },
++				content: "Committed the edit.",
++			},
++		]);
++		expect(result.map((record: { type: string }) => record.type)).toEqual([
++			"session",
++			"message",
++		]);
++		expect(result[0].endedAt).toBeUndefined();
++	});
++	it("exports deterministic bytes", () => {
++		expect(
++			exportAgentSession(
++				"synthetic-session",
++				fixture as Parameters<typeof exportAgentSession>[1],
++			),
++		).toBe(
++			exportAgentSession(
++				"synthetic-session",
++				fixture as Parameters<typeof exportAgentSession>[1],
++			),
++		);
++	});
++	it("marks destructive compaction without inventing a human prompt", () => {
++		const result = records([
++			{
++				role: "user",
++				content: "Summary",
++				metadata: { kind: "compaction_summary" },
++			},
++		]);
++		expect(result[1].origin).toBe("compaction");
++		expect(result[1].author).toBeUndefined();
++		expect(result[2]).toMatchObject({ type: "gap", reason: "not_retained" });
++	});
++	it("marks every shortened result, including later unknown blocks", () => {
++		const result = records([
++			{
++				role: "user",
++				content: [
++					{
++						type: "tool_result",
++						tool_use_id: "one",
++						content: [{ type: "future" }],
++					},
++				],
++			},
++			{
++				role: "user",
++				content: [
++					{
++						type: "tool_result",
++						tool_use_id: "two",
++						content: [{ type: "future" }],
++					},
++				],
++			},
++		]);
++		expect(result[1].truncated).toBe(true);
++		expect(result[2].truncated).toBe(true);
++	});
++	it("removes numeric and nested credential answers", () => {
++		const result = records([
++			{
++				role: "assistant",
++				content: [
++					{
++						type: "tool_use",
++						id: "test",
++						name: "test",
++						input: { password: 1234, secret: { value: "synthetic-value" } },
++					},
++				],
++			},
++		]);
++		expect(result[1].input).toEqual({
++			password: "[redacted]",
++			secret: "[redacted]",
++		});
++	});
++
++	it("keeps explicitly recorded session lifecycle fields", () => {
++		const header = JSON.parse(
++			exportAgentSession("synthetic", [], {
++				startedAt: "2026-01-01T00:00:00Z",
++				endedAt: "2026-01-01T00:00:01Z",
++				cwd: "/work/example",
++			}).split("\n")[0],
++		);
++		expect(header).toMatchObject({
++			startedAt: "2026-01-01T00:00:00Z",
++			endedAt: "2026-01-01T00:00:01Z",
++			cwd: "/work/example",
++		});
++	});
++});
+diff --git a/apps/cli/src/session/agent-session.ts b/apps/cli/src/session/agent-session.ts
+new file mode 100644
+index 0000000..51389c9
+--- /dev/null
++++ b/apps/cli/src/session/agent-session.ts
+@@ -0,0 +1,343 @@
++import type { MessageWithMetadata } from "@cline/shared";
++
++type JsonObject = { [key: string]: unknown };
++
++type AsrRecord = JsonObject & { type: string; id: string };
++
++function object(value: unknown): JsonObject {
++	return value !== null && typeof value === "object" && !Array.isArray(value)
++		? (value as JsonObject)
++		: {};
++}
++
++function scrub(value: unknown, changed: () => void, key = ""): unknown {
++	if (
++		/^(?:api[_-]?key|access[_-]?token|auth[_-]?token|refresh[_-]?token|session[_-]?token|password|authorization|secret|secret[_-]?key|client[_-]?secret|credential)$/i.test(
++			key,
++		) &&
++		value !== undefined
++	) {
++		changed();
++		return "[redacted]";
++	}
++	if (
++		typeof value === "number" &&
++		(!Number.isFinite(value) ||
++			(Number.isInteger(value) && !Number.isSafeInteger(value)))
++	) {
++		throw new Error(
++			"Cannot export an unsafe native number. Store wide native values as strings.",
++		);
++	}
++	if (typeof value === "bigint") return value.toString();
++	if (typeof value === "string") {
++		const cleaned =
++			/^(?:api[_-]?key|access[_-]?token|refresh[_-]?token|password|authorization|secret)$/i.test(
++				key,
++			)
++				? "[redacted]"
++				: value
++						.replace(
++							/\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g,
++							"[redacted]",
++						)
++						.replace(/\bBearer\s+[A-Za-z0-9._~+/-]+/gi, "Bearer [redacted]")
++						.replace(
++							/\b((?:api[_-]?key|access[_-]?token|auth[_-]?token|password|authorization|secret)["']?\s*[:=]\s*["']?)[^\s,"']+/gi,
++							"$1[redacted]",
++						);
++		if (cleaned !== value) changed();
++		return cleaned;
++	}
++	if (Array.isArray(value)) return value.map((item) => scrub(item, changed));
++	if (value !== null && typeof value === "object") {
++		return Object.fromEntries(
++			Object.entries(value).map(([name, item]) => [
++				name,
++				scrub(item, changed, name),
++			]),
++		);
++	}
++	return value;
++}
++
++/** Export only facts retained by the native transcript. Never inspect current configuration. */
++export function exportAgentSession(
++	sessionId: string,
++	messages: readonly MessageWithMetadata[],
++	context: { startedAt?: string; endedAt?: string; cwd?: string } = {},
++): string {
++	if (!sessionId || !Array.isArray(messages))
++		throw new Error("A native session ID and message array are required");
++	if (scrub(sessionId, () => {}) !== sessionId)
++		throw new Error("Session identity contains a credential");
++	const missing = new Set([
++		"approvals",
++		"agent_settings",
++		"tools",
++		"file_changes",
++		"commits",
++		"subagents",
++		"copies",
++		"usage",
++		"model",
++		"inference_settings",
++		"instructions",
++		"native_metadata",
++		"timestamps",
++		"message_author",
++		"provider_state",
++	]);
++	const records: AsrRecord[] = [];
++	const nativeIds = messages.flatMap((message) => {
++		const m = object(message);
++		const blocks = Array.isArray(m.content) ? m.content : [];
++		return [m.id, ...blocks.map((block) => object(block).id)].filter(
++			(id): id is string => typeof id === "string",
++		);
++	});
++	const counts = new Map<string, number>();
++	for (const id of nativeIds) counts.set(id, (counts.get(id) ?? 0) + 1);
++	const used = new Set(["header"]);
++	let sequence = 0;
++	const emit = (type: string, fields: JsonObject, nativeId?: unknown) => {
++		if (
++			typeof fields.callId === "string" &&
++			scrub(fields.callId, () => {}) !== fields.callId
++		)
++			throw new Error("Tool identity contains a credential");
++		if (
++			typeof nativeId === "string" &&
++			scrub(nativeId, () => {}) !== nativeId
++		) {
++			missing.add("secrets");
++			nativeId = undefined;
++		}
++
++		let id =
++			typeof nativeId === "string" &&
++			counts.get(nativeId) === 1 &&
++			nativeId.length > 0 &&
++			nativeId.length <= 256 &&
++			!Array.from(nativeId).some(
++				(char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127,
++			) &&
++			!used.has(nativeId)
++				? nativeId
++				: `asr-${++sequence}`;
++		while (used.has(id) || (id !== nativeId && counts.has(id)))
++			id = `asr-${++sequence}`;
++		used.add(id);
++		const record: AsrRecord = { type, id, ...fields };
++		records.push(record);
++		return record;
++	};
++	const gap = (reason: string, detail: string) => {
++		missing.add("history");
++		emit("gap", { reason, detail });
++	};
++	let omittedParts = 0;
++	const parts = (content: unknown): JsonObject[] => {
++		if (typeof content === "string") return [{ type: "text", text: content }];
++		if (!Array.isArray(content)) {
++			missing.add("content");
++			omittedParts++;
++			return [];
++		}
++		return content.flatMap<JsonObject>((value) => {
++			const b = object(value);
++			if (b.type === "text" && typeof b.text === "string")
++				return [{ type: "text", text: b.text }];
++			if (b.type === "thinking")
++				return [asrReasoning(b.thinking, true)];
++			if (b.type === "reasoning")
++				return [asrReasoning(b.text, false)];
++			if (b.type === "redacted_thinking")
++				return [{ type: "reasoning", visibility: "encrypted" }];
++			if (b.type === "file" && typeof b.content === "string")
++				return [
++					{
++						type: "text",
++						text: b.content,
++						_meta: { "ai.cline": { path: b.path } },
++					},
++				];
++			const source = object(b.source);
++			if (
++				b.type === "image" &&
++				typeof (b.mediaType ?? source.media_type) === "string"
++			) {
++				return [
++					{
++						type: "image",
++						mimeType: b.mediaType ?? source.media_type,
++						...(typeof b.data === "string"
++							? { data: b.data }
++							: source.type === "base64" && typeof source.data === "string"
++								? { data: source.data }
++								: {}),
++					},
++				];
++			}
++			missing.add("content");
++			omittedParts++;
++			return [];
++		});
++	};
++	const lastResult = new Map<string, string>();
++	messages.forEach((message, mi) => {
++		const m = object(message);
++		if (Array.isArray(m.content))
++			m.content.forEach((value, bi) => {
++				const b = object(value);
++				if (b.type === "tool_result" && typeof b.tool_use_id === "string") {
++					if (lastResult.has(b.tool_use_id)) missing.add("tool_result_updates");
++					lastResult.set(b.tool_use_id, `${mi}:${bi}`);
++				}
++			});
++	});
++	messages.forEach((message, mi) => {
++		const m = object(message);
++		const meta = object(m.metadata);
++		const summary =
++			meta.kind === "compaction" || meta.kind === "compaction_summary";
++		const hiddenHistoryRetained = false;
++		const ts =
++			typeof m.ts === "number" &&
++			Number.isFinite(m.ts) &&
++			Math.abs(m.ts) <= 8640000000000000
++				? new Date(m.ts).toISOString()
++				: undefined;
++		if (m.role !== "assistant" && m.role !== "user") {
++			gap("unparseable", "Unsupported native message role");
++			return;
++		}
++		const envelope = { ...(ts ? { ts } : {}) };
++		const author = m.role === "assistant" ? "model" : undefined;
++		let first = true;
++		let pending: JsonObject[] = [];
++		const flush = (empty = false) => {
++			if (!pending.length && !empty) return;
++			emit(
++				"message",
++				{
++					...envelope,
++					role: m.role,
++					...(author ? { author } : {}),
++					...(summary ? { origin: "compaction" } : {}),
++					content: pending,
++				},
++				first ? m.id : undefined,
++			);
++			first = false;
++			pending = [];
++		};
++		const blocks =
++			typeof m.content === "string"
++				? [{ type: "text", text: m.content }]
++				: m.content;
++		if (!Array.isArray(blocks)) {
++			gap("unparseable", "Invalid native message content");
++			return;
++		}
++		for (const [bi, value] of blocks.entries()) {
++			const b = object(value);
++			if (b.type === "tool_use") {
++				flush();
++				if (typeof b.id !== "string" || !b.id || typeof b.name !== "string") {
++					gap("unparseable", "Invalid native tool request");
++					continue;
++				}
++				emit(
++					"tool_call",
++					{
++						...envelope,
++						callId: b.id,
++						name: b.name,
++						...(m.role === "assistant" ? { requestedBy: "model" } : {}),
++						...("input" in b ? { input: b.input } : {}),
++					},
++					b.id,
++				);
++			} else if (b.type === "tool_result") {
++				flush();
++				if (typeof b.tool_use_id !== "string" || !b.tool_use_id) {
++					gap("unparseable", "Invalid native tool result");
++					continue;
++				}
++				if (lastResult.get(b.tool_use_id) !== `${mi}:${bi}`) continue;
++				const before = omittedParts;
++				const content = "content" in b ? parts(b.content) : undefined;
++				emit("tool_result", {
++					...envelope,
++					callId: b.tool_use_id,
++					status:
++						b.is_error === true
++							? "failed"
++							: b.is_error === false
++								? "completed"
++								: "unknown",
++					...(content ? { content } : {}),
++					...(omittedParts > before ? { truncated: true } : {}),
++				});
++			} else {
++				const converted = parts([b]);
++				if (!converted.length) {
++					flush();
++					gap("not_recorded", "Unsupported native content was omitted");
++				} else pending.push(...converted);
++			}
++		}
++		flush(blocks.length === 0);
++		if (summary && !hiddenHistoryRetained)
++			gap(
++				"not_retained",
++				"Earlier history is not retained beside the native summary",
++			);
++	});
++	const cleaned = records.map((record) => {
++		let shortened = false;
++		const result = scrub(record, () => {
++			shortened = true;
++		}) as AsrRecord;
++		if (shortened) {
++			result.truncated = true;
++			missing.add("secrets");
++		}
++		return result;
++	});
++	const header = {
++		type: "session",
++		id: "header",
++		formatVersion: "0.1",
++		agent: { name: "cline" },
++		sessionId,
++		...(context.startedAt ? { startedAt: context.startedAt } : {}),
++		...(context.endedAt ? { endedAt: context.endedAt } : {}),
++		...(context.cwd ? { cwd: context.cwd } : {}),
++		producer: {
++			name: "cline-agent-session-export",
++			version: "0.1.0",
++			method: "native",
++			source: "cline-messages",
++		},
++		missing: [...missing].sort(),
++	};
++	let shortenedHeader = false;
++	const safeHeader = scrub(header, () => {
++		shortenedHeader = true;
++	}) as JsonObject;
++	if (shortenedHeader) {
++		safeHeader.truncated = true;
++		missing.add("secrets");
++		safeHeader.missing = [...missing].sort();
++	}
++
++	return `${[safeHeader, ...cleaned].map((record) => JSON.stringify(record)).join("\n")}\n`;
++}
++
++function asrReasoning(text: unknown, summary = false): { type: string; visibility?: string; text?: string; summary?: string[] } {
++  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
++  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
++  return { type: "reasoning", text };
++}
+diff --git a/apps/cli/src/session/export.ts b/apps/cli/src/session/export.ts
+index 761eb3d..bdf842a 100644
+--- a/apps/cli/src/session/export.ts
++++ b/apps/cli/src/session/export.ts
+@@ -9,6 +9,9 @@ import {
+ import { formatStructuredCommand } from "../utils/helpers";
+ 
+ export interface ConversationHistory {
++	startedAt?: string;
++	endedAt?: string;
++	cwd?: string;
+ 	version: number;
+ 	updated_at: string;
+ 	messages: MessageWithMetadata[];
+diff --git a/apps/cli/src/session/history-export.ts b/apps/cli/src/session/history-export.ts
+index 5311d66..53f38a4 100644
+--- a/apps/cli/src/session/history-export.ts
++++ b/apps/cli/src/session/history-export.ts
+@@ -1,9 +1,10 @@
+ import { mkdir, writeFile } from "node:fs/promises";
+ import { dirname, resolve } from "node:path";
++import { exportAgentSession } from "./agent-session";
+ import { generateConversationHTML } from "./export";
+ import { readSessionMessagesArtifact } from "./session";
+ 
+-export type HistoryExportFormat = "html" | "json";
++export type HistoryExportFormat = "html" | "json" | "agent-session";
+ 
+ export async function exportHistorySession(input: {
+ 	sessionId: string;
+@@ -21,12 +22,14 @@ export async function exportHistorySession(input: {
+ 		? resolve(outputPath)
+ 		: resolve(
+ 				outputDirectory?.trim() || process.cwd(),
+-				`${sessionId}.${format}`,
++				`${encodeURIComponent(sessionId)}.${format === "agent-session" ? "jsonl" : format}`,
+ 			);
+ 	const contents =
+-		format === "html"
+-			? generateConversationHTML(data, sessionId)
+-			: `${JSON.stringify(data, null, 2)}\n`;
++		format === "agent-session"
++			? exportAgentSession(data.sessionId ?? sessionId, data.messages, data)
++			: format === "html"
++				? generateConversationHTML(data, sessionId)
++				: `${JSON.stringify(data, null, 2)}\n`;
+ 
+ 	await mkdir(dirname(targetPath), { recursive: true });
+ 	await writeFile(targetPath, contents, "utf8");
+diff --git a/apps/cli/src/session/session.ts b/apps/cli/src/session/session.ts
+index 3f04c2c..21f5b58 100644
+--- a/apps/cli/src/session/session.ts
++++ b/apps/cli/src/session/session.ts
+@@ -192,6 +192,9 @@ export async function readSessionMessagesArtifact(
+ 			}
+ 			return {
+ 				version: 1,
++				startedAt: row.startedAt,
++				endedAt: row.endedAt ?? undefined,
++				cwd: row.cwd,
+ 				updated_at: row.updatedAt,
+ 				messages: messages as ConversationHistory["messages"],
+ 				sessionId: row.sessionId,
+
+base-commit: 46996c9992d91e57c268091c971cfda52b0da399

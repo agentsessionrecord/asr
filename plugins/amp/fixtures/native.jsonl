@@ -1,0 +1,4 @@
+{"thread": {"id": "synthetic-session"}, "event": "session.start"}
+{"thread": {"id": "synthetic-session"}, "event": "tool.call", "toolUseID": "call-1", "tool": "Bash", "input": {"command": "printf requested"}}
+{"thread": {"id": "synthetic-session"}, "event": "tool.result", "toolUseID": "call-1", "tool": "Bash", "input": {"command": "printf effective"}, "status": "done", "output": "effective\n"}
+{"thread": {"id": "synthetic-session"}, "event": "agent.end", "status": "done"}

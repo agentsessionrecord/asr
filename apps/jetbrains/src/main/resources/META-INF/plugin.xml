@@ -1,0 +1,17 @@
+<idea-plugin>
+  <id>org.agentsessionrecord.editor</id>
+  <name>ASR Sessions</name>
+  <vendor>Agent Session Record</vendor>
+  <description>Find recorded sessions behind a Git line and read them in a local offline viewer.</description>
+  <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.lang</depends>
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationConfigurable id="asr.settings" displayName="ASR Sessions" instance="org.agentsessionrecord.editor.AsrConfigurable"/>
+    <codeInsight.lineMarkerProvider language="" implementationClass="org.agentsessionrecord.editor.AsrLineMarkerProvider"/>
+  </extensions>
+  <actions>
+    <action id="ASR.ShowLine" class="org.agentsessionrecord.editor.ShowLineAction" text="ASR Sessions Behind This Line" description="Read local ASR blame evidence">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
+  </actions>
+</idea-plugin>

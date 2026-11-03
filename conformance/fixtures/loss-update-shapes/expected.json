@@ -1,0 +1,16 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-057",
+    "code": "schema.type",
+    "line": 2,
+    "pointer": "/missing"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-057",
+    "code": "schema.type",
+    "line": 3,
+    "pointer": "/missing/0"
+  }
+]

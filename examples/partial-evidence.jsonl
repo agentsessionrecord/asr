@@ -1,0 +1,7 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"partial-7","producer":{"name":"example-recorder","version":"1.0","method":"recorder","source":"example-hooks"},"missing":["model","tools"],"parent":{"session":"com.example.agent:parent-7","kind":"continues"}}
+{"type":"session_info","id":"settings","agentSettings":{"mode":"execute","modelSettings":{"reasoningEffort":"high","serviceTier":"priority","temperature":0}},"tools":[{"name":"read","inputSchema":{"type":"object"}}]}
+{"type":"message","id":"revision-1","inferenceId":"copied-call","role":"assistant","content":[{"type":"text","text":"Checking the file."}]}
+{"type":"message","id":"revision-2","inferenceId":"copied-call","role":"assistant","content":[{"type":"text","text":"File checked."}]}
+{"type":"inference","id":"copied-call","model":{"requested":"example-model"},"copiedFrom":{"session":"com.example.agent:parent-7","record":"source-call"},"usage":{"inputTokens":10,"outputTokens":4}}
+{"type":"session_info","id":"clear","agentSettings":{"modelSettings":{"reasoningEffort":null,"serviceTier":null}}}
+{"type":"inference","id":"9007199254740993","usage":{"inputTokens":12,"outputTokens":5}}

@@ -1,0 +1,49 @@
+[
+  {
+    "session_id": "synthetic-session",
+    "hook": "on_session_start"
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook": "pre_tool_call",
+    "tool_call_id": "synthetic-call",
+    "tool_name": "terminal",
+    "args": {
+      "command": "printf original"
+    }
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook": "pre_approval_request",
+    "tool_call_id": "synthetic-call",
+    "command": "printf ready"
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook": "post_approval_response",
+    "tool_call_id": "synthetic-call",
+    "choice": "once",
+    "surface": "cli"
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook": "post_tool_call",
+    "tool_call_id": "synthetic-call",
+    "tool_name": "terminal",
+    "args": {
+      "command": "printf ready"
+    },
+    "result": "ready\n",
+    "status": "ok",
+    "duration_ms": 7
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook": "on_session_end",
+    "completed": true
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook": "on_session_finalize"
+  }
+]

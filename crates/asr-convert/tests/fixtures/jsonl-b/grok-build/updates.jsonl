@@ -1,0 +1,6 @@
+{"method":"session/update","params":{"sessionId":"synthetic-grok","_meta":{"agentTimestampMs":1700000000000},"update":{"sessionUpdate":"response_started","model":"served"}}}
+{"method":"session/update","params":{"sessionId":"synthetic-grok","_meta":{"agentTimestampMs":1700000001000},"update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"a "}}}}
+{"method":"session/update","params":{"sessionId":"synthetic-grok","_meta":{"agentTimestampMs":1700000002000},"update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"b"}}}}
+{"method":"session/update","params":{"sessionId":"synthetic-grok","_meta":{"agentTimestampMs":1700000003000},"update":{"sessionUpdate":"tool_call","toolCallId":"call-1","name":"Bash","kind":"execute","rawInput":{"command":"true"},"status":"pending"}}}
+{"method":"session/update","params":{"sessionId":"synthetic-grok","_meta":{"agentTimestampMs":1700000004000},"update":{"sessionUpdate":"tool_call_update","toolCallId":"call-1","status":"completed","rawOutput":{"type":"Bash","exit_code":0},"content":"display text"}}}
+{"method":"session/update","params":{"sessionId":"synthetic-grok","_meta":{"agentTimestampMs":1700000005000},"update":{"sessionUpdate":"response_completed","message_id":"response-1","usage":{"input_tokens":10,"cache_read_input_tokens":2,"output_tokens":0},"stop_reason":"tool_use"}}}

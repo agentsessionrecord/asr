@@ -1,0 +1,55 @@
+{
+  "fields": [
+    "session_id",
+    "cwd",
+    "tool_name",
+    "tool_input",
+    "tool_response",
+    "prompt",
+    "error",
+    "last_assistant_message"
+  ],
+  "kinds": {
+    "run_in_terminal": "execute",
+    "Bash": "execute",
+    "read_file": "read",
+    "Read": "read",
+    "create_file": "edit",
+    "Write": "edit",
+    "search_replace": "edit",
+    "Edit": "edit",
+    "delete_file": "delete",
+    "grep_code": "search",
+    "Grep": "search",
+    "search_file": "search",
+    "Glob": "search",
+    "list_dir": "read",
+    "LS": "read"
+  },
+  "secret_tools": [],
+  "shell_tools": [
+    "run_in_terminal",
+    "Bash"
+  ],
+  "agent_tools": [],
+  "new_session_sources": [],
+  "post_status": "completed",
+  "agent": "lingma",
+  "events": {
+    "UserPromptSubmit": "UserPromptSubmit",
+    "PreToolUse": "PreToolUse",
+    "PostToolUse": "PostToolUse",
+    "PostToolUseFailure": "PostToolUseFailure",
+    "Stop": "Stop"
+  },
+  "observations": [
+    "tool_name",
+    "tool_input",
+    "stop_hook_active"
+  ],
+  "missing": [
+    "call_ids",
+    "session_lifecycle",
+    "final_model_facing_output"
+  ]
+}

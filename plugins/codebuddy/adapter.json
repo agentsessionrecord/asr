@@ -1,0 +1,105 @@
+{
+  "agent": "codebuddy",
+  "events": {
+    "SessionStart": "SessionStart",
+    "SessionEnd": "SessionEnd",
+    "UserPromptSubmit": "UserPromptSubmit",
+    "PreToolUse": "PreToolUse",
+    "PostToolUse": "PostToolUse",
+    "PostToolUseFailure": "PostToolUseFailure",
+    "Notification": "Notification",
+    "PermissionRequest": "PermissionRequest",
+    "PermissionDenied": "PermissionDenied",
+    "Stop": "Stop",
+    "StopFailure": "StopFailure",
+    "SubagentStart": "SubagentStart",
+    "SubagentStop": "SubagentStop",
+    "PreCompact": "PreCompact",
+    "PostCompact": "PostCompact",
+    "InstructionsLoaded": "InstructionsLoaded",
+    "ConfigChange": "ConfigChange",
+    "CwdChanged": "CwdChanged",
+    "Setup": "Setup",
+    "TaskCreated": "TaskCreated",
+    "TaskCompleted": "TaskCompleted",
+    "TeammateIdle": "TeammateIdle",
+    "Elicitation": "Elicitation",
+    "ElicitationResult": "ElicitationResult"
+  },
+  "fields": [
+    "session_id",
+    "cwd",
+    "prompt_id",
+    "turn_id",
+    "tool_use_id",
+    "tool_name",
+    "tool_input",
+    "tool_response",
+    "permission_mode",
+    "agent_id",
+    "agent_type",
+    "effort",
+    "session_title",
+    "source",
+    "reason",
+    "model",
+    "from_model",
+    "to_model",
+    "requested_model",
+    "prompt",
+    "message",
+    "error",
+    "is_interrupt",
+    "duration_ms",
+    "tool_calls",
+    "compact_summary",
+    "message_id",
+    "index",
+    "delta",
+    "final",
+    "permission_suggestions",
+    "notification_type",
+    "last_assistant_message"
+  ],
+  "rename": {
+    "generation_id": "prompt_id"
+  },
+  "kinds": {
+    "Bash": "execute",
+    "PowerShell": "execute",
+    "Edit": "edit",
+    "MultiEdit": "edit",
+    "Write": "edit",
+    "NotebookEdit": "edit",
+    "Read": "read",
+    "Glob": "search",
+    "Grep": "search",
+    "ToolSearch": "search",
+    "WebFetch": "fetch",
+    "WebSearch": "fetch"
+  },
+  "secret_tools": [
+    "AskUserQuestion"
+  ],
+  "shell_tools": [
+    "Bash",
+    "PowerShell"
+  ],
+  "agent_tools": [
+    "Agent",
+    "Task"
+  ],
+  "new_session_sources": [
+    "startup",
+    "clear"
+  ],
+  "asks_sometimes": [
+    "default",
+    "plan",
+    "acceptEdits"
+  ],
+  "missing": [
+    "call_ids"
+  ],
+  "child_ids": false
+}

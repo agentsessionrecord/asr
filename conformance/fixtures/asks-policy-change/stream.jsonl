@@ -1,0 +1,5 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"run-1","producer":{"name":"example-export","version":"1","method":"native"}}
+{"type":"session_info","id":"initial","agentSettings":{"approval":"on-request","asks":"sometimes"}}
+{"type":"session_info","id":"changed","agentSettings":{"approval":"never"}}
+{"type":"tool_call","id":"call","callId":"call-1","name":"run_tests"}
+{"type":"tool_result","id":"result","callId":"call-1","status":"completed"}

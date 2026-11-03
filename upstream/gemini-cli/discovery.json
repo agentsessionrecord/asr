@@ -1,0 +1,18 @@
+{
+  "agent": "gemini-cli",
+  "exportCommand": [
+    "gemini",
+    "sessions",
+    "export",
+    "--format",
+    "agent-session"
+  ],
+  "nativePaths": [
+    "~/.gemini/tmp/*/chats/session-*.jsonl",
+    "~/.gemini/tmp/*/chats/session-*.json"
+  ],
+  "formatVersions": [
+    "0.1"
+  ],
+  "supportsDeletionHook": false
+}

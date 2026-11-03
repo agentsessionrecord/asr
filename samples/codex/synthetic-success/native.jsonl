@@ -1,0 +1,10 @@
+{"type":"session_meta","payload":{"id":"synthetic-codex-edit","cwd":"/work/app","git":{"commit_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","branch":"main","repository_url":"https://example.com/team/app.git"}}}
+{"type":"turn_context","payload":{"turn_id":"turn-1","model":"example-requested-model","approval_policy":"never","sandbox_policy":{"type":"workspace-write"}}}
+{"type":"response_item","payload":{"type":"message","id":"prompt","role":"user","content":[{"type":"input_text","text":"Change the second line to new and check the edit."}],"internal_chat_message_metadata_passthrough":{"turn_id":"turn-1","content_item_kinds":["user.text"]}}}
+{"type":"response_item","payload":{"type":"custom_tool_call","id":"edit-request","call_id":"edit-1","name":"apply_patch","response_id":"response","input":"*** Begin Patch\n*** Update File: /work/app/file.txt\n@@\n-old\n+new\n*** End Patch"}}
+{"type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"edit-1","output":"Success. Updated files:\nM /work/app/file.txt\n"}}
+{"type":"event_msg","payload":{"type":"patch_apply_end","call_id":"edit-1","success":true,"status":"success"}}
+{"type":"token_usage_record","payload":{"response_id":"response","turn_id":"turn-1","model":"example-served-model","usage":{"input_tokens":10,"output_tokens":5}}}
+{"type":"response_item","payload":{"type":"function_call","id":"test-request","call_id":"test-1","name":"exec_command","response_id":"test-response","arguments":"{\"cmd\":\"git diff --check\"}"}}
+{"type":"event_msg","payload":{"type":"exec_command_end","call_id":"test-1","status":"completed","command":"git diff --check","exit_code":0,"aggregated_output":""}}
+{"type":"token_usage_record","payload":{"response_id":"test-response","turn_id":"turn-1","model":"example-served-model","usage":{"input_tokens":12,"output_tokens":3}}}

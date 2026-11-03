@@ -1,0 +1,181 @@
+{
+  "date": "2026-11-01",
+  "nodeVersion": "24.22.2",
+  "credentialDelivery": "private provider settings file after route verification",
+  "fixtureKind": "counts-only live evidence",
+  "rawCapturesCommitted": false,
+  "versions": {
+    "cli": "3.0.74",
+    "sdk": "0.2.0"
+  },
+  "streams": [
+    {
+      "records": 4,
+      "hooks": [
+        "agent_start"
+      ],
+      "toolCalls": 0,
+      "toolResults": 0,
+      "messages": 0,
+      "gaps": 2,
+      "validator": {
+        "errors": 0,
+        "warnings": {
+          "warning:unknown-extension": 1,
+          "warning:unknown-type": 1
+        }
+      }
+    },
+    {
+      "records": 4,
+      "hooks": [
+        "agent_start"
+      ],
+      "toolCalls": 0,
+      "toolResults": 0,
+      "messages": 0,
+      "gaps": 2,
+      "validator": {
+        "errors": 0,
+        "warnings": {
+          "warning:unknown-extension": 1,
+          "warning:unknown-type": 1
+        }
+      }
+    },
+    {
+      "records": 4,
+      "hooks": [
+        "agent_start"
+      ],
+      "toolCalls": 0,
+      "toolResults": 0,
+      "messages": 0,
+      "gaps": 2,
+      "validator": {
+        "errors": 0,
+        "warnings": {
+          "warning:unknown-extension": 1,
+          "warning:unknown-type": 1
+        }
+      }
+    },
+    {
+      "records": 8,
+      "hooks": [
+        "agent_start",
+        "tool_call",
+        "tool_result",
+        "agent_end"
+      ],
+      "toolCalls": 1,
+      "toolResults": 1,
+      "messages": 0,
+      "gaps": 1,
+      "validator": {
+        "errors": 0,
+        "warnings": {
+          "warning:unknown-extension": 1,
+          "warning:unknown-type": 4
+        }
+      }
+    },
+    {
+      "records": 7,
+      "hooks": [
+        "agent_start",
+        "tool_call",
+        "tool_result"
+      ],
+      "toolCalls": 1,
+      "toolResults": 1,
+      "messages": 0,
+      "gaps": 1,
+      "validator": {
+        "errors": 0,
+        "warnings": {
+          "warning:unknown-extension": 1,
+          "warning:unknown-type": 3
+        }
+      }
+    },
+    {
+      "records": 7,
+      "hooks": [
+        "agent_start",
+        "tool_call",
+        "tool_result"
+      ],
+      "toolCalls": 1,
+      "toolResults": 1,
+      "messages": 0,
+      "gaps": 1,
+      "validator": {
+        "errors": 0,
+        "warnings": {
+          "warning:unknown-extension": 1,
+          "warning:unknown-type": 3
+        }
+      }
+    },
+    {
+      "records": 8,
+      "hooks": [
+        "agent_start",
+        "tool_call",
+        "tool_result",
+        "agent_end"
+      ],
+      "toolCalls": 1,
+      "toolResults": 1,
+      "messages": 0,
+      "gaps": 1,
+      "validator": {
+        "errors": 0,
+        "warnings": {
+          "warning:unknown-extension": 1,
+          "warning:unknown-type": 4
+        }
+      }
+    },
+    {
+      "records": 4,
+      "hooks": [
+        "agent_error"
+      ],
+      "toolCalls": 0,
+      "toolResults": 0,
+      "messages": 0,
+      "gaps": 2,
+      "validator": {
+        "errors": 0,
+        "warnings": {
+          "warning:unknown-extension": 1,
+          "warning:unknown-type": 1
+        }
+      }
+    }
+  ],
+  "totals": {
+    "streams": 8,
+    "records": 46,
+    "errors": 0
+  },
+  "coverage": {
+    "cliHost": "normal act mode, openai-compatible provider, copied native file hooks",
+    "sdkHost": "ClineCore local backend, configExtensions includes hooks",
+    "successfulStreams": 4,
+    "successfulStreamRecordCounts": [
+      7,
+      8,
+      8,
+      7
+    ],
+    "initialPromptCallbackObserved": false,
+    "detachedBoundaryCallbackObservedInEveryCapture": false,
+    "vscodeLiveTested": false,
+    "yoloLiveTested": false,
+    "routingPreflight": "openai alias used default cloud endpoint with dummy credentials only. Corrected openai-compatible route verified to loopback before real key delivery."
+  },
+  "providerProtocol": "openai-compatible"
+}

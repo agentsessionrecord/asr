@@ -1,0 +1,58 @@
+{
+  "fields": [
+    "cwd",
+    "tool_name",
+    "tool_input",
+    "notification_type"
+  ],
+  "kinds": {
+    "bash": "execute",
+    "read": "read",
+    "edit": "edit",
+    "write": "edit",
+    "grep": "search",
+    "find": "search",
+    "web-fetch": "fetch",
+    "web-search": "fetch",
+    "codebase-retrieval": "search"
+  },
+  "secret_tools": [],
+  "shell_tools": [
+    "bash"
+  ],
+  "agent_tools": [],
+  "new_session_sources": [],
+  "post_status": "unknown",
+  "agent": "auggie",
+  "events": {
+    "SessionStart": "SessionStart",
+    "PreToolUse": "PreToolUse",
+    "PostToolUse": "PostToolUse",
+    "PromptSubmit": "UserPromptSubmit",
+    "Notification": "Notification",
+    "Stop": "Stop",
+    "SessionEnd": "SessionEnd"
+  },
+  "rename": {
+    "conversation_id": "session_id",
+    "user_prompt": "prompt",
+    "notification_message": "message",
+    "agent_stop_cause": "stop_reason",
+    "tool_output": "tool_response",
+    "tool_error": "error"
+  },
+  "session_start_is_new": true,
+  "observations": [
+    "tool_name",
+    "tool_input",
+    "tool_result",
+    "tool_is_error",
+    "file_changes",
+    "is_mcp_tool"
+  ],
+  "missing": [
+    "call_ids",
+    "final_model_facing_output",
+    "subagent_lineage"
+  ]
+}

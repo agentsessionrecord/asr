@@ -1,0 +1,22 @@
+{
+  "name": "@agent-session/types",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm run build && tsc -p test/tsconfig.json",
+    "generate": "python3 scripts/generate.py",
+    "check:generated": "python3 scripts/generate.py --check"
+  }
+}

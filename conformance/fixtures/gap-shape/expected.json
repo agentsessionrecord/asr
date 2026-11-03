@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-039",
+    "code": "schema.minimum",
+    "line": 2,
+    "pointer": "/count"
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "sourceRevision": "f10bd913c839ee09a4af3a0cf5e36c159ff17c9b",
+  "fixtureKind": "synthetic",
+  "repository": "https://github.com/coder/xum",
+  "testedVersions": {
+    "xum": "0.32.1"
+  },
+  "paths": [
+    "docs/hooks/plugins.mdx",
+    "src/node/services/agentPlugins/codexHookService.ts",
+    "src/node/services/agentPlugins/openaiMcpAuth.ts",
+    "src/node/services/mcpServerManager.ts",
+    "src/node/services/tools/withHooks.ts"
+  ]
+}

@@ -1,0 +1,205 @@
+[
+  {
+    "id": "evt_synthetic_0",
+    "type": "session.created",
+    "created": 1767225600000,
+    "durable": {
+      "aggregateID": "ses_synthetic",
+      "seq": 0,
+      "version": 1
+    },
+    "data": {
+      "sessionID": "ses_synthetic",
+      "projectID": "global",
+      "location": {
+        "directory": "/work/demo"
+      },
+      "slug": "demo",
+      "version": "2.2.4",
+      "agent": "build",
+      "permissions": []
+    }
+  },
+  {
+    "id": "evt_synthetic_1",
+    "type": "session.inbox.enqueued",
+    "created": 1767225600001,
+    "durable": {
+      "aggregateID": "ses_synthetic",
+      "seq": 1,
+      "version": 1
+    },
+    "data": {
+      "sessionID": "ses_synthetic",
+      "inboxID": "msg_prompt",
+      "item": {
+        "type": "user",
+        "delivery": "steer",
+        "payload": {
+          "text": "Read the synthetic fixture."
+        }
+      }
+    }
+  },
+  {
+    "id": "evt_synthetic_2",
+    "type": "session.inbox.delivered",
+    "created": 1767225600002,
+    "durable": {
+      "aggregateID": "ses_synthetic",
+      "seq": 2,
+      "version": 1
+    },
+    "data": {
+      "sessionID": "ses_synthetic",
+      "inboxID": "msg_prompt"
+    }
+  },
+  {
+    "id": "evt_synthetic_3",
+    "type": "session.step.started",
+    "created": 1767225600003,
+    "durable": {
+      "aggregateID": "ses_synthetic",
+      "seq": 3,
+      "version": 1
+    },
+    "data": {
+      "sessionID": "ses_synthetic",
+      "assistantMessageID": "msg_reply",
+      "agent": "build",
+      "model": {
+        "providerID": "example",
+        "id": "requested-model"
+      },
+      "started": 1767225600003
+    }
+  },
+  {
+    "id": "evt_synthetic_4",
+    "type": "session.tool.input.started",
+    "created": 1767225600004,
+    "durable": {
+      "aggregateID": "ses_synthetic",
+      "seq": 4,
+      "version": 1
+    },
+    "data": {
+      "sessionID": "ses_synthetic",
+      "assistantMessageID": "msg_reply",
+      "id": "read-1",
+      "name": "read"
+    }
+  },
+  {
+    "id": "evt_synthetic_5",
+    "type": "session.tool.called",
+    "created": 1767225600005,
+    "durable": {
+      "aggregateID": "ses_synthetic",
+      "seq": 5,
+      "version": 1
+    },
+    "data": {
+      "sessionID": "ses_synthetic",
+      "assistantMessageID": "msg_reply",
+      "id": "read-1",
+      "input": {
+        "path": "/work/demo/input.txt"
+      },
+      "executed": true
+    }
+  },
+  {
+    "id": "evt_synthetic_6",
+    "type": "session.synthetic",
+    "created": 1767225600000,
+    "durable": {
+      "aggregateID": "ses_synthetic",
+      "seq": 6,
+      "version": 1
+    },
+    "data": {
+      "sessionID": "ses_synthetic",
+      "text": "A recorded notice."
+    }
+  },
+  {
+    "id": "evt_synthetic_7",
+    "type": "session.tool.success",
+    "created": 1767225600007,
+    "durable": {
+      "aggregateID": "ses_synthetic",
+      "seq": 7,
+      "version": 2
+    },
+    "data": {
+      "sessionID": "ses_synthetic",
+      "assistantMessageID": "msg_reply",
+      "id": "read-1",
+      "content": [
+        {
+          "type": "text",
+          "text": "synthetic\n"
+        }
+      ],
+      "executed": true
+    }
+  },
+  {
+    "id": "evt_synthetic_8",
+    "type": "session.text.ended",
+    "created": 1767225600008,
+    "durable": {
+      "aggregateID": "ses_synthetic",
+      "seq": 8,
+      "version": 1
+    },
+    "data": {
+      "sessionID": "ses_synthetic",
+      "assistantMessageID": "msg_reply",
+      "ordinal": 0,
+      "text": "The fixture contains synthetic text."
+    }
+  },
+  {
+    "id": "evt_synthetic_9",
+    "type": "session.step.ended",
+    "created": 1767225600009,
+    "durable": {
+      "aggregateID": "ses_synthetic",
+      "seq": 9,
+      "version": 1
+    },
+    "data": {
+      "sessionID": "ses_synthetic",
+      "assistantMessageID": "msg_reply",
+      "finish": "stop",
+      "rawFinish": "stop",
+      "cost": 0,
+      "tokens": {
+        "input": 10,
+        "output": 4,
+        "reasoning": 2,
+        "cache": {
+          "read": 3,
+          "write": 1
+        }
+      }
+    }
+  },
+  {
+    "id": "evt_synthetic_10",
+    "type": "session.permissions",
+    "created": 1767225600010,
+    "durable": {
+      "aggregateID": "ses_synthetic",
+      "seq": 10,
+      "version": 1
+    },
+    "data": {
+      "sessionID": "ses_synthetic",
+      "permissions": []
+    }
+  }
+]

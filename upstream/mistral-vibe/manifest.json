@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "agent": "mistral-vibe",
+  "base": "338ad4bf0f73c4dd879d667cf7ab011555ae1751",
+  "head": "d51f3bceb46c7fd55fb295ebfb54f9d63b7168af",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "d51f3bceb46c7fd55fb295ebfb54f9d63b7168af",
+      "sha256": "441b3f1fa64abc41e8096f2ccf10e9a49b23941676ba4c66330ff9d1879f00f6"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "../kimi-code/contracts.mjs",
+      "mistral-vibe"
+    ]
+  ],
+  "provenance": {
+    "repository": "https://github.com/mistralai/mistral-vibe",
+    "base": "338ad4bf0f73c4dd879d667cf7ab011555ae1751",
+    "head": "d51f3bceb46c7fd55fb295ebfb54f9d63b7168af",
+    "branch": "codex/fix2-repo",
+    "files": {
+      "patches/0001-native-agent-session-export.patch": "441b3f1fa64abc41e8096f2ccf10e9a49b23941676ba4c66330ff9d1879f00f6",
+      "live-test.json": "9fd1b42e04cfebc31ef18f988d8c9e3f04836ff5f1b2ca4b0607701ead6418d7",
+      "samples/native/native.json": "16f1d0bc2102031ffbaf7200ccf7587543cbf56479f4921e98670f9fa49361ff",
+      "samples/asr/session.jsonl": "6a8cd2114a1b01ef30fbc17e0fb50fafec54356ade6ec68b56ed1ccfa774d364",
+      "PROPOSAL.md": "6f65b917770205f2c329576d53a7d96588da4b0bc89d56682ecf81785ae02e7a",
+      "TESTS.json": "0244c437e0a0fbfe98d560f8b862ab13368180e72279072785fe44e0d65ec50c",
+      ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944"
+    }
+  },
+  "files": {
+    ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
+    "PROPOSAL.md": "6f65b917770205f2c329576d53a7d96588da4b0bc89d56682ecf81785ae02e7a",
+    "README.md": "59274a35bb69524b8ce4cc3ecfd00dfd217c6977b46f4b436c2aba1c0f63c71d",
+    "TESTS.json": "0244c437e0a0fbfe98d560f8b862ab13368180e72279072785fe44e0d65ec50c",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "live-test.json": "9fd1b42e04cfebc31ef18f988d8c9e3f04836ff5f1b2ca4b0607701ead6418d7",
+    "patches/0001-native-agent-session-export.patch": "441b3f1fa64abc41e8096f2ccf10e9a49b23941676ba4c66330ff9d1879f00f6",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "6a8cd2114a1b01ef30fbc17e0fb50fafec54356ade6ec68b56ed1ccfa774d364",
+    "samples/native/native.json": "16f1d0bc2102031ffbaf7200ccf7587543cbf56479f4921e98670f9fa49361ff"
+  }
+}

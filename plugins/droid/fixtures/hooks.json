@@ -1,0 +1,83 @@
+[
+  {
+    "event": "SessionStart",
+    "payload": {
+      "hook_event_name": "SessionStart",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "source": "startup",
+      "permission_mode": "off"
+    }
+  },
+  {
+    "event": "UserPromptSubmit",
+    "payload": {
+      "hook_event_name": "UserPromptSubmit",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "prompt": "Create a synthetic file.",
+      "has_images": false
+    }
+  },
+  {
+    "event": "PreToolUse",
+    "payload": {
+      "hook_event_name": "PreToolUse",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_name": "Create",
+      "tool_input": {
+        "file_path": "/work/synthetic/file.txt",
+        "content": "synthetic"
+      }
+    }
+  },
+  {
+    "event": "PostToolUse",
+    "payload": {
+      "hook_event_name": "PostToolUse",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_name": "Create",
+      "tool_input": {
+        "file_path": "/work/synthetic/file.txt",
+        "content": "synthetic"
+      },
+      "tool_response": {
+        "success": true
+      }
+    }
+  },
+  {
+    "event": "Notification",
+    "payload": {
+      "hook_event_name": "Notification",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "message": "Permission requested.",
+      "notification_type": "permission_prompt"
+    }
+  },
+  {
+    "event": "Stop",
+    "payload": {
+      "hook_event_name": "Stop",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "stop_hook_active": false,
+      "tool_execution_count": 1,
+      "elapsed_time": 1
+    }
+  },
+  {
+    "event": "SessionEnd",
+    "payload": {
+      "hook_event_name": "SessionEnd",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "reason": "other",
+      "session_duration_ms": 1,
+      "message_count": 1
+    }
+  }
+]

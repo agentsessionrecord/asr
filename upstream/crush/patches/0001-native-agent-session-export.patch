@@ -1,0 +1,297 @@
+From 794e53e86087dd945473bb044a57ffeceda9ad50 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:27 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ internal/asr/export.go         | 153 +++++++++++++++++++++++++++++++++
+ internal/asr/export_test.go    |  50 +++++++++++
+ internal/cmd/session_export.go |  60 +++++++++++++
+ 3 files changed, 263 insertions(+)
+ create mode 100644 internal/asr/export.go
+ create mode 100644 internal/asr/export_test.go
+ create mode 100644 internal/cmd/session_export.go
+
+diff --git a/internal/asr/export.go b/internal/asr/export.go
+new file mode 100644
+index 0000000..c876bb5
+--- /dev/null
++++ b/internal/asr/export.go
+@@ -0,0 +1,153 @@
++// Package asr exports native message snapshots as Agent Session Record.
++package asr
++
++import (
++	"encoding/json"
++	"fmt"
++	"io"
++	"math"
++	"strconv"
++	"strings"
++	"time"
++	"unicode"
++
++	"github.com/charmbracelet/crush/internal/message"
++	"github.com/charmbracelet/crush/internal/session"
++)
++
++// Export preserves the store's message and content-part order without reading
++// current files, provider settings, or opaque provider metadata.
++func Export(w io.Writer, sess session.Session, messages []message.Message) error {
++	if sess.ID == "" {
++		return fmt.Errorf("native session ID is empty")
++	}
++	type record = map[string]any
++	rows := []record{{
++		"type": "session", "id": "header", "formatVersion": "0.1",
++		"agent": record{"name": "crush"}, "sessionId": sess.ID,
++		"producer": record{"name": "crush-asr-export", "version": "1", "method": "native", "source": "crush-sqlite"},
++		"missing":  []string{"approvals", "agent_settings", "tools", "usage", "model", "file_changes", "commits", "subagents", "copies", "media", "native_metadata", "message_author", "snapshot_order", "reasoning", "timestamps"},
++	}}
++	if sess.CreatedAt != 0 {
++		rows[0]["startedAt"] = time.Unix(sess.CreatedAt, 0).UTC().Format(time.RFC3339)
++	}
++	// Mutable session titles are omitted because their observation time is absent.
++	lastResult := map[string]int{}
++	used := map[string]bool{"header": true}
++	for mi, msg := range messages {
++		if msg.SessionID != sess.ID {
++			return fmt.Errorf("message belongs to another session")
++		}
++		for pi, part := range msg.Parts {
++			id := fmt.Sprintf("message-%d-part-%d", mi, pi)
++			if pi == 0 && msg.ID != "" && !used[msg.ID] && len(msg.ID) <= 256 && strings.IndexFunc(msg.ID, unicode.IsControl) < 0 {
++				id = msg.ID
++			}
++			for used[id] {
++				id = "derived-" + id
++			}
++			used[id] = true
++			r := record{"id": id}
++			switch p := part.(type) {
++			case message.TextContent, message.ReasoningContent:
++				if msg.Role != message.Assistant && msg.Role != message.User && msg.Role != message.System {
++					continue
++				}
++				var content record
++				switch p := p.(type) {
++				case message.TextContent:
++					content = record{"type": "text", "text": p.Text}
++				case message.ReasoningContent:
++					content = asrReasoning(p.Thinking, false)
++				}
++				r["type"], r["role"], r["content"] = "message", string(msg.Role), []record{content}
++				if msg.Role == message.Assistant {
++					r["author"] = "model"
++				}
++				if msg.IsSummaryMessage {
++					r["origin"], r["author"] = "compaction", "harness"
++				}
++			case message.ToolCall:
++				if p.ID == "" {
++					return fmt.Errorf("native tool call ID is empty")
++				}
++				r["type"], r["callId"], r["name"] = "tool_call", p.ID, p.Name
++				if json.Valid([]byte(p.Input)) {
++					decoder := json.NewDecoder(strings.NewReader(p.Input))
++					decoder.UseNumber()
++					var input any
++					if err := decoder.Decode(&input); err != nil {
++						return err
++					}
++					r["input"] = safeNumbers(input)
++				} else {
++					r["inputText"] = p.Input
++				}
++				if msg.Role == message.Assistant {
++					r["requestedBy"] = "model"
++				}
++			case message.ToolResult:
++				r["type"], r["status"] = "tool_result", "completed"
++				if p.IsError {
++					r["status"] = "failed"
++				}
++				if p.ToolCallID != "" {
++					if previous, ok := lastResult[p.ToolCallID]; ok {
++						rows[previous] = nil
++					}
++					lastResult[p.ToolCallID] = len(rows)
++					r["callId"] = p.ToolCallID
++				}
++				r["content"] = []record{{"type": "text", "text": p.Content}}
++				if p.Data != "" {
++					r["truncated"] = true
++				}
++			case message.Finish:
++				continue
++			default:
++				r["type"], r["reason"], r["detail"] = "gap", "not_recorded", "This native content part is not mapped."
++			}
++			rows = append(rows, r)
++		}
++	}
++	encoder := json.NewEncoder(w)
++	encoder.SetEscapeHTML(false)
++	for _, row := range rows {
++		if row != nil {
++			if err := encoder.Encode(row); err != nil {
++				return fmt.Errorf("write ASR: %w", err)
++			}
++		}
++	}
++	return nil
++}
++
++// ASR opaque values preserve large numbers as strings instead of rounding them.
++func safeNumbers(value any) any {
++	switch value := value.(type) {
++	case json.Number:
++		number, err := strconv.ParseFloat(string(value), 64)
++		if err != nil || (math.Trunc(number) == number && math.Abs(number) > 9007199254740991) {
++			return string(value)
++		}
++	case map[string]any:
++		for key, item := range value {
++			value[key] = safeNumbers(item)
++		}
++	case []any:
++		for index, item := range value {
++			value[index] = safeNumbers(item)
++		}
++	}
++	return value
++}
++
++func asrReasoning(text string, summary bool) map[string]any {
++	if text == "" {
++		return map[string]any{"type": "reasoning", "visibility": "omitted"}
++	}
++	if summary {
++		return map[string]any{"type": "reasoning", "visibility": "summary", "summary": []string{text}}
++	}
++	return map[string]any{"type": "reasoning", "text": text}
++}
+diff --git a/internal/asr/export_test.go b/internal/asr/export_test.go
+new file mode 100644
+index 0000000..5b2f7d5
+--- /dev/null
++++ b/internal/asr/export_test.go
+@@ -0,0 +1,50 @@
++package asr
++
++import (
++	"bytes"
++	"encoding/json"
++	"strings"
++	"testing"
++
++	"github.com/charmbracelet/crush/internal/message"
++	"github.com/charmbracelet/crush/internal/session"
++	"github.com/stretchr/testify/require"
++)
++
++func TestExportKeepsTextAndFinalResultAtCompletion(t *testing.T) {
++	t.Parallel()
++	sess := session.Session{ID: "synthetic-session"}
++	messages := []message.Message{
++		{ID: "m1", SessionID: sess.ID, Role: message.Assistant, Parts: []message.ContentPart{
++			message.ReasoningContent{Thinking: "Visible", Signature: "DO-NOT-COPY"},
++			message.TextContent{Text: "Exact\r\n"},
++			message.ToolCall{ID: "c", Name: "view", Input: `{"n":9007199254740993}`},
++		}},
++		{ID: "m2", SessionID: sess.ID, Role: message.Tool, Parts: []message.ContentPart{message.ToolResult{ToolCallID: "c", Content: "old"}}},
++		{ID: "m3", SessionID: sess.ID, Role: message.User, Parts: []message.ContentPart{message.TextContent{Text: "Between"}}},
++		{ID: "m4", SessionID: sess.ID, Role: message.Tool, Parts: []message.ContentPart{message.ToolResult{ToolCallID: "c", Content: "new", IsError: true}}},
++	}
++	var output bytes.Buffer
++	require.NoError(t, Export(&output, sess, messages))
++	require.NotContains(t, output.String(), "DO-NOT-COPY")
++	var rows []map[string]any
++	for line := range strings.SplitSeq(strings.TrimSuffix(output.String(), "\n"), "\n") {
++		var row map[string]any
++		require.NoError(t, json.Unmarshal([]byte(line), &row))
++		rows = append(rows, row)
++	}
++	require.Len(t, rows, 6)
++	require.Equal(t, "failed", rows[5]["status"])
++	require.Equal(t, "Between", rows[4]["content"].([]any)[0].(map[string]any)["text"])
++	require.Equal(t, map[string]any{"n": "9007199254740993"}, rows[3]["input"])
++	require.NotContains(t, rows[4], "author")
++	var again bytes.Buffer
++	require.NoError(t, Export(&again, sess, messages))
++	require.Equal(t, output.String(), again.String())
++}
++
++func TestExportRejectsMissingIdentityAndForeignMessages(t *testing.T) {
++	t.Parallel()
++	require.Error(t, Export(&bytes.Buffer{}, session.Session{}, nil))
++	require.Error(t, Export(&bytes.Buffer{}, session.Session{ID: "s"}, []message.Message{{SessionID: "other"}}))
++}
+diff --git a/internal/cmd/session_export.go b/internal/cmd/session_export.go
+new file mode 100644
+index 0000000..1864d91
+--- /dev/null
++++ b/internal/cmd/session_export.go
+@@ -0,0 +1,60 @@
++package cmd
++
++import (
++	"crypto/sha256"
++	"fmt"
++	"os"
++	"path/filepath"
++
++	"github.com/charmbracelet/crush/internal/asr"
++	"github.com/spf13/cobra"
++)
++
++func init() {
++	command := &cobra.Command{
++		Use: "export", Short: "Export one session as Agent Session Record",
++		Args: cobra.NoArgs,
++		RunE: func(command *cobra.Command, _ []string) error {
++			format, _ := command.Flags().GetString("format")
++			id, _ := command.Flags().GetString("session")
++			output, _ := command.Flags().GetString("output")
++			if format != "agent-session" || id == "" {
++				return fmt.Errorf("use --format agent-session and one --session")
++			}
++			context, services, cleanup, err := sessionSetup(command)
++			if err != nil {
++				return err
++			}
++			defer cleanup()
++			sess, err := resolveSessionID(context, services.sessions, id)
++			if err != nil {
++				return err
++			}
++			messages, err := services.messages.List(context, sess.ID)
++			if err != nil {
++				return err
++			}
++			if output == "" {
++				return asr.Export(command.OutOrStdout(), sess, messages)
++			}
++			if err := os.MkdirAll(output, 0o700); err != nil {
++				return err
++			}
++			name := fmt.Sprintf("%x.jsonl", sha256.Sum256([]byte(sess.ID)))
++			file, err := os.OpenFile(filepath.Join(output, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
++			if err != nil {
++				return err
++			}
++			writeErr := asr.Export(file, sess, messages)
++			closeErr := file.Close()
++			if writeErr != nil {
++				return writeErr
++			}
++			return closeErr
++		},
++	}
++	command.Flags().String("format", "agent-session", "Export format")
++	command.Flags().String("session", "", "Native session ID or unique hash")
++	command.Flags().String("output", "", "Output directory, otherwise stdout")
++	sessionCmd.AddCommand(command)
++}
+
+base-commit: b576f95896704c88ed84b2f16c3c346d6c58cb42

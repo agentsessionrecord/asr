@@ -1,0 +1,3 @@
+-- Authored native storage example. All content is synthetic.
+CREATE TABLE conversations(inner_conversation_id INTEGER PRIMARY KEY,conversation_id TEXT UNIQUE,content TEXT,title TEXT,token_usage INTEGER);
+INSERT INTO conversations VALUES(42,'example','[{"id":"prompt","role":"user","content":"Read a file."},{"id":"assistant","role":"assistant","content":"Reading.","tool_calls":[{"id":"read-1","function":{"name":"read","arguments":"{\"path\":\"test.txt\"}"}}]},{"id":"result","role":"tool","tool_call_id":"read-1","content":"hello","is_error":false},{"role":"_checkpoint","content":{"id":"checkpoint"}}]','Example',18);

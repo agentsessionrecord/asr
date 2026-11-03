@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "sessionId": "cline-sample",
+  "system_prompt": "Keep exact text.\n",
+  "origin": {
+    "parentThreadId": "parent#two"
+  },
+  "messages": [
+    {
+      "id": "prompt",
+      "role": "user",
+      "content": "  Read src/parser.py.\n"
+    },
+    {
+      "id": "answer",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Reading.\n"
+        },
+        {
+          "type": "tool_use",
+          "id": "read-1",
+          "name": "read_file",
+          "input": {
+            "path": "src/parser.py",
+            "exact": 9007199254740993
+          }
+        },
+        {
+          "type": "thinking",
+          "thinking": "Inspect content first."
+        }
+      ]
+    },
+    {
+      "id": "result",
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "read-1",
+          "is_error": false,
+          "content": [
+            {
+              "type": "text",
+              "text": "  ready\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "empty",
+      "role": "assistant",
+      "content": ""
+    }
+  ]
+}

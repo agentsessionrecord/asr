@@ -1,0 +1,6 @@
+{"session_id":"synthetic-gemini","cwd":"/work/synthetic","hook_event_name":"SessionStart","source":"startup"}
+{"session_id":"synthetic-gemini","hook_event_name":"BeforeAgent","prompt":"  Read the synthetic sample.\n"}
+{"session_id":"synthetic-gemini","hook_event_name":"BeforeTool","tool_name":"read_file","tool_input":{"file_path":"requested.txt"}}
+{"session_id":"synthetic-gemini","hook_event_name":"AfterTool","tool_name":"read_file","tool_input":{"file_path":"effective.txt"},"tool_response":{"llmContent":[{"text":"  sample\r\n"},{"document":{"name":"notes.pdf"}}],"returnDisplay":"Different display"}}
+{"session_id":"synthetic-gemini","hook_event_name":"AfterAgent","prompt_response":"  Read the sample.\n","stop_hook_active":false}
+{"session_id":"synthetic-gemini","hook_event_name":"SessionEnd","reason":"exit"}

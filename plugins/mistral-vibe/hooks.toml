@@ -1,0 +1,19 @@
+[[hooks]]
+name = "asr-pre_tool"
+type = "pre_tool"
+command = "python3 /absolute/path/to/plugins/mistral-vibe/record.py"
+timeout = 5
+strict = false
+[[hooks]]
+name = "asr-post_tool"
+type = "post_tool"
+command = "python3 /absolute/path/to/plugins/mistral-vibe/record.py"
+timeout = 5
+strict = false
+
+[[hooks]]
+name = "asr-post_agent"
+type = "post_agent"
+command = "python3 /absolute/path/to/plugins/mistral-vibe/record.py"
+timeout = 5
+strict = false

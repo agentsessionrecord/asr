@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "agent": "openclaw",
+  "base": "15e4d849d5f9a3559132454aeff90fe54781dee9",
+  "head": "f9e3a0aae50713a47a3db75a8f029d6dc2fbbaa9",
+  "patches": [
+    {
+      "path": "patches/0001-feat-define-session-export-records-and-tool-mappings.patch",
+      "commit": "4fc193cd57831c0f4862fc104401762271920353",
+      "sha256": "b1dce49ff628462b0b6a80ad8242998a990d110956c782ff1ff2ad2c9fdab1f1"
+    },
+    {
+      "path": "patches/0002-feat-map-native-transcripts-and-side-store-evidence.patch",
+      "commit": "05d68fef44a2cbacbcf0ccd86b4a3d67f456a759",
+      "sha256": "63b9f4e1395cdc819beb4dcb98396a29c4480cd42171308b604902ec762334f7"
+    },
+    {
+      "path": "patches/0003-feat-read-and-export-native-session-snapshots.patch",
+      "commit": "6feca420fc747d5f71923da33650d8ec0e69fd85",
+      "sha256": "4b31f141b39a702b12652da975b1abb54cdf5648a4f309af35214efe9621528b"
+    },
+    {
+      "path": "patches/0004-test-add-session-export-test-support.patch",
+      "commit": "82c674b445fd1d220fdd79a34cb781a081b050cc",
+      "sha256": "da146b81a2acd31462a295522f360aa4b2fc6e817976bcab50bf16f1e8a7912a"
+    },
+    {
+      "path": "patches/0005-feat-wire-native-session-export-into-the-CLI.patch",
+      "commit": "6609fb7cb23847b94349200a18e2a79fc0a12160",
+      "sha256": "71e8ad758a3c213d600111789b6f3dba689eb3dd43ee0cac57864a0682479b90"
+    },
+    {
+      "path": "patches/0006-test-cover-native-session-export-boundaries.patch",
+      "commit": "70c3e78252d4a8da63de0cd12fa4e7b9c4042e7e",
+      "sha256": "0e7036231dff9c24edaf289ea6adad98c165f8fda360ca1829f7423a816072c4"
+    },
+    {
+      "path": "patches/0007-fix-preserve-provider-reasoning-summaries-in-exports.patch",
+      "commit": "6d0b7e76631908d061dd7f50fa8b15ef6b4d3be6",
+      "sha256": "1a97d57e6ac1a97e4d3126f383beacf23bcff4a715fa5728005db8f1f1ef7178"
+    },
+    {
+      "path": "patches/0008-feat-register-session-export-discovery-on-request.patch",
+      "commit": "f9e3a0aae50713a47a3db75a8f029d6dc2fbbaa9",
+      "sha256": "6a97ab69db0bb10dd2581430ddc15fa8d5a620b718a51532a3be5fdf51085053"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "contracts.mjs",
+      "openclaw"
+    ]
+  ],
+  "provenance": {
+    "upstreamBase": "15e4d849d5f9a3559132454aeff90fe54781dee9",
+    "refreshBase": "c3ad0ed5fdf27f81702fe2742b4c7b6be2be04e3",
+    "implementationRevision": "f9e3a0aae50713a47a3db75a8f029d6dc2fbbaa9",
+    "implementationBranch": "codex/fix3-docs",
+    "sampleFiles": {
+      "samples/asr/session.jsonl": "2e71de44df66f6ec29e2c3c6ca5f274f823b74621f52c03852384892c8260212",
+      "samples/native/source.json": "9802ad8a4fee6a7ed3f97e05c57136637cbafcc296be453a1e1892e7ff1cae62"
+    },
+    "patchSeries": [
+      "patches/0001-feat-define-session-export-records-and-tool-mappings.patch",
+      "patches/0002-feat-map-native-transcripts-and-side-store-evidence.patch",
+      "patches/0003-feat-read-and-export-native-session-snapshots.patch",
+      "patches/0004-test-add-session-export-test-support.patch",
+      "patches/0005-feat-wire-native-session-export-into-the-CLI.patch",
+      "patches/0006-test-cover-native-session-export-boundaries.patch",
+      "patches/0007-fix-preserve-provider-reasoning-summaries-in-exports.patch",
+      "patches/0008-feat-register-session-export-discovery-on-request.patch"
+    ]
+  },
+  "files": {
+    ".gitattributes": "feeab3231951b683b59f27bf05a3d3feb324a87543375f52d572a6a7d9d71681",
+    "PROPOSAL.md": "f96944c4f0f7578e753d9b0e611eee152d5cdcd6681879baef851e0406ef6710",
+    "README.md": "d2fda70ea23425589acdcae4d5850ce76f202db81d7e9c31d9da97518f84a16e",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "contracts.mjs": "e380dc768ab0482bce98a1384c945187f215126e2034526422ffb580a8fc7f95",
+    "patches/0001-feat-define-session-export-records-and-tool-mappings.patch": "b1dce49ff628462b0b6a80ad8242998a990d110956c782ff1ff2ad2c9fdab1f1",
+    "patches/0002-feat-map-native-transcripts-and-side-store-evidence.patch": "63b9f4e1395cdc819beb4dcb98396a29c4480cd42171308b604902ec762334f7",
+    "patches/0003-feat-read-and-export-native-session-snapshots.patch": "4b31f141b39a702b12652da975b1abb54cdf5648a4f309af35214efe9621528b",
+    "patches/0005-feat-wire-native-session-export-into-the-CLI.patch": "71e8ad758a3c213d600111789b6f3dba689eb3dd43ee0cac57864a0682479b90",
+    "patches/0006-test-cover-native-session-export-boundaries.patch": "0e7036231dff9c24edaf289ea6adad98c165f8fda360ca1829f7423a816072c4",
+    "patches/0007-fix-preserve-provider-reasoning-summaries-in-exports.patch": "1a97d57e6ac1a97e4d3126f383beacf23bcff4a715fa5728005db8f1f1ef7178",
+    "patches/0008-feat-register-session-export-discovery-on-request.patch": "6a97ab69db0bb10dd2581430ddc15fa8d5a620b718a51532a3be5fdf51085053",
+    "reproduce-native.mjs": "3d6f926ac4f0ebdf331a7fa3a84bff033cc3a03f618f4d742e92605f830bf48e",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "2e71de44df66f6ec29e2c3c6ca5f274f823b74621f52c03852384892c8260212",
+    "samples/native/source.json": "9802ad8a4fee6a7ed3f97e05c57136637cbafcc296be453a1e1892e7ff1cae62",
+    "validation.json": "45e28e99238e6ee447ef5b6eba869b7d74a0f5de3ecc6602db18526a548f8868",
+    "patches/0004-test-add-session-export-test-support.patch": "da146b81a2acd31462a295522f360aa4b2fc6e817976bcab50bf16f1e8a7912a"
+  },
+  "privacyExceptions": {
+    "patches/0006-test-cover-native-session-export-boundaries.patch": [
+      {
+        "line": 456,
+        "code": "sensitive-assignment",
+        "lineSha256": "0a14585656df82ee0ebfc7bd2887326353b58c502dd2cc7372ada34fc3acde64",
+        "reason": "Synthetic upstream regression sentinel for secret exclusion."
+      }
+    ],
+    "patches/0004-test-add-session-export-test-support.patch": [
+      {
+        "line": 96,
+        "code": "sensitive-assignment",
+        "lineSha256": "901117aac15092fdcadb336323a344a9bd78588f71a1120ea806238d82c8c9f3",
+        "reason": "Synthetic upstream test account label."
+      },
+      {
+        "line": 479,
+        "code": "sensitive-assignment",
+        "lineSha256": "4f9d1cf1378161d8ab2c2691517dea8c37c941b840a9eab3a22309173fa0c66f",
+        "reason": "Synthetic upstream test account label."
+      }
+    ]
+  }
+}

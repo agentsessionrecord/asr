@@ -1,0 +1,2 @@
+# Git mail patches contain space-prefixed context and a signature separator.
+*.patch -whitespace

@@ -1,0 +1,219 @@
+From 6609fb7cb23847b94349200a18e2a79fc0a12160 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 16:26:17 -0500
+Subject: [PATCH 5/8] feat: wire native session export into the CLI
+
+---
+ src/cli/command-catalog.ts                    |  5 ++
+ src/cli/command-path-policy.test.ts           | 10 +++
+ .../register.status-health-sessions.test.ts   | 24 ++++++
+ .../register.status-health-sessions.ts        | 26 ++++++
+ src/commands/sessions-export.ts               | 79 +++++++++++++++++++
+ 5 files changed, 144 insertions(+)
+ create mode 100644 src/commands/sessions-export.ts
+
+diff --git a/src/cli/command-catalog.ts b/src/cli/command-catalog.ts
+index b21d6c4b560..903f89de911 100644
+--- a/src/cli/command-catalog.ts
++++ b/src/cli/command-catalog.ts
+@@ -252,6 +252,11 @@ export const cliCommandCatalog: readonly CliCommandCatalogEntry[] = [
+     },
+     route: { id: "sessions" },
+   },
++  {
++    commandPath: ["sessions", "export"],
++    exact: true,
++    policy: { ...PASSIVE_STARTUP_POLICY, hideBanner: true, ownsProtocolStdout: true },
++  },
+   {
+     commandPath: ["agents", "list"],
+     // Output combines config with shared-state provenance and optional read-only
+diff --git a/src/cli/command-path-policy.test.ts b/src/cli/command-path-policy.test.ts
+index ce7d67c5805..8ed0a3eb05c 100644
+--- a/src/cli/command-path-policy.test.ts
++++ b/src/cli/command-path-policy.test.ts
+@@ -100,6 +100,16 @@ describe("command-path-policy", () => {
+     ],
+     ["configure", { configGuard: "skip", stateStoreGuard: "run" }],
+     ["config file", { ...skip, ensureCliPath: false, ownsProtocolStdout: true }],
++    [
++      "sessions export",
++      {
++        ...skip,
++        loadPlugins: "never",
++        ensureCliPath: false,
++        hideBanner: true,
++        ownsProtocolStdout: true,
++      },
++    ],
+     ["plugins update", { hideBanner: true }],
+     ["plugins list|plugins lint", { ...skip, ensureCliPath: false }],
+     [
+diff --git a/src/cli/program/register.status-health-sessions.test.ts b/src/cli/program/register.status-health-sessions.test.ts
+index b921cf2635d..1a0361f2f93 100644
+--- a/src/cli/program/register.status-health-sessions.test.ts
++++ b/src/cli/program/register.status-health-sessions.test.ts
+@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
+   compact: vi.fn(),
+   lifecycle: vi.fn(),
+   exportTrajectory: vi.fn(),
++  exportAsr: vi.fn(),
+   ownerLoaded: vi.fn(),
+   setVerbose: vi.fn(),
+   runtime: { log: vi.fn(), error: vi.fn(), exit: vi.fn() },
+@@ -51,6 +52,8 @@ vi.mock("../../commands/export-trajectory.js", () => {
+   mocks.ownerLoaded();
+   return { exportTrajectoryCommand: mocks.exportTrajectory };
+ });
++// mock-isolation: Verify parser routing; native database behavior has its own fixture.
++vi.mock("../../commands/sessions-export.js", () => ({ sessionsExportCommand: mocks.exportAsr }));
+ vi.mock("../../globals.js", () => ({ setVerbose: mocks.setVerbose }));
+ vi.mock("../../runtime.js", async (importOriginal) => ({
+   ...(await importOriginal<typeof import("../../runtime.js")>()),
+@@ -215,3 +218,24 @@ it("documents retained delete archives and local memory cleanup", () => {
+   expect(help).toContain("on the Gateway host or container using its state and configuration");
+   expect(help).toContain("including for global keys");
+ });
++
++it("dispatches ASR export selectors and inherited agent selection", async () => {
++  await run([
++    "sessions",
++    "--agent",
++    "main",
++    "export",
++    "--format",
++    "agent-session",
++    "--session-key",
++    key,
++    "--out",
++    "/tmp/asr-example",
++  ]);
++  expectOptions(mocks.exportAsr, {
++    agent: "main",
++    format: "agent-session",
++    sessionKey: key,
++    out: "/tmp/asr-example",
++  });
++});
+diff --git a/src/cli/program/register.status-health-sessions.ts b/src/cli/program/register.status-health-sessions.ts
+index b49e92d40ed..beaed988d43 100644
+--- a/src/cli/program/register.status-health-sessions.ts
++++ b/src/cli/program/register.status-health-sessions.ts
+@@ -379,6 +379,32 @@ export function registerStatusHealthSessionsCommands(program: Command) {
+       ),
+     );
+ 
++  sessionsCmd
++    .command("export")
++    .description(
++      "Export stored windows as an Agent Session Record archive (contains private content)",
++    )
++    .option("--format <format>", "Export format: agent-session")
++    .option("--session-key <key>", "Export every window of one conversation")
++    .option(
++      "--session <id...>",
++      "Export selected native window IDs (one window defaults to stdout)",
++    )
++    .option("--all", "Export all stored windows", false)
++    .option("--out <directory>", "New directory of ASR session files")
++    .option("--output <directory>", "Alias for --out")
++    .option("--agent <id>", "Agent id to export")
++    .option("--all-agents", "Export every configured agent", false)
++    .option("--store <path>", "Session store selector path")
++    .action(
++      localSessionsAction(
++        "export",
++        ["json", "active", "limit", "verbose"],
++        "ASR export selects stored windows independently of session-list filters",
++        async () => (await import("../../commands/sessions-export.js")).sessionsExportCommand,
++      ),
++    );
++
+   sessionsCmd
+     .command("export-trajectory")
+     .description("Export a redacted trajectory bundle for a stored session")
+diff --git a/src/commands/sessions-export.ts b/src/commands/sessions-export.ts
+new file mode 100644
+index 00000000000..eb3bb099770
+--- /dev/null
++++ b/src/commands/sessions-export.ts
+@@ -0,0 +1,79 @@
++import { throwExpectedCliError } from "../cli/failure-output.js";
++import { captureRuntimeConfigAsyncReader } from "../config/config.js";
++import { resolveSqliteTargetFromSessionStorePath } from "../config/sessions/session-sqlite-target.js";
++import { writeRuntimeJson, type RuntimeEnv } from "../runtime.js";
++import { convertAgentSession, exportAgentSessionBundle } from "../sessions/agent-session-export.js";
++import { readAgentSessionExport } from "../sessions/agent-session-export.source.js";
++import type { AsrRecord } from "../sessions/agent-session-export.types.js";
++import { withArtifactPreservingStateReads } from "../state/artifact-preserving-state-reads.js";
++import { resolveCommandSessionStoreTargets } from "./session-store-targets.js";
++
++type SessionsExportOptions = {
++  format?: string;
++  sessionKey?: string;
++  session?: string[];
++  all?: boolean;
++  out?: string;
++  output?: string;
++  store?: string;
++  agent?: string;
++  allAgents?: boolean;
++};
++
++export async function sessionsExportCommand(
++  opts: SessionsExportOptions,
++  runtime: RuntimeEnv,
++): Promise<void> {
++  if (opts.format !== "agent-session") {
++    throwExpectedCliError("Use --format agent-session for ASR export");
++  }
++  if (
++    [Boolean(opts.sessionKey), Boolean(opts.session?.length), Boolean(opts.all)].filter(Boolean)
++      .length !== 1
++  ) {
++    throwExpectedCliError("Choose exactly one of --session-key <key>, --session <id...>, or --all");
++  }
++  if (opts.out && opts.output) {
++    throwExpectedCliError("Choose --out or --output, not both");
++  }
++  if (opts.sessionKey !== undefined && !opts.sessionKey.trim()) {
++    throwExpectedCliError("--session-key must not be blank");
++  }
++  const cfg = await withArtifactPreservingStateReads(() => captureRuntimeConfigAsyncReader()(), {
++    agentDatabases: true,
++  });
++  const targets = resolveCommandSessionStoreTargets({ cfg, opts });
++  const selections = targets.map((target) => ({
++    agentId: target.agentId,
++    path: resolveSqliteTargetFromSessionStorePath(target.storePath, { agentId: target.agentId })
++      .path,
++    sessionKey: opts.sessionKey,
++    sessions: opts.session,
++  }));
++  const output = opts.out ?? opts.output;
++  if (!output) {
++    if (opts.session?.length !== 1) {
++      throwExpectedCliError(
++        "Pass --output <directory> for multiple sessions, or select one --session for stdout",
++      );
++    }
++    let count = 0;
++    let records: AsrRecord[] = [];
++    for (const selection of selections) {
++      count += readAgentSessionExport(selection, (source) => {
++        records = convertAgentSession(source).records;
++      });
++    }
++    if (count !== 1) {
++      throwExpectedCliError(`Expected one stored window; found ${count}`);
++    }
++    for (const record of records) {
++      writeRuntimeJson(runtime, record, 0);
++    }
++  } else {
++    const result = exportAgentSessionBundle(selections, output);
++    runtime.error(
++      `Exported ${result.sessions} windows (${result.records} records) to ${result.output}`,
++    );
++  }
++}

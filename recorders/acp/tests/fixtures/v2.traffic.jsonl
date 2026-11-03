@@ -1,0 +1,10 @@
+{"direction": "client", "message": {"id": 1, "method": "session/new", "params": {"cwd": "/work"}, "jsonrpc": "2.0"}}
+{"direction": "agent", "message": {"id": 1, "result": {"sessionId": "s"}, "jsonrpc": "2.0"}}
+{"direction": "agent", "message": {"method": "session/update", "params": {"sessionId": "s", "update": {"sessionUpdate": "agent_message_chunk", "messageId": "m", "content": {"type": "text", "text": "a"}}}, "jsonrpc": "2.0"}}
+{"direction": "agent", "message": {"method": "session/update", "params": {"sessionId": "s", "update": {"sessionUpdate": "tool_call_update", "toolCallId": "c", "name": "execute", "status": "in_progress", "rawInput": {"command": "false"}}}, "jsonrpc": "2.0"}}
+{"direction": "agent", "message": {"id": 2, "method": "session/request_permission", "params": {"sessionId": "s", "title": "Run command", "subject": {"type": "command", "toolCallId": "c", "command": "false", "cwd": "/work"}, "options": [{"optionId": "deny", "name": "Reject once", "kind": "reject_once"}]}, "jsonrpc": "2.0"}}
+{"direction": "client", "message": {"id": 2, "result": {"outcome": {"outcome": "selected", "optionId": "deny"}}, "jsonrpc": "2.0"}}
+{"direction": "agent", "message": {"method": "session/update", "params": {"sessionId": "s", "update": {"sessionUpdate": "tool_call_update", "toolCallId": "c", "status": "failed"}}, "jsonrpc": "2.0"}}
+{"direction": "agent", "message": {"method": "session/update", "params": {"sessionId": "s", "update": {"sessionUpdate": "agent_message_chunk", "messageId": "m", "content": {"type": "text", "text": "b\n"}}}, "jsonrpc": "2.0"}}
+{"direction": "agent", "message": {"method": "session/update", "params": {"sessionId": "s", "update": {"sessionUpdate": "state_update", "state": "idle"}}, "jsonrpc": "2.0"}}
+{"direction": "agent", "message": {"method": "session/update", "params": {"sessionId": "s", "update": {"sessionUpdate": "usage_update", "used": 32, "size": 128}}, "jsonrpc": "2.0"}}

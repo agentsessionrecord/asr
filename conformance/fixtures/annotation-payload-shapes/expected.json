@@ -1,0 +1,51 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-063",
+    "code": "schema.required",
+    "line": 1,
+    "pointer": "/data"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-063",
+    "code": "schema.required",
+    "line": 2,
+    "pointer": "/data"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-063",
+    "code": "schema.required",
+    "line": 3,
+    "pointer": "/data"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-063",
+    "code": "schema.required",
+    "line": 4,
+    "pointer": "/data"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-031",
+    "code": "schema.required",
+    "line": 5,
+    "pointer": "/data"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-031",
+    "code": "schema.required",
+    "line": 5,
+    "pointer": "/data"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-031",
+    "code": "schema.required",
+    "line": 5,
+    "pointer": "/data"
+  }
+]

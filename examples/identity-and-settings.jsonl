@@ -1,0 +1,12 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.coder"},"sessionId":"settings-42","producer":{"name":"example-export","version":"1.0","method":"native"},"user":{"id":"engineer-42","email":"alex@example.com","name":"Alex Rivera","source":"agent_account"}}
+{"type":"session_info","id":"initial-settings","agentSettings":{"mode":"plan","approval":"on-request","sandbox":"read-only"}}
+{"type":"message","id":"prompt-1","turnId":"turn-1","role":"user","author":"human","origin":"prompt","content":[{"type":"text","text":"Plan a check for empty input."}]}
+{"type":"inference","id":"call-1","turnId":"turn-1","model":{"requested":"example-model"},"settings":{"reasoningEffort":"high","maxOutputTokens":2048,"temperature":0,"serviceTier":"standard"},"usage":{"inputTokens":100,"outputTokens":20}}
+{"type":"message","id":"reply-1","turnId":"turn-1","inferenceId":"call-1","role":"assistant","author":"model","content":[{"type":"text","text":"I will check the input before parsing."}]}
+{"type":"inference","id":"call-2","turnId":"turn-1","model":{"requested":"example-model"},"settings":{"reasoningEffort":"high","maxOutputTokens":2048,"temperature":0,"serviceTier":"standard"},"usage":{"inputTokens":120,"outputTokens":10}}
+{"type":"message","id":"reply-2","turnId":"turn-1","inferenceId":"call-2","role":"assistant","author":"model","phase":"final","content":[{"type":"text","text":"Then I will test an empty input."}]}
+{"type":"session_info","id":"mode-change","agentSettings":{"mode":"execute"}}
+{"type":"session_info","id":"policy-change","agentSettings":{"approval":"never","sandbox":"workspace-write"}}
+{"type":"message","id":"notice-1","turnId":"turn-2","role":"user","author":"harness","origin":"notice","content":[{"type":"text","text":"The recorded mode has changed."}]}
+{"type":"inference","id":"call-3","turnId":"turn-2","model":{"requested":"example-model"},"settings":{"reasoningEffort":"medium"},"usage":{"inputTokens":80,"outputTokens":8}}
+{"type":"message","id":"reply-3","turnId":"turn-2","inferenceId":"call-3","role":"assistant","author":"model","phase":"final","content":[{"type":"text","text":"Ready to apply the plan."}]}

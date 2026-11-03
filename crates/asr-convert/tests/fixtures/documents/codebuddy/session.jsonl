@@ -1,0 +1,4 @@
+{"sessionId": "buddy-sample", "cwd": "/work/app", "type": "metadata"}
+{"id": "prompt", "role": "user", "message": "{\"content\": \"<user_query>  Keep these bytes.\\n</user_query>\"}"}
+{"id": "reply", "role": "assistant", "message": {"content": [{"type": "tool_use", "id": "read-1", "name": "read_file", "input": {"path": "src/parser.py", "exact": 9007199254740993}}]}}
+{"id": "result", "role": "tool", "tool_call_id": "read-1", "content": "  ready\n"}

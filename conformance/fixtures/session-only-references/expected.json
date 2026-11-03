@@ -1,0 +1,37 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-011",
+    "code": "schema.pattern",
+    "line": 1,
+    "pointer": "/parent/session"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-011",
+    "code": "schema.pattern",
+    "line": 2,
+    "pointer": "/copiedFrom/session"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-011",
+    "code": "schema.pattern",
+    "line": 2,
+    "pointer": "/from"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-011",
+    "code": "schema.pattern",
+    "line": 3,
+    "pointer": "/subagent/session"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-011",
+    "code": "schema.pattern",
+    "line": 4,
+    "pointer": "/subagent/session"
+  }
+]

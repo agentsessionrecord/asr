@@ -1,0 +1,14 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.search"},"sessionId":"search:fixture","producer":{"name":"synthetic-fixture","version":"1.0","method":"native"},"cwd":"/work/search","parent":{"session":"com.example.search:unavailable","kind":"fork","copiedThrough":"inherited-call"},"extensions":["com.example.search"],"missing":["timestamps"]}
+{"type":"message","id":"inherited","role":"user","author":"human","content":[{"type":"text","text":"Search inherited context."}]}
+{"type":"inference","id":"inherited-call","model":{"requested":"synthetic-model"},"usage":{"inputTokens":500,"outputTokens":10}}
+{"type":"session_info","id":"settings","agentSettings":{"mode":"ask","asks":"always","modelSettings":{"temperature":0,"reasoningEffort":"high"},"externalSandbox":{"kind":"container","source":"setting"}},"tools":[{"name":"read_file","inputSchema":{"type":"object"}}]}
+{"type":"message","id":"prompt 1","role":"user","content":[{"type":"text","text":"Find the searchable quokka phrase.","author":"human","origin":"prompt"},{"type":"resource_link","name":"recorded-link","uri":"http://127.0.0.1:1/never-fetch"},{"type":"future_part","text":"Unfamiliar content stays in raw JSON."}]}
+{"type":"tool_call","id":"read","callId":"read-1","name":"read_file","kind":"read","input":{"path":"src/parser.py"},"locations":[{"path":"src/parser.py","line":1}]}
+{"type":"approval","id":"allow","callId":"read-1","decision":"approved","by":"policy"}
+{"type":"tool_result","id":"read-result","callId":"read-1","status":"completed","inputText":"","content":[{"type":"text","text":"quokka result\n"}],"exec":{"exitCode":0}}
+{"type":"inference","id":"own-call","model":{"requested":"synthetic-model"},"usage":{"inputTokens":0,"outputTokens":2},"cost":{"amount":0,"currency":"USD"}}
+{"type":"file_change","id":"edit","callId":"read-1","path":"src/parser.py","op":"modify","status":"applied","edits":[{"oldText":"before\n","newText":"after\n"}]}
+{"type":"vcs","id":"commit","action":"commit","status":"completed","evidence":"observed","actor":"human","repo":"/work/search","commit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","subject":"Synthetic parser change"}
+{"type":"session_info","id":"settings-update","agentSettings":{"mode":"code","externalSandbox":{},"modelSettings":{"reasoningEffort":null}},"missing":["approvals"],"usage":{"inputTokens":900,"outputTokens":40,"includesSubagents":true}}
+{"type":"gap","id":"gap","reason":"redacted","count":1,"detail":"Synthetic history was removed."}
+{"type":"com.example.search/event","id":"future","_meta":{"com.example.search":{"largeId":"900719925474099312345","decimal":0.123456789012345678901234567890,"falseValue":false,"emptyValue":""}}}

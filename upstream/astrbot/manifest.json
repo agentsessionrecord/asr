@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "agent": "astrbot",
+  "base": "3d92821ad9d90df33fc242e7b159a3260075eb2c",
+  "head": "d9372ee62258d11a0e26fa604e132205451dbddc",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "d9372ee62258d11a0e26fa604e132205451dbddc",
+      "sha256": "dffbe4faa8901f22f43652c3a70059c18b903214a4476db2ae99eefeba7205d4"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "../openhands/contracts.mjs",
+      "astrbot"
+    ]
+  ],
+  "provenance": {
+    "patch": "patches/0001-native-agent-session-export.patch",
+    "sha256": "dffbe4faa8901f22f43652c3a70059c18b903214a4476db2ae99eefeba7205d4",
+    "baseCommit": "3d92821ad9d90df33fc242e7b159a3260075eb2c",
+    "commit": "d9372ee62258d11a0e26fa604e132205451dbddc"
+  },
+  "files": {
+    "PROPOSAL.md": "9dcb780a0a0f6ec86c56d7b4b30d3bc7d29a06ee7f4f2ec2aa9de88ee130043a",
+    "README.md": "646b77f8219715b603d8dd278580cfcdd1e957e0c12c2fb10eb229983af414b5",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "patches/0001-native-agent-session-export.patch": "dffbe4faa8901f22f43652c3a70059c18b903214a4476db2ae99eefeba7205d4",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "9a38859904e247d6be8b1bd24cae008c61a8bd7e14fa3466674ddb95fbf45623",
+    "samples/native/native.json": "5b9ffd70640d707e81eb9e42310841bab2822962a05b263457236d5b6ec29c95"
+  }
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "severity": "warning",
+    "requirement": "ASR-070",
+    "code": "unpaired-result",
+    "line": 2,
+    "pointer": "/callId"
+  },
+  {
+    "severity": "warning",
+    "requirement": "ASR-070",
+    "code": "unpaired-result",
+    "line": 3,
+    "pointer": "/callId"
+  }
+]

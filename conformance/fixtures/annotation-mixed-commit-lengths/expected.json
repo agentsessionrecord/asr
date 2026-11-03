@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-032",
+    "code": "mixed-commit-lengths",
+    "line": 1,
+    "pointer": "/data"
+  }
+]

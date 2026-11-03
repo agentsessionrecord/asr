@@ -1,0 +1,14 @@
+[
+  {
+    "severity": "warning",
+    "code": "manifest-receipt-outside-window",
+    "line": 1,
+    "pointer": "/entries/1/receivedAt"
+  },
+  {
+    "severity": "warning",
+    "code": "manifest-receipt-outside-window",
+    "line": 1,
+    "pointer": "/entries/2/receivedAt"
+  }
+]

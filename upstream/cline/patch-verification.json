@@ -1,0 +1,17 @@
+[
+  {
+    "agent": "cline",
+    "forwardApply": "passed",
+    "exactPatchedFiles": 9
+  },
+  {
+    "agent": "roo-code",
+    "forwardApply": "passed",
+    "exactPatchedFiles": 4
+  },
+  {
+    "agent": "continue",
+    "forwardApply": "passed",
+    "exactPatchedFiles": 6
+  }
+]

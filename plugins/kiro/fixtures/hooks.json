@@ -1,0 +1,93 @@
+[
+  {
+    "event": "SessionStart",
+    "payload": {
+      "hook_event_name": "SessionStart",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic"
+    }
+  },
+  {
+    "event": "UserPromptSubmit",
+    "payload": {
+      "hook_event_name": "UserPromptSubmit",
+      "session_id": "synthetic-session",
+      "prompt": "Run a harmless synthetic command."
+    }
+  },
+  {
+    "event": "PreToolUse",
+    "payload": {
+      "hook_event_name": "PreToolUse",
+      "session_id": "synthetic-session",
+      "tool_name": "execute_bash",
+      "tool_input": {
+        "command": "printf requested"
+      }
+    }
+  },
+  {
+    "event": "PostToolUse",
+    "payload": {
+      "hook_event_name": "PostToolUse",
+      "session_id": "synthetic-session",
+      "tool_name": "execute_bash",
+      "tool_input": {
+        "command": "printf effective"
+      },
+      "tool_response": {
+        "output": "effective\n"
+      }
+    }
+  },
+  {
+    "event": "PostFileCreate",
+    "payload": {
+      "hook_event_name": "PostFileCreate",
+      "session_id": "synthetic-session"
+    }
+  },
+  {
+    "event": "PostFileSave",
+    "payload": {
+      "hook_event_name": "PostFileSave",
+      "session_id": "synthetic-session"
+    }
+  },
+  {
+    "event": "PostFileDelete",
+    "payload": {
+      "hook_event_name": "PostFileDelete",
+      "session_id": "synthetic-session"
+    }
+  },
+  {
+    "event": "PreTaskExec",
+    "payload": {
+      "hook_event_name": "PreTaskExec",
+      "session_id": "synthetic-session"
+    }
+  },
+  {
+    "event": "PostTaskExec",
+    "payload": {
+      "hook_event_name": "PostTaskExec",
+      "session_id": "synthetic-session"
+    }
+  },
+  {
+    "event": "Stop",
+    "payload": {
+      "hook_event_name": "Stop",
+      "session_id": "synthetic-session",
+      "stop_hook_active": false
+    }
+  },
+  {
+    "event": "SessionEnd",
+    "payload": {
+      "hook_event_name": "SessionEnd",
+      "session_id": "synthetic-session"
+    }
+  }
+]

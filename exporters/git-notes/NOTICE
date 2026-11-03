@@ -1,0 +1,12 @@
+Git AI serialization port
+
+The note layout, range formatting and key generation in src/git-ai.ts are
+adapted from git-ai-project/git-ai, licensed under Apache-2.0.
+Source revision: 8a6184a3a8fc4e997ccfff3b16d79688e4255af4
+Source: src/authorship/authorship_log_serialization.rs
+https://github.com/git-ai-project/git-ai
+
+This TypeScript port adds strict ranges, exact JSON numeric preservation,
+safe paths and ASR candidate joins. Trace keys are deterministic under the
+ASR Git AI guide. It does not implement Git AI working state or rewrite hooks.
+The repository root LICENSE contains the Apache-2.0 license.

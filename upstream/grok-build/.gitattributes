@@ -1,0 +1,2 @@
+# Diff context includes literal spaces and space-prefixed tabs.
+*.patch -whitespace

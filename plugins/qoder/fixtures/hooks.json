@@ -1,0 +1,116 @@
+[
+  {
+    "event": "SessionStart",
+    "payload": {
+      "hook_event_name": "SessionStart",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "source": "startup",
+      "permission_mode": "default"
+    }
+  },
+  {
+    "event": "UserPromptSubmit",
+    "payload": {
+      "hook_event_name": "UserPromptSubmit",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "prompt": "Read a synthetic file."
+    }
+  },
+  {
+    "event": "PreToolUse",
+    "payload": {
+      "hook_event_name": "PreToolUse",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_use_id": "synthetic-call",
+      "tool_name": "Read",
+      "tool_input": {
+        "file_path": "/work/synthetic/file.txt"
+      }
+    }
+  },
+  {
+    "event": "PostToolUse",
+    "payload": {
+      "hook_event_name": "PostToolUse",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_use_id": "synthetic-call",
+      "tool_name": "Read",
+      "tool_input": {
+        "file_path": "/work/synthetic/file.txt"
+      },
+      "tool_response": {
+        "success": true,
+        "content": "synthetic"
+      }
+    }
+  },
+  {
+    "event": "PermissionRequest",
+    "payload": {
+      "hook_event_name": "PermissionRequest",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "printf refusal"
+      }
+    }
+  },
+  {
+    "event": "PreToolUse",
+    "payload": {
+      "hook_event_name": "PreToolUse",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_use_id": "synthetic-denied",
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "printf refusal"
+      }
+    }
+  },
+  {
+    "event": "PermissionDenied",
+    "payload": {
+      "hook_event_name": "PermissionDenied",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_use_id": "synthetic-denied",
+      "tool_name": "Bash",
+      "reason": "Auto mode classifier blocked this call"
+    }
+  },
+  {
+    "event": "PostToolUseFailure",
+    "payload": {
+      "hook_event_name": "PostToolUseFailure",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_use_id": "synthetic-denied",
+      "tool_name": "Bash",
+      "error": "Denied",
+      "error_type": "permission_denied"
+    }
+  },
+  {
+    "event": "Stop",
+    "payload": {
+      "hook_event_name": "Stop",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic"
+    }
+  },
+  {
+    "event": "SessionEnd",
+    "payload": {
+      "hook_event_name": "SessionEnd",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "reason": "other"
+    }
+  }
+]

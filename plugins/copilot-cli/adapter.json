@@ -1,0 +1,75 @@
+{
+  "agent": "copilot-cli",
+  "events": {
+    "sessionStart": "SessionStart",
+    "sessionEnd": "SessionEnd",
+    "userPromptSubmitted": "UserPromptSubmit",
+    "preToolUse": "PreToolUse",
+    "postToolUse": "PostToolUse",
+    "postToolUseFailure": "PostToolUseFailure",
+    "permissionRequest": "PermissionRequest",
+    "agentStop": "Stop",
+    "subagentStart": "SubagentStart",
+    "subagentStop": "SubagentStop",
+    "errorOccurred": "StopFailure",
+    "preCompact": "PreCompact",
+    "notification": "Notification"
+  },
+  "fields": [
+    "cwd",
+    "prompt",
+    "timestamp",
+    "source",
+    "reason",
+    "error",
+    "notification_type",
+    "message"
+  ],
+  "rename": {
+    "sessionId": "session_id",
+    "toolName": "tool_name",
+    "toolArgs": "tool_input",
+    "agentId": "agent_id",
+    "agentType": "agent_type",
+    "parentAgentId": "parent_agent_id",
+    "response": "last_assistant_message",
+    "stopReason": "stop_reason"
+  },
+  "new_session_sources": [
+    "startup",
+    "new"
+  ],
+  "kinds": {
+    "bash": "execute",
+    "powershell": "execute",
+    "view": "read",
+    "create": "edit",
+    "edit": "edit",
+    "str_replace_editor": "edit",
+    "apply_patch": "edit",
+    "grep": "search",
+    "rg": "search",
+    "glob": "search",
+    "web_fetch": "fetch",
+    "web_search": "fetch"
+  },
+  "shell_tools": [
+    "bash",
+    "powershell"
+  ],
+  "agent_tools": [
+    "task"
+  ],
+  "secret_tools": [
+    "ask_user"
+  ],
+  "model_facing": true,
+  "asks_sometimes": [],
+  "child_ids": true,
+  "missing": [
+    "call_ids"
+  ],
+  "payload_event_aliases": {
+    "Notification": "notification"
+  }
+}

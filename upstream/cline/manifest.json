@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "agent": "cline",
+  "base": "46996c9992d91e57c268091c971cfda52b0da399",
+  "head": "faac04e8d396046986926438daf0fdbdaaef8df4",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "faac04e8d396046986926438daf0fdbdaaef8df4",
+      "sha256": "5753e49687383706d639a9890abd6526e438a230d3ee3da7e32b6367bd0725d9"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "--test",
+      "check.test.mjs"
+    ]
+  ],
+  "provenance": {
+    "agent": "cline",
+    "upstreamCommit": "46996c9992d91e57c268091c971cfda52b0da399",
+    "patch": "patches/0001-native-agent-session-export.patch",
+    "exporter": "apps/cli/src/session/agent-session.ts",
+    "fixture": "samples/native/native.json",
+    "sample": "samples/asr/session.jsonl",
+    "synthetic": true,
+    "patchCommit": "faac04e8d396046986926438daf0fdbdaaef8df4",
+    "exporterSha256": "690e28aac4d158b8b5aabd268d997f3ee3fc4ab1d277ae02c3811349c6910d86"
+  },
+  "files": {
+    ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
+    "PROPOSAL.md": "22443f3850a815ce4309ab4f489a74cb727766784c8ef72215db05d3f59237cb",
+    "README.md": "533f3c093562554b403725eb03a75767343fdb9283eba43bea4f145ee0712161",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "check.test.mjs": "1f911456695a1d28e46281c979c0059c5cf8d2b1cc60b14b8accd0250111acbf",
+    "contracts.mjs": "efe120866612a860033aa2897caa7b4f27a41317575a85a4e7f05a4b1dfeca92",
+    "patch-verification.json": "07b4aa263c6819dee20fb299612fafc0ec18b24998b63c410b73789622c94f5b",
+    "patches/0001-native-agent-session-export.patch": "5753e49687383706d639a9890abd6526e438a230d3ee3da7e32b6367bd0725d9",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "05bdfb8417d84b641aec97931e75e0890c1f3fbd88ce2afaf6a690e32e381774",
+    "samples/native/native.json": "fca8c5637127378c8dc0d30dd5cc6af5c196c4fabc16d3299dc67e041f1c9a82",
+    "validation.json": "0736fb446f14b947054ee209a1ddd68a7bc87a7098fb977ae00c30251b0767d7"
+  }
+}

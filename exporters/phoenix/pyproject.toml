@@ -1,0 +1,18 @@
+[project]
+name = "asr-phoenix"
+version = "0.1.0"
+description = "Offline ASR OpenInference traces and Phoenix dataset imports"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["asr-evals==0.1.0", "opentelemetry-proto==1.45.2"]
+
+[project.scripts]
+asr-phoenix = "asr_phoenix:main"
+asr-phoenix-load-local = "asr_phoenix.local:main"
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+asr-evals = { workspace = true }

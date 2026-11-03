@@ -1,0 +1,265 @@
+From da4bf913813a01340c731d570b407cc630aa7f92 Mon Sep 17 00:00:00 2001
+From: ASR Contributors <contributors@agentsessionrecord.org>
+Date: Sun, 1 Nov 2026 12:59:14 -0500
+Subject: [PATCH] Add native Agent Session Record sessions export
+
+---
+ build.zig                          |   6 ++
+ src/builtins/commands.zig          |   3 +-
+ src/core/cli/cli_surface.zig       |  21 ++++
+ src/core/session/agent_session.zig | 167 +++++++++++++++++++++++++++++
+ 4 files changed, 196 insertions(+), 1 deletion(-)
+ create mode 100644 src/core/session/agent_session.zig
+
+diff --git a/build.zig b/build.zig
+index eb67a52..c39132c 100644
+--- a/build.zig
++++ b/build.zig
+@@ -104,6 +104,12 @@ pub fn build(b: *std.Build) void {
+     const exe_tests = b.addTest(.{
+         .root_module = exe.root_module,
+     });
++    const agent_session_tests = b.addTest(.{
++        .root_module = exe.root_module,
++        .filters = &.{"agent session"},
++    });
++    const agent_session_test_step = b.step("test-agent-session", "Run Agent Session Record export tests");
++    agent_session_test_step.dependOn(&b.addRunArtifact(agent_session_tests).step);
+     const run_exe_tests = b.addRunArtifact(exe_tests);
+     run_exe_tests.step.dependOn(b.getInstallStep());
+     // Tests launch the installed fx binary, and the session boundary test
+diff --git a/src/builtins/commands.zig b/src/builtins/commands.zig
+index acfabb2..48453df 100644
+--- a/src/builtins/commands.zig
++++ b/src/builtins/commands.zig
+@@ -189,13 +189,14 @@ pub const top_level_specs = [_]TopLevelSpec{
+     .{
+         .kind = .sessions,
+         .token = "sessions",
+-        .usage = "sessions [--all] [--limit <1-100>] [--cursor <cursor>] [--json] | sessions convert [--json]",
++        .usage = "sessions [--all] [--limit <1-100>] [--cursor <cursor>] [--json] | sessions convert [--json] | sessions export --format agent-session --session ID",
+         .summary = "List saved sessions for the current workspace",
+         .options = &.{
+             .{ .flag = "--all", .description = "List saved sessions across every workspace in this profile" },
+             .{ .flag = "--limit <1-100>", .description = "Set the maximum sessions returned per page" },
+             .{ .flag = "--cursor <cursor>", .description = "Continue from a prior sessions result" },
+             .{ .flag = "convert", .description = "Convert every session saved in the previous format" },
++            .{ .flag = "export --format agent-session --session ID", .description = "Export retained session history as Agent Session Record JSON Lines" },
+             json_option,
+         },
+     },
+diff --git a/src/core/cli/cli_surface.zig b/src/core/cli/cli_surface.zig
+index 48e26bd..23349d8 100644
+--- a/src/core/cli/cli_surface.zig
++++ b/src/core/cli/cli_surface.zig
+@@ -31,6 +31,7 @@ const secret = @import("../auth/secret.zig");
+ const output_contracts = @import("../output/output_contracts.zig");
+ const prompt_policy = @import("../config/prompt_policy.zig");
+ const session_codec = @import("../session/session_codec.zig");
++const agent_session = @import("../session/agent_session.zig");
+ const session_store = @import("../session/session_store.zig");
+ const session_adapter = @import("../session/session_adapter.zig");
+ const skill_contract = @import("../skills/skill_contract.zig");
+@@ -1585,6 +1586,26 @@ fn runNonInteractiveWithDeps(
+             return runSessionDetail(alloc, deps, target, opts.format);
+         },
+         .sessions => |rest| {
++            if (rest.len > 0 and std.mem.eql(u8, rest[0], "export")) {
++                if (rest.len != 5 or !std.mem.eql(u8, rest[1], "--format") or !std.mem.eql(u8, rest[2], "agent-session") or !std.mem.eql(u8, rest[3], "--session")) {
++                    try writeStderr(deps, "use: fx sessions export --format agent-session --session ID\n");
++                    return .handled_failure;
++                }
++                var store = session_adapter.Store.openFromEnv(alloc) catch |err| {
++                    try writeLookupFailure(alloc, deps, "sessions export", session_adapter.commandError(err), .text);
++                    return .handled_failure;
++                };
++                defer store.deinit(alloc);
++                var detail = session_adapter.readSession(&store, alloc, rest[4]) catch |err| {
++                    try writeLookupFailure(alloc, deps, "sessions export", session_adapter.commandError(err), .text);
++                    return .handled_failure;
++                };
++                defer detail.deinit(alloc);
++                const text = try agent_session.render(alloc, detail.state);
++                defer alloc.free(text);
++                try writeStdout(deps, text);
++                return .handled_success;
++            }
+             if (rest.len > 0 and std.mem.eql(u8, rest[0], "convert")) {
+                 const format = parseSessionConvertArgs(rest[1..]) catch |err| {
+                     try writeUsageOrJsonError(alloc, cfg.command_catalog, deps, .sessions, "sessions", err, rest);
+diff --git a/src/core/session/agent_session.zig b/src/core/session/agent_session.zig
+new file mode 100644
+index 0000000..98e5c98
+--- /dev/null
++++ b/src/core/session/agent_session.zig
+@@ -0,0 +1,167 @@
++const std = @import("std");
++const codec = @import("session_codec.zig");
++const types = @import("../shared/types.zig");
++
++/// Returns an owned Agent Session Record stream from retained durable history.
++pub fn render(alloc: std.mem.Allocator, state: codec.DurableSessionState) ![]u8 {
++    var output: std.Io.Writer.Allocating = .init(alloc);
++    defer output.deinit();
++    const writer = &output.writer;
++    try writer.writeAll("{\"type\":\"session\",\"id\":\"header\",\"formatVersion\":\"0.1\",\"agent\":{\"name\":\"fx\"},\"sessionId\":");
++    try std.json.Stringify.value(state.id, .{}, writer);
++    try writer.writeAll(",\"producer\":{\"name\":\"fx-agent-session\",\"version\":\"0.1.0\",\"method\":\"native\",\"source\":\"fx-durable-session\"},\"missing\":[\"timestamps\",\"usage\",\"model\",\"approvals\",\"agent_settings\",\"tools\",\"file_changes\",\"commits\",\"subagents\",\"copies\",\"images\",\"provider_state\",\"recovery_checkpoint\",\"steering_assistant_prefix\",\"tool_output\",\"interrupted_tool_call\"]}\n");
++    var sequence: usize = 0;
++    var results = std.StringHashMap(void).init(alloc);
++    defer results.deinit();
++    for (state.history) |turn| {
++        switch (turn) {
++            .assistant => |entry| {
++                try writeTurn(writer, &sequence, entry.user, entry.execution, &results);
++                try writeMessage(writer, &sequence, "assistant", entry.assistant, null, null);
++            },
++            .interrupted => |entry| {
++                try writeTurn(writer, &sequence, entry.user, entry.execution, &results);
++                if (entry.tool_call != null) {
++                    try writePrefix(writer, &sequence, "gap");
++                    try writer.writeAll(",\"reason\":\"not_recorded\",\"detail\":\"The active interrupted tool call is outside the retained-step export.\"}\n");
++                }
++                if (entry.assistant) |text| try writeMessage(writer, &sequence, "assistant", text, null, switch (entry.terminal_reason) {
++                    .cancelled => "interrupted",
++                    .failed => "error",
++                });
++            },
++            .compacted_summary => |entry| {
++                try writeMessage(writer, &sequence, "user", entry.summary, "compaction", null);
++                if (entry.removed_turn_count > 0) {
++                    try writePrefix(writer, &sequence, "gap");
++                    try writer.writeAll(",\"reason\":\"not_retained\",\"detail\":\"Earlier turns were replaced by a compaction summary.\"}\n");
++                }
++            },
++        }
++    }
++    return output.toOwnedSlice();
++}
++
++fn writePrefix(writer: *std.Io.Writer, sequence: *usize, record_type: []const u8) !void {
++    try writer.print("{{\"type\":\"{s}\",\"id\":\"record-{d}\"", .{ record_type, sequence.* });
++    sequence.* += 1;
++}
++
++fn writeMessage(writer: *std.Io.Writer, sequence: *usize, role: []const u8, text: []const u8, origin: ?[]const u8, status: ?[]const u8) !void {
++    try writePrefix(writer, sequence, "message");
++    try writer.writeAll(",\"role\":");
++    try std.json.Stringify.value(role, .{}, writer);
++    if (origin) |value| {
++        try writer.writeAll(",\"origin\":");
++        try std.json.Stringify.value(value, .{}, writer);
++        try writer.writeAll(",\"author\":\"harness\"");
++    }
++    if (status) |value| {
++        try writer.writeAll(",\"status\":");
++        try std.json.Stringify.value(value, .{}, writer);
++    }
++    try writer.writeAll(",\"content\":[{\"type\":\"text\",\"text\":");
++    try std.json.Stringify.value(text, .{}, writer);
++    try writer.writeAll("}]}\n");
++}
++
++fn writeTurn(writer: *std.Io.Writer, sequence: *usize, user: types.UserTurn, execution: types.ExecutionMemory, results: *std.StringHashMap(void)) !void {
++    if (execution.runtime_context) |context| {
++        for (context) |text| try writeMessage(writer, sequence, "system", text, "instructions", null);
++    }
++    try writeMessage(writer, sequence, "user", user.text, null, null);
++    for (0..execution.tool_steps.len + 1) |boundary| {
++        for (execution.context_notes) |note| {
++            if (note.after_tool_step_count == boundary) try writeMessage(writer, sequence, "user", note.text, "injected", null);
++        }
++        for (execution.steering) |steering| {
++            if (steering.after_tool_step_count == boundary) try writeMessage(writer, sequence, "user", steering.text, null, null);
++        }
++        if (boundary == execution.tool_steps.len) break;
++        const step = execution.tool_steps[boundary];
++        if (step.assistant) |text| try writeMessage(writer, sequence, "assistant", text, null, null);
++        for (step.tool_calls) |call| {
++            try writePrefix(writer, sequence, "tool_call");
++            try writer.writeAll(",\"callId\":");
++            try std.json.Stringify.value(call.id, .{}, writer);
++            try writer.writeAll(",\"name\":");
++            try std.json.Stringify.value(call.name, .{}, writer);
++            try writer.writeAll(",\"inputText\":");
++            try std.json.Stringify.value(call.arguments_json, .{}, writer);
++            try writer.writeAll("}\n");
++        }
++        for (step.tool_results) |result| {
++            const known = try results.getOrPut(result.tool_call_id);
++            if (known.found_existing) return error.DuplicateToolResult;
++            try writePrefix(writer, sequence, "tool_result");
++            try writer.writeAll(",\"callId\":");
++            try std.json.Stringify.value(result.tool_call_id, .{}, writer);
++            try writer.writeAll(",\"status\":");
++            try std.json.Stringify.value(@as([]const u8, switch (result.status) {
++                .success => "completed",
++                .failure => "failed",
++            }), .{}, writer);
++            try writer.writeAll(",\"content\":[{\"type\":\"text\",\"text\":");
++            try std.json.Stringify.value(result.output, .{}, writer);
++            try writer.writeAll("}]");
++            if (result.truncated or result.output_handle != null or result.tool_images.len > 0 or result.tool_image_handle != null) try writer.writeAll(",\"truncated\":true");
++            try writer.writeAll("}\n");
++        }
++    }
++}
++
++test "agent session marks removed history without inventing model metadata" {
++    var history = [_]types.HistoryTurn{.{ .compacted_summary = .{ .summary = @constCast("summary\n"), .removed_turn_count = 2, .compaction_count = 1 } }};
++    const fixture: codec.DurableSessionState = .{
++        .id = @constCast("synthetic-fx"),
++        .origin_workspace_root = @constCast("/work/app"),
++        .workspace_root = @constCast("/work/app"),
++        .created_at_ms = 0,
++        .updated_at_ms = 0,
++        .conversation_language = .default(),
++        .preferences = .{ .model = @constCast("synthetic-model"), .effort = .high, .fast_mode = false },
++        .history = &history,
++        .total_input_tokens = 0,
++        .total_output_tokens = 0,
++    };
++    const actual = try render(std.testing.allocator, fixture);
++    defer std.testing.allocator.free(actual);
++    try std.testing.expect(std.mem.find(u8, actual, "\"reason\":\"not_retained\"") != null);
++    try std.testing.expect(std.mem.find(u8, actual, "synthetic-model") == null);
++    try std.testing.expect(std.mem.find(u8, actual, "endedAt") == null);
++}
++
++test "agent session preserves raw tool input and rejects duplicate results" {
++    var calls = [_]types.ToolCall{.{ .id = "call-1", .name = "read", .arguments_json = "{ \"number\":9007199254740993 }" }};
++    var tool_results = [_]types.PersistedToolResult{.{
++        .tool_call_id = @constCast("call-1"),
++        .tool_name = @constCast("read"),
++        .status = .failure,
++        .output = @constCast("failed\n"),
++        .output_bytes = 7,
++        .stored_output_bytes = 7,
++        .output_handle = @constCast("synthetic-output-handle"),
++    }};
++    var steps = [_]types.ToolExecutionStep{.{ .tool_calls = &calls, .tool_results = &tool_results }};
++    const execution: types.ExecutionMemory = .{ .tool_steps = &steps };
++    var output: std.Io.Writer.Allocating = .init(std.testing.allocator);
++    defer output.deinit();
++    var results = std.StringHashMap(void).init(std.testing.allocator);
++    defer results.deinit();
++    var sequence: usize = 0;
++    try writeTurn(&output.writer, &sequence, .{ .text = @constCast("") }, execution, &results);
++    var lines = std.mem.splitScalar(u8, output.written(), '\n');
++    const user = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, lines.next().?, .{});
++    defer user.deinit();
++    try std.testing.expectEqualStrings("", user.value.object.get("content").?.array.items[0].object.get("text").?.string);
++    const call = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, lines.next().?, .{});
++    defer call.deinit();
++    try std.testing.expectEqualStrings(calls[0].arguments_json, call.value.object.get("inputText").?.string);
++    const result = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, lines.next().?, .{});
++    defer result.deinit();
++    try std.testing.expectEqualStrings(call.value.object.get("callId").?.string, result.value.object.get("callId").?.string);
++    try std.testing.expectEqualStrings("failed", result.value.object.get("status").?.string);
++    try std.testing.expect(result.value.object.get("truncated").?.bool);
++    try std.testing.expect(std.mem.find(u8, output.written(), "synthetic-output-handle") == null);
++    try std.testing.expectError(error.DuplicateToolResult, writeTurn(&output.writer, &sequence, .{ .text = @constCast("") }, execution, &results));
++}
+-- 
+2.43.0
+

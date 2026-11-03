@@ -1,0 +1,26 @@
+{
+  "$schema": "https://agentsessionrecord.org/schema/v0/manifest.schema.json",
+  "collector": {
+    "name": "example-collector",
+    "version": "1.0"
+  },
+  "machine": "workstation-42",
+  "window": {
+    "start": "2026-10-30T18:00:00Z",
+    "end": "2026-10-30T19:00:00Z"
+  },
+  "previousManifest": null,
+  "entries": [
+    {
+      "session": "com.example.agent:audit-7",
+      "sha256": "07bef1a3429a75c7ec699f6c131d0b8bad9d9b5769e2a065c0d479217067a686",
+      "byteLength": 2401,
+      "receivedAt": "2026-10-30T18:01:00Z",
+      "uploader": "directory:engineer-42",
+      "producer": {
+        "method": "native"
+      },
+      "status": "received"
+    }
+  ]
+}

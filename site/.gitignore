@@ -1,0 +1,6 @@
+node_modules/
+# Assembled by build.mjs and deploy.mjs
+.mint/
+.export/
+.export.zip
+.wrangler/

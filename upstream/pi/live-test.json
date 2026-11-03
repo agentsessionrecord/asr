@@ -1,0 +1,23 @@
+{
+  "agentExit": 0,
+  "errorClasses": [],
+  "httpCodes": [],
+  "nativeFiles": 1,
+  "exportExit": 0,
+  "records": 9,
+  "types": {
+    "inference": 2,
+    "message": 3,
+    "session": 1,
+    "session_info": 1,
+    "tool_call": 1,
+    "tool_result": 1
+  },
+  "validation": {
+    "exit": 0,
+    "errors": 0,
+    "codes": []
+  },
+  "currentCodeLiveTest": "unverified",
+  "evidenceScope": "Prior revision. Counts do not certify the current implementation."
+}

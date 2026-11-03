@@ -1,0 +1,17 @@
+[project]
+name = "asr-telemetry-approvals"
+version = "0.1.0"
+description = "Join Claude Code and Codex approval telemetry to ASR sessions"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["agent-session-record"]
+
+[project.scripts]
+asr-import-approvals = "asr_telemetry_approvals.__main__:main"
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+agent-session-record = { workspace = true }

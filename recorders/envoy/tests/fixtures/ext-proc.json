@@ -1,0 +1,46 @@
+[
+  {
+    "requestHeaders": {
+      "headers": {
+        "headers": [
+          {
+            "key": "user-agent",
+            "value": "claude-cli/2.1.305"
+          },
+          {
+            "key": "x-claude-code-session-id",
+            "value": "synthetic-session"
+          },
+          {
+            "key": ":path",
+            "value": "/v1/messages"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "requestBody": {
+      "body": "eyJtb2RlbCI6ICJzeW50aGV0aWMtYWxpYXMiLCAibWF4X3Rva2VucyI6IDMyLCAibWVzc2FnZXMiOiBbeyJyb2xlIjogInVzZXIiLCAiY29udGVudCI6ICJSZXBseSB3aXRoIGEgbnVtYmVyLiJ9XX0=",
+      "endOfStream": true
+    }
+  },
+  {
+    "responseHeaders": {
+      "headers": {
+        "headers": [
+          {
+            "key": ":status",
+            "value": "200"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "responseBody": {
+      "body": "eyJpZCI6ICJzeW50aGV0aWMtcmVzcG9uc2UiLCAidHlwZSI6ICJtZXNzYWdlIiwgIm1vZGVsIjogInN5bnRoZXRpYy1zZXJ2ZWQiLCAiY29udGVudCI6IFt7InR5cGUiOiAidGV4dCIsICJ0ZXh0IjogIjEifV0sICJzdG9wX3JlYXNvbiI6ICJlbmRfdHVybiIsICJ1c2FnZSI6IHsiaW5wdXRfdG9rZW5zIjogMSwgIm91dHB1dF90b2tlbnMiOiAwLCAiY2FjaGVfcmVhZF9pbnB1dF90b2tlbnMiOiAyfX0=",
+      "endOfStream": true
+    }
+  }
+]

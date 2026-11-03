@@ -1,0 +1,25 @@
+{
+  "name": "asr-workspace",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "ci": "bash scripts/ci.sh",
+    "test": "node --test scripts/test/*.test.mjs",
+    "check:registry": "node scripts/check-registry.mjs",
+    "check:writing": "node scripts/check-writing.mjs",
+    "check:privacy": "node scripts/check-privacy.mjs",
+    "generate:types": "python3 packages/types/scripts/generate.py",
+    "check:types": "python3 packages/types/scripts/generate.py --check",
+    "test:libs": "bash packages/types/scripts/check.sh"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "ajv": "^8.20.0",
+    "esbuild": "0.25.12",
+    "typescript": "~5.9.3"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "store": "/srv/asr/sessions",
+  "sessionsBaseUrl": "https://sessions.example.test/asr/",
+  "apiUrl": "https://api.github.com",
+  "mode": "check",
+  "repositories": [
+    {
+      "name": "example/project",
+      "installation": 17,
+      "path": "/srv/git/project",
+      "recordedRoots": ["/work/project"]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "id": "prompt",
+  "kind": "MessageEvent",
+  "source": "user",
+  "timestamp": "2026-10-31T12:00:03Z",
+  "llm_message": {
+    "role": "user",
+    "content": "Read it."
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "agent": "gemini-cli",
+  "base": "a60946692b11e2f144a8fe4db46bbc4e514daa7a",
+  "head": "23f3d8e2fb46a21404cb7f98a956bc115805c388",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "23f3d8e2fb46a21404cb7f98a956bc115805c388",
+      "sha256": "8159d57cb74402f908e3486cd5fe325d426756f15fef6fb153b457804cea372e"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "--test",
+      "test.mjs"
+    ]
+  ],
+  "provenance": {
+    "base": "a60946692b11e2f144a8fe4db46bbc4e514daa7a",
+    "commit": "23f3d8e2fb46a21404cb7f98a956bc115805c388"
+  },
+  "files": {
+    ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
+    "PROPOSAL.md": "f41763b92c2eec1c59f60d05662250d8821a19f47562b4676893e664031fc21d",
+    "README.md": "9942de7de1b4275f52c55d72fb04e4b20dff7d5d3d52c87a1ccdd14b0540f713",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "discovery.json": "c0642d895b2968be0085e68f16eeb7876a013a1eb0fa9c7c6fb0e6b2e45c5f54",
+    "patches/0001-native-agent-session-export.patch": "8159d57cb74402f908e3486cd5fe325d426756f15fef6fb153b457804cea372e",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/README.md": "fdc756cb38f014e6ad31a32a3e4a56769a5c44e1ac67a88e70b3a19bb3569db0",
+    "samples/asr/session.jsonl": "07bc70b1d33e8bc92bc29c38e69a8d3a0e09d2b0675c50b8e5cf6e0a76da3ff7",
+    "samples/native/native.jsonl": "41e4caf6739f468d4334b7971f171091fcfcff865cfdbfb65d5485617eb81582",
+    "test-support.mjs": "9f73f3efd5cec70a1b14b805609ddd827ce18395ce0918fc40cac493baaf004c",
+    "test.mjs": "3848932082a6c08e7d761c6f71cd984a98eb3bd62d9445d642de54e3e9c7ec36"
+  }
+}

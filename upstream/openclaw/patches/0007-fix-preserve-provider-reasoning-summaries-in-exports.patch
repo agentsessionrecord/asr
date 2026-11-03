@@ -1,0 +1,93 @@
+From 6d0b7e76631908d061dd7f50fa8b15ef6b4d3be6 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 16:26:17 -0500
+Subject: [PATCH 7/8] fix: preserve provider reasoning summaries in exports
+
+---
+ src/sessions/agent-session-export.json.ts     | 20 ++++++++++++++-----
+ src/sessions/agent-session-export.test.ts     | 14 +++++++++++++
+ .../agent-session-export.transcript.ts        |  2 +-
+ 3 files changed, 30 insertions(+), 6 deletions(-)
+
+diff --git a/src/sessions/agent-session-export.json.ts b/src/sessions/agent-session-export.json.ts
+index 9b0b0408972..5b8cdb92afc 100644
+--- a/src/sessions/agent-session-export.json.ts
++++ b/src/sessions/agent-session-export.json.ts
+@@ -97,7 +97,7 @@ export function exportPath(value: string, cwd?: string): string {
+   return cwd ? path.resolve(cwd, value) : value.replaceAll("\\", "/");
+ }
+ 
+-export function content(value: unknown): JsonObject[] {
++export function content(value: unknown, provider?: unknown): JsonObject[] {
+   if (typeof value === "string") {
+     return [{ type: "text", text: value }];
+   }
+@@ -110,7 +110,10 @@ export function content(value: unknown): JsonObject[] {
+       return [
+         part.redacted
+           ? { type: "reasoning", visibility: "encrypted" }
+-          : asrReasoning(string(part.thinking), false),
++          : asrReasoning(
++              string(part.thinking),
++              ["anthropic", "openai", "openai-codex"].includes(String(provider)),
++            ),
+       ];
+     }
+     if (part.type === "text") {
+@@ -200,8 +203,15 @@ export function sanitizeRecord(record: AsrRecord, losses: Set<string>): AsrRecor
+   return { ...cleaned, type: record.type, id: record.id };
+ }
+ 
+-function asrReasoning(text: unknown, summary = false): { type: string; visibility?: string; text?: string; summary?: string[] } {
+-  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
+-  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
++function asrReasoning(
++  text: unknown,
++  summary = false,
++): { type: string; visibility?: string; text?: string; summary?: string[] } {
++  if (typeof text !== "string" || text.length === 0) {
++    return { type: "reasoning", visibility: "omitted" };
++  }
++  if (summary) {
++    return { type: "reasoning", visibility: "summary", summary: [text] };
++  }
+   return { type: "reasoning", text };
+ }
+diff --git a/src/sessions/agent-session-export.test.ts b/src/sessions/agent-session-export.test.ts
+index 01c4b32c40c..f609f9737b2 100644
+--- a/src/sessions/agent-session-export.test.ts
++++ b/src/sessions/agent-session-export.test.ts
+@@ -500,6 +500,20 @@ describe("native Agent Session export", () => {
+       { type: "reasoning", visibility: "omitted" },
+       { type: "reasoning", visibility: "encrypted" },
+     ]);
++    source.events = [
++      {
++        seq: 1,
++        event: syntheticMessage("summary", null, {
++          role: "assistant",
++          provider: "anthropic",
++          content: [{ type: "thinking", thinking: "Exact\r\n" }],
++        }),
++      },
++    ];
++    const summary = convertAgentSession(source).records.find((record) => record.type === "message");
++    expect(summary?.content).toEqual([
++      { type: "reasoning", visibility: "summary", summary: ["Exact\r\n"] },
++    ]);
+   });
+ 
+   it("keeps unknown-model calls, completion positions and explicit setting clears", async () => {
+diff --git a/src/sessions/agent-session-export.transcript.ts b/src/sessions/agent-session-export.transcript.ts
+index 0c6786acf66..966636f8990 100644
+--- a/src/sessions/agent-session-export.transcript.ts
++++ b/src/sessions/agent-session-export.transcript.ts
+@@ -415,7 +415,7 @@ export class TranscriptExport {
+             source: identity.type === "profile" ? "_ai.openclaw/profile" : "_ai.openclaw/channel",
+           }
+         : undefined;
+-    const parts = content(message.content);
++    const parts = content(message.content, message.provider);
+     if (array(message.content).some((p) => object(p).type === "thinking" && object(p).redacted)) {
+       this.losses.add("reasoning");
+     }

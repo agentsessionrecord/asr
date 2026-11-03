@@ -1,0 +1,34 @@
+{
+  "name": "@agent-session/writer",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./capture": {
+      "types": "./dist/capture.d.ts",
+      "import": "./dist/capture.js"
+    },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "@agent-session/types": "workspace:*",
+    "@agent-session/validate": "workspace:*"
+  },
+  "scripts": {
+    "build": "node scripts/generate-conventions.mjs && tsc -p tsconfig.json",
+    "test": "pnpm run build && tsc -p test/tsconfig.json && node --test test/*.test.mjs",
+    "check:generated": "node scripts/generate-conventions.mjs --check"
+  }
+}

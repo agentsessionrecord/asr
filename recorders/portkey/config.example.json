@@ -1,0 +1,16 @@
+{
+  "after_request_hooks": [
+    {
+      "id": "asr-log",
+      "type": "validate",
+      "checks": [
+        {
+          "id": "default.log",
+          "parameters": {"logURL": "http://127.0.0.1:8421/portkey", "timeout": 1000}
+        }
+      ],
+      "deny": false,
+      "async": true
+    }
+  ]
+}

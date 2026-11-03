@@ -1,0 +1,23 @@
+"src/synthetic file.ts"
+  s_64caad7525b3c6::t_1234567890abcd 1-2,5
+  h_1234567890abcd 3
+  0123456789abcdef 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "base_commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "prompts": {
+    "0123456789abcdef": {
+      "agent_id": {"tool": "claude", "id": "legacy-synthetic", "model": "synthetic-model"},
+      "total_additions": 1,
+      "total_deletions": 0,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  },
+  "sessions": {
+    "s_64caad7525b3c6": {"agent_id": {"tool": "codex", "id": "synthetic-7", "model": "synthetic-model"}}
+  },
+  "humans": {"h_1234567890abcd": {"author": "Synthetic Developer <dev@example.com>"}},
+  "future": {"exact": 900719925474099312345, "false": false, "zero": 0}
+}

@@ -1,0 +1,14 @@
+[project]
+name = "asr-plugin-core"
+version = "0.1.0"
+description = "Passive local ASR hook recorder support"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["agent-session-record==0.1.0"]
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+agent-session-record = { workspace = true }

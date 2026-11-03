@@ -1,0 +1,6 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"run-1","producer":{"name":"example-export","version":"1","method":"native"}}
+{"type":"session_info","id":"settings-0","agentSettings":{"asks":"always"}}
+{"type":"session_info","id":"settings-1","agentSettings":{"asks":"sometimes"}}
+{"type":"session_info","id":"settings-2","agentSettings":{"asks":"never"}}
+{"type":"session_info","id":"settings-3","agentSettings":{"asks":"_future"}}
+{"type":"session_info","id":"settings-4","agentSettings":{"asks":"future"}}

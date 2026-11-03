@@ -1,0 +1,117 @@
+[
+  {
+    "event": "SessionStart",
+    "payload": {
+      "hook_event_name": "SessionStart",
+      "conversation_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "workspace_roots": [
+        "/work/synthetic"
+      ]
+    }
+  },
+  {
+    "event": "PromptSubmit",
+    "payload": {
+      "hook_event_name": "PromptSubmit",
+      "conversation_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "user_prompt": "Run the synthetic check."
+    }
+  },
+  {
+    "event": "PreToolUse",
+    "payload": {
+      "hook_event_name": "PreToolUse",
+      "conversation_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "tool_name": "bash",
+      "tool_input": {
+        "command": "printf requested"
+      },
+      "is_mcp_tool": false
+    }
+  },
+  {
+    "event": "Notification",
+    "payload": {
+      "hook_event_name": "Notification",
+      "conversation_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "notification_type": "info",
+      "notification_message": "Synthetic interleaving notice."
+    }
+  },
+  {
+    "event": "PostToolUse",
+    "payload": {
+      "hook_event_name": "PostToolUse",
+      "conversation_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "tool_name": "bash",
+      "tool_input": {
+        "command": "printf effective"
+      },
+      "tool_output": "effective\n",
+      "tool_result": [
+        {
+          "type": "text",
+          "text": "effective\n"
+        }
+      ],
+      "tool_is_error": false
+    }
+  },
+  {
+    "event": "PostToolUse",
+    "payload": {
+      "hook_event_name": "PostToolUse",
+      "conversation_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "tool_name": "bash",
+      "tool_input": {
+        "command": "false"
+      },
+      "tool_error": "Synthetic failure.",
+      "tool_is_error": true
+    }
+  },
+  {
+    "event": "Stop",
+    "payload": {
+      "hook_event_name": "Stop",
+      "conversation_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "agent_stop_cause": "end_turn"
+    }
+  },
+  {
+    "event": "SessionEnd",
+    "payload": {
+      "hook_event_name": "SessionEnd",
+      "conversation_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "workspace_roots": [
+        "/work/synthetic"
+      ]
+    }
+  }
+]

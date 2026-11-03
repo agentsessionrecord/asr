@@ -1,0 +1,17 @@
+[project]
+name = "asr-acp"
+version = "0.1.0"
+description = "Append-only ACP stdio recorder"
+requires-python = ">=3.11"
+dependencies = ["agent-session-record==0.1.0", "asr-litellm==0.1.0"]
+
+[project.scripts]
+asr-acp = "asr_acp.cli:main"
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+agent-session-record = { workspace = true }
+asr-litellm = { workspace = true }

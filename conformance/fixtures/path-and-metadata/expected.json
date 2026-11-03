@@ -1,0 +1,16 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-017",
+    "code": "schema.pattern",
+    "line": 2,
+    "pointer": "/_meta"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-012",
+    "code": "schema.pattern",
+    "line": 3,
+    "pointer": "/path"
+  }
+]

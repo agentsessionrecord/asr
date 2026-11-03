@@ -1,0 +1,403 @@
+From 1a1c083f1d10883182229b0001363a115e8d791f Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:28 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ src/kimi_cli/__main__.py        |   2 +
+ src/kimi_cli/cli/_lazy_group.py |   2 +
+ src/kimi_cli/cli/sessions.py    | 271 ++++++++++++++++++++++++++++++++
+ tests/test_asr_export.py        |  71 +++++++++
+ 4 files changed, 346 insertions(+)
+ create mode 100644 src/kimi_cli/cli/sessions.py
+ create mode 100644 tests/test_asr_export.py
+
+diff --git a/src/kimi_cli/__main__.py b/src/kimi_cli/__main__.py
+index 8769d75..da8c6fc 100644
+--- a/src/kimi_cli/__main__.py
++++ b/src/kimi_cli/__main__.py
+@@ -20,6 +20,8 @@ def main(argv: Sequence[str] | None = None) -> int | str | None:
+     args = list(sys.argv[1:] if argv is None else argv)
+ 
+     try:
++        if args[:1] == ["sessions"]:
++            return run_original_cli(args)
+         return _deprecation_gate(args)
+     finally:
+         set_phase("shutdown")
+diff --git a/src/kimi_cli/cli/_lazy_group.py b/src/kimi_cli/cli/_lazy_group.py
+index eac315e..8d6c4f7 100644
+--- a/src/kimi_cli/cli/_lazy_group.py
++++ b/src/kimi_cli/cli/_lazy_group.py
+@@ -14,6 +14,7 @@ class LazySubcommandGroup(typer.core.TyperGroup):
+     """Load heavyweight subcommands only when they are actually invoked."""
+ 
+     lazy_subcommands: dict[str, tuple[str, str, str]] = {
++        "sessions": ("kimi_cli.cli.sessions", "cli", "Export recorded sessions."),
+         "info": ("kimi_cli.cli.info", "cli", "Show version and protocol information."),
+         "export": ("kimi_cli.cli.export", "cli", "Export session data."),
+         "mcp": ("kimi_cli.cli.mcp", "cli", "Manage MCP server configurations."),
+@@ -22,6 +23,7 @@ class LazySubcommandGroup(typer.core.TyperGroup):
+         "web": ("kimi_cli.cli.web", "cli", "Run Kimi Code CLI web interface."),
+     }
+     lazy_command_order: tuple[str, ...] = (
++        "sessions",
+         "info",
+         "export",
+         "mcp",
+diff --git a/src/kimi_cli/cli/sessions.py b/src/kimi_cli/cli/sessions.py
+new file mode 100644
+index 0000000..7850c5f
+--- /dev/null
++++ b/src/kimi_cli/cli/sessions.py
+@@ -0,0 +1,271 @@
++"""Offline export of the typed session wire log as Agent Session Record."""
++
++from __future__ import annotations
++
++import hashlib
++import json
++import os
++from datetime import UTC, datetime
++from pathlib import Path
++from typing import Annotated, Any
++
++import typer
++from kosong.message import ContentPart, TextPart, ThinkPart, ToolCall, ToolCallPart
++from kosong.tooling import ToolResult
++
++from kimi_cli.constant import get_version
++from kimi_cli.share import get_share_dir
++from kimi_cli.soul.message import tool_result_to_message
++from kimi_cli.wire.file import WireFileMetadata, parse_wire_file_line
++from kimi_cli.wire.types import (
++    ApprovalRequest,
++    ApprovalResponse,
++    CompactionEnd,
++    StatusUpdate,
++    SteerInput,
++    TurnBegin,
++)
++
++cli = typer.Typer(help="Export recorded sessions without starting a model.")
++
++
++@cli.callback()
++def _asr_reasoning(text: str, summary: bool = False) -> dict[str, object]:
++    if not text:
++        return {"type": "reasoning", "visibility": "omitted"}
++    if summary:
++        return {"type": "reasoning", "visibility": "summary", "summary": [text]}
++    return {"type": "reasoning", "text": text}
++
++
++def sessions() -> None:
++    """Manage recorded sessions."""
++
++
++def _parts(value: str | list[ContentPart]) -> list[dict[str, Any]]:
++    if isinstance(value, str):
++        return [{"type": "text", "text": value}]
++    parts: list[dict[str, Any]] = []
++    for part in value:
++        if isinstance(part, TextPart):
++            parts.append({"type": "text", "text": part.text})
++        elif isinstance(part, ThinkPart):
++            parts.append(_asr_reasoning(part.think, False))
++        # Media and opaque provider signatures are deliberately not copied.
++    return parts
++
++
++def export_wire(path: Path, session_id: str) -> str:
++    """Keep wire order and fold streamed items at their last observation."""
++    if not session_id:
++        raise ValueError("A native session ID is required")
++    records: list[dict[str, Any] | None] = []
++    pending_call: tuple[ToolCall, int] | None = None
++    pending_parts: list[ContentPart] = []
++    pending_position = 0
++    approvals: dict[str, ApprovalRequest] = {}
++    result_positions: dict[str, int] = {}
++    missing = {
++        "agent_settings",
++        "tools",
++        "approvals",
++        "usage",
++        "model",
++        "inference_settings",
++        "file_changes",
++        "commits",
++        "subagents",
++        "copies",
++        "instructions",
++        "media",
++        "native_events",
++        "message_author",
++        "reasoning",
++        "secrets",
++    }
++
++    def finish_call() -> None:
++        nonlocal pending_call
++        if pending_call is None:
++            return
++        call, position = pending_call
++        record = records[position]
++        assert record is not None
++        record.update(type="tool_call", callId=call.id, name=call.function.name)
++        record["requestedBy"] = "model"
++        if call.function.arguments is not None:
++            try:
++                record["input"] = json.loads(
++                    call.function.arguments,
++                    parse_int=lambda value: int(value)
++                    if abs(int(value)) <= 9007199254740991
++                    else value,
++                    parse_constant=lambda value: (_ for _ in ()).throw(
++                        ValueError(value)
++                    ),
++                )
++            except ValueError:
++                record["inputText"] = call.function.arguments
++        pending_call = None
++
++    def finish_message() -> None:
++        if not pending_parts:
++            return
++        record = records[pending_position]
++        assert record is not None
++        record.update(
++            type="message",
++            role="assistant",
++            author="model",
++            content=_parts(pending_parts),
++        )
++        pending_parts.clear()
++
++    with path.open("r", encoding="utf-8", newline="") as source:
++        for line_number, line in enumerate(source, 1):
++            position = len(records)
++            record: dict[str, Any] = {"id": f"wire-{line_number}"}
++            records.append(record)
++            try:
++                if not line.endswith("\n"):
++                    raise ValueError("Incomplete wire tail")
++                parsed = parse_wire_file_line(line)
++                if isinstance(parsed, WireFileMetadata):
++                    records[position] = None
++                    continue
++                message = parsed.to_wire_message()
++                record["ts"] = datetime.fromtimestamp(parsed.timestamp, UTC).isoformat()
++            except (ValueError, TypeError, KeyError, OverflowError):
++                finish_call()
++                finish_message()
++                record.update(type="gap", reason="unparseable", count=1)
++                missing.add("corrupt_events")
++                continue
++
++            if not isinstance(message, ToolCallPart):
++                finish_call()
++            if not isinstance(message, ContentPart):
++                finish_message()
++            if isinstance(message, (TurnBegin, SteerInput)):
++                record.update(
++                    type="message", role="user", content=_parts(message.user_input)
++                )
++            elif isinstance(message, ContentPart):
++                if pending_parts:
++                    records[pending_position] = None
++                if pending_parts and pending_parts[-1].merge_in_place(message):
++                    pass
++                else:
++                    pending_parts.append(message)
++                pending_position = position
++            elif isinstance(message, ToolCall):
++                pending_call = (message, position)
++            elif isinstance(message, ToolCallPart):
++                if pending_call is None:
++                    record.update(
++                        type="gap",
++                        reason="not_recorded",
++                        detail="Tool delta has no call.",
++                    )
++                else:
++                    call, previous = pending_call
++                    call.merge_in_place(message)
++                    records[previous] = None
++                    pending_call = (call, position)
++            elif isinstance(message, ToolResult):
++                previous = result_positions.get(message.tool_call_id)
++                if previous is not None:
++                    records[previous] = None
++                    missing.add("tool_result_updates")
++                result_positions[message.tool_call_id] = position
++                record.update(
++                    type="tool_result",
++                    callId=message.tool_call_id,
++                    status="failed" if message.return_value.is_error else "completed",
++                    content=_parts(tool_result_to_message(message).content),
++                )
++            elif isinstance(message, ApprovalRequest):
++                approvals[message.id] = message
++                records[position] = None
++            elif isinstance(message, ApprovalResponse):
++                request = approvals.get(message.request_id)
++                record.update(
++                    type="approval",
++                    decision="denied" if message.response == "reject" else "approved",
++                    native={"response": message.response},
++                )
++                if request is not None:
++                    record["callId"] = request.tool_call_id
++                    record["subject"] = request.description
++                else:
++                    record["subject"] = message.request_id
++                if message.response == "approve_for_session":
++                    record["scope"] = "session"
++            elif isinstance(message, StatusUpdate) and message.plan_mode is not None:
++                record.update(
++                    type="session_info",
++                    agentSettings={"mode": {"plan_mode": message.plan_mode}},
++                )
++            elif isinstance(message, CompactionEnd):
++                # Wire history survives compaction. The context snapshot is not replayed.
++                records[position] = None
++            else:
++                records[position] = None
++    finish_call()
++    finish_message()
++    header = {
++        "type": "session",
++        "id": "header",
++        "formatVersion": "0.1",
++        "agent": {"name": "kimi-code", "version": get_version()},
++        "sessionId": session_id,
++        "producer": {
++            "name": "kimi-asr-export",
++            "version": "1",
++            "method": "native",
++            "source": "kimi-wire",
++        },
++        "missing": sorted(missing),
++    }
++    return "".join(
++        json.dumps(r, ensure_ascii=False, allow_nan=False) + "\n"
++        for r in [header, *records]
++        if r is not None
++    )
++
++
++@cli.command("export")
++def export(
++    session: Annotated[str, typer.Option("--session", help="Native session ID.")],
++    format: Annotated[str, typer.Option("--format")] = "agent-session",
++    output: Annotated[
++        Path | None, typer.Option("--output", help="Output directory.")
++    ] = None,
++) -> None:
++    """Write one session to stdout or a private file in an output directory."""
++    if format != "agent-session" or not session or Path(session).name != session:
++        raise typer.BadParameter("Use agent-session and a single native session ID")
++    root = get_share_dir() / "sessions"
++    directories = (
++        [p / session for p in root.iterdir() if (p / session).is_dir()]
++        if root.exists()
++        else []
++    )
++    if len(directories) != 1:
++        raise typer.BadParameter("Session not found")
++    directory = directories[0]
++    try:
++        stream = export_wire(directory / "wire.jsonl", session)
++        if output is None:
++            typer.echo(stream, nl=False)
++        else:
++            output.mkdir(mode=0o700, parents=True, exist_ok=True)
++            name = hashlib.sha256(session.encode()).hexdigest() + ".jsonl"
++            descriptor = os.open(
++                output / name, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
++            )
++            with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as target:
++                target.write(stream)
++    except (OSError, ValueError) as error:
++        typer.echo(f"Export failed: {error}", err=True)
++        raise typer.Exit(1) from error
+diff --git a/tests/test_asr_export.py b/tests/test_asr_export.py
+new file mode 100644
+index 0000000..1e29984
+--- /dev/null
++++ b/tests/test_asr_export.py
+@@ -0,0 +1,71 @@
++import json
++from pathlib import Path
++
++from kosong.message import TextPart, ThinkPart, ToolCall, ToolCallPart
++from kosong.tooling import ToolOk, ToolResult
++from typer.testing import CliRunner
++
++from kimi_cli.cli.sessions import cli, export_wire
++from kimi_cli.wire.file import WireMessageRecord
++from kimi_cli.wire.types import ApprovalRequest, ApprovalResponse, TurnBegin, TurnEnd
++
++
++def test_wire_export_preserves_completion_order_and_exact_text(tmp_path: Path):
++    events = [
++        TurnBegin(user_input="Synthetic prompt\n"),
++        TextPart(text="a"),
++        TextPart(text=" b\n"),
++        ThinkPart(think="visible", encrypted="DO-NOT-COPY"),
++        ToolCall(id="c", function=ToolCall.FunctionBody(name="read", arguments='{"n":')),
++        ToolCallPart(arguments_part="9007199254740993}"),
++        ApprovalRequest(
++            id="p", tool_call_id="c", sender="read", action="read", description="Read fixture"
++        ),
++        ApprovalResponse(request_id="p", response="approve_for_session"),
++        ToolResult(tool_call_id="c", return_value=ToolOk(output="old")),
++        TurnBegin(user_input="Intervening"),
++        ToolResult(tool_call_id="c", return_value=ToolOk(output="new\n")),
++        TurnEnd(),
++    ]
++    source = tmp_path / "wire.jsonl"
++    source.write_text(
++        "".join(
++            WireMessageRecord.from_wire_message(e, timestamp=1700000000 + i).model_dump_json()
++            + "\n"
++            for i, e in enumerate(events)
++        )
++    )
++    result = export_wire(source, "synthetic-session")
++    rows = [json.loads(line) for line in result.splitlines()]
++    assert result == export_wire(source, "synthetic-session")
++    assert "DO-NOT-COPY" not in result
++    assert rows[2]["content"][0]["text"] == "a b\n"
++    call = next(r for r in rows if r["type"] == "tool_call")
++    assert call["input"] == {"n": "9007199254740993"}
++    approval = next(r for r in rows if r["type"] == "approval")
++    assert approval["scope"] == "session"
++    assert "by" not in approval
++    results = [r for r in rows if r["type"] == "tool_result"]
++    assert len(results) == 1
++    assert results[0]["content"][0]["text"] == "new\n"
++    assert rows.index(results[0]) > next(
++        i
++        for i, r in enumerate(rows)
++        if r.get("content") == [{"type": "text", "text": "Intervening"}]
++    )
++
++
++def test_corruption_and_incomplete_tail_are_gaps(tmp_path: Path):
++    source = tmp_path / "wire.jsonl"
++    source.write_text("bad\n{", encoding="utf-8")
++    rows = [json.loads(x) for x in export_wire(source, "s").splitlines()]
++    assert [r["type"] for r in rows] == ["session", "gap", "gap"]
++    assert all(r["reason"] == "unparseable" for r in rows[1:])
++
++
++def test_cli_missing_session_and_invalid_format(tmp_path: Path, monkeypatch):
++    monkeypatch.setenv("KIMI_SHARE_DIR", str(tmp_path))
++    runner = CliRunner()
++    assert runner.invoke(cli, ["export", "--session", "missing"]).exit_code != 0
++    assert runner.invoke(cli, ["export", "--session", "../escape"]).exit_code != 0
++    assert runner.invoke(cli, ["export", "--session", "missing", "--format", "zip"]).exit_code != 0
+
+base-commit: 9ab1286b8fe4e6bcd116949a27ce5e0ac3389c82

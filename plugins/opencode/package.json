@@ -1,0 +1,25 @@
+{
+  "name": "@agent-session/opencode-recorder",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./kilo": "./dist/kilo.js",
+    "./mimocode": "./dist/mimocode.js",
+    "./v2": "./dist/v2.js"
+  },
+  "files": ["dist", "README.md"],
+  "engines": {"node": ">=22.13"},
+  "dependencies": {
+    "@agent-session/writer": "workspace:*",
+    "@agent-session/validate": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.mjs"
+  }
+}

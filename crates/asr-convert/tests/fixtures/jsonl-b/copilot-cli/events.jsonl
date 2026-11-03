@@ -1,0 +1,8 @@
+{"type":"session.start","id":"copilot-meta","data":{"sessionId":"complete-copilot","startTime":"2026-07-21T12:00:00Z","context":{"cwd":"/workspace/fixture"}}}
+{"type":"user.message","id":"copilot-message","timestamp":"2026-07-21T12:00:01Z","data":{"content":"Copilot snowman ☃\nquoted \"body\" and escaped \\\\ path"}}
+{"type":"assistant.message","id":"reply","data":{"messageId":"reply-native","apiCallId":"response-1","content":"one","toolRequests":[{"toolCallId":"call-1","name":"view","arguments":{"path":"hello.txt"}}]}}
+{"type":"tool.execution_start","id":"start","data":{"toolCallId":"call-1","toolName":"view","arguments":{"path":"hello.txt"}}}
+{"type":"tool.execution_complete","id":"result","data":{"toolCallId":"call-1","success":false,"shellExecution":{"exitCode":0},"result":{"content":"model text","detailedContent":"display text"}}}
+{"type":"assistant.usage","id":"usage","data":{"apiCallId":"response-1","model":"served","inputTokens":10,"cacheReadTokens":4,"outputTokens":0}}
+{"type":"permission.completed","id":"decision","data":{"requestId":"approval-1","toolCallId":"call-1","decisionSource":"human_response","result":{"kind":"approved-for-session"}}}
+{"type":"assistant.message","id":"child-row","agentId":"worker","data":{"messageId":"child-answer","content":"child text"}}

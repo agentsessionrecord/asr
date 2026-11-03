@@ -1,0 +1,2 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"large-core-token-count","producer":{"name":"example-export","version":"1","method":"native"},"missing":["usage"]}
+{"type":"inference","id":"call","model":{"requested":"example-model"},"usage":{"outputTokens":0},"_meta":{"com.example.agent":{"native":{"input_tokens":"9007199254740993"}}}}

@@ -1,0 +1,271 @@
+From 2645edf25c02a677e42fc6892945c879e1953eae Mon Sep 17 00:00:00 2001
+From: ASR Contributors <contributors@agentsessionrecord.org>
+Date: Sun, 1 Nov 2026 12:59:14 -0500
+Subject: [PATCH] Add optional native Agent Session Record mailbox export skill
+
+---
+ .claude/skills/export-agent-session/SKILL.md  |  24 +++
+ .../scripts/export-agent-session.test.ts      |  53 +++++++
+ .../scripts/export-agent-session.ts           | 146 ++++++++++++++++++
+ .../skills/export-agent-session/tsconfig.json |   5 +
+ 4 files changed, 228 insertions(+)
+ create mode 100644 .claude/skills/export-agent-session/SKILL.md
+ create mode 100644 .claude/skills/export-agent-session/scripts/export-agent-session.test.ts
+ create mode 100644 .claude/skills/export-agent-session/scripts/export-agent-session.ts
+ create mode 100644 .claude/skills/export-agent-session/tsconfig.json
+
+diff --git a/.claude/skills/export-agent-session/SKILL.md b/.claude/skills/export-agent-session/SKILL.md
+new file mode 100644
+index 0000000..f4d843a
+--- /dev/null
++++ b/.claude/skills/export-agent-session/SKILL.md
+@@ -0,0 +1,24 @@
++---
++name: export-agent-session
++description: Export one NanoClaw mailbox session as Agent Session Record JSON Lines for local inspection or collection.
++---
++
++Run this utility from the NanoClaw checkout after its pinned dependencies are installed.
++It reads the existing mailbox files without starting the host or an agent container.
++Use the session ID from `ncl sessions list` and the directory that contains its
++`inbound.db` and `outbound.db` files.
++
++```bash
++pnpm exec tsx .claude/skills/export-agent-session/scripts/export-agent-session.ts \
++  --session SESSION_ID --directory data/v2-sessions/AGENT_GROUP/SESSION_ID \
++  --format agent-session > session.jsonl
++```
++
++The output includes retained mailbox text in native sequence order.
++The header lists missing internal model calls, tools, approvals and settings.
++Unsupported payloads become gaps. Sender session references are preserved when the inbound
++row names its source session. The utility reads no provider credentials.
++Stop the session before exporting if you need a stable snapshot across both files.
++
++Run the focused check with `pnpm exec vitest run .claude/skills/export-agent-session/scripts/export-agent-session.test.ts`.
++No installation or source edits are required.
+diff --git a/.claude/skills/export-agent-session/scripts/export-agent-session.test.ts b/.claude/skills/export-agent-session/scripts/export-agent-session.test.ts
+new file mode 100644
+index 0000000..ff6a61d
+--- /dev/null
++++ b/.claude/skills/export-agent-session/scripts/export-agent-session.test.ts
+@@ -0,0 +1,53 @@
++import Database from 'better-sqlite3';
++import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import { expect, test } from 'vitest';
++
++import { INBOUND_SCHEMA, OUTBOUND_SCHEMA } from '../../../../src/mailbox/sqlite/schema.js';
++import { exportAgentSession } from './export-agent-session.js';
++
++test('exports real mailbox schemas in sequence order without sorting by timestamp', () => {
++  const root = mkdtempSync(join(tmpdir(), 'synthetic-asr-'));
++  const directory = join(root, 'synthetic-session');
++  mkdirSync(directory);
++  try {
++    const inbound = new Database(join(directory, 'inbound.db'));
++    inbound.exec(INBOUND_SCHEMA);
++    inbound
++      .prepare('INSERT INTO messages_in(id,seq,kind,timestamp,content) VALUES(?,?,?,?,?)')
++      .run(
++        'prompt',
++        2,
++        'chat',
++        '2026-01-02T00:00:00Z',
++        JSON.stringify({ text: 'hello\n', credentials: 'excluded-synthetic-value' }),
++      );
++    inbound.close();
++    const outbound = new Database(join(directory, 'outbound.db'));
++    outbound.exec(OUTBOUND_SCHEMA);
++    outbound
++      .prepare('INSERT INTO messages_out(id,seq,kind,timestamp,content) VALUES(?,?,?,?,?)')
++      .run('reply', 3, 'chat', '2026-01-01T00:00:00Z', JSON.stringify({ text: 'hi' }));
++    outbound.close();
++    const output = exportAgentSession(directory, 'synthetic-session');
++    const records = output
++      .trimEnd()
++      .split('\n')
++      .map((line) => JSON.parse(line));
++    expect(records.map((record) => record.id)).toEqual(['header', 'prompt', 'reply']);
++    expect(records[1].content[0].text).toBe('hello\n');
++    expect(records[1].author).toBeUndefined();
++    expect(output).not.toContain('excluded-synthetic-value');
++    expect(output).not.toContain('endedAt');
++    expect(() => exportAgentSession(directory, 'wrong-session')).toThrow();
++    const changed = new Database(join(directory, 'outbound.db'));
++    changed.prepare('UPDATE messages_out SET timestamp = ?').run('2026-02-30T00:00:00Z');
++    expect(JSON.parse(exportAgentSession(directory, 'synthetic-session').trimEnd().split('\n')[2]).ts).toBeUndefined();
++    changed.prepare('UPDATE messages_out SET seq = NULL').run();
++    changed.close();
++    expect(() => exportAgentSession(directory, 'synthetic-session')).toThrow('sequence');
++  } finally {
++    rmSync(root, { recursive: true, force: true });
++  }
++});
+diff --git a/.claude/skills/export-agent-session/scripts/export-agent-session.ts b/.claude/skills/export-agent-session/scripts/export-agent-session.ts
+new file mode 100644
+index 0000000..b3b92b2
+--- /dev/null
++++ b/.claude/skills/export-agent-session/scripts/export-agent-session.ts
+@@ -0,0 +1,146 @@
++import Database from 'better-sqlite3';
++import { basename, resolve } from 'node:path';
++import { pathToFileURL } from 'node:url';
++import { parseArgs } from 'node:util';
++
++import type { InboundRecord } from '../../../../src/mailbox/model.js';
++
++type Row = Pick<InboundRecord, 'id' | 'kind' | 'content' | 'timestamp'> & {
++  sequence: bigint | null;
++  sourceSessionId: string | null;
++  direction: 'in' | 'out';
++};
++
++function validTimestamp(value: string): boolean {
++  const match = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.exec(value);
++  if (!match || !Number.isFinite(Date.parse(value))) return false;
++  const [, year, month, day, hour, minute, second] = match.map(Number);
++  const days = new Date(Date.UTC(year, month, 0)).getUTCDate();
++  return month >= 1 && month <= 12 && day >= 1 && day <= days && hour < 24 && minute < 60 && second < 60;
++}
++
++export function exportAgentSession(directory: string, sessionId: string): string {
++  if (!sessionId || basename(resolve(directory)) !== sessionId) throw new Error('directory must name the session ID');
++  const inbound = new Database(resolve(directory, 'inbound.db'), { readonly: true, fileMustExist: true });
++  try {
++    const outbound = new Database(resolve(directory, 'outbound.db'), { readonly: true, fileMustExist: true });
++    try {
++      inbound.defaultSafeIntegers(true);
++      outbound.defaultSafeIntegers(true);
++      const rows = [
++        ...inbound
++          .prepare(
++            "SELECT id, seq AS sequence, kind, timestamp, content, source_session_id AS sourceSessionId, 'in' AS direction FROM messages_in ORDER BY seq",
++          )
++          .all(),
++        ...outbound
++          .prepare(
++            "SELECT id, seq AS sequence, kind, timestamp, content, NULL AS sourceSessionId, 'out' AS direction FROM messages_out ORDER BY seq",
++          )
++          .all(),
++      ] as Row[];
++      if (rows.some((row) => row.sequence === null)) throw new Error('native sequence is unavailable');
++      rows.sort((left, right) => (left.sequence! < right.sequence! ? -1 : left.sequence! > right.sequence! ? 1 : 0));
++      if (rows.some((row, index) => index > 0 && row.sequence === rows[index - 1].sequence))
++        throw new Error('native sequence is ambiguous');
++      const records: Record<string, unknown>[] = [
++        {
++          type: 'session',
++          id: 'header',
++          formatVersion: '0.1',
++          agent: { name: 'nanoclaw' },
++          sessionId,
++          producer: {
++            name: 'nanoclaw-agent-session',
++            version: '0.1.0',
++            method: 'native',
++            source: 'nanoclaw-v2-mailboxes',
++          },
++          missing: [
++            'usage',
++            'model',
++            'approvals',
++            'agent_settings',
++            'tools',
++            'tool_calls',
++            'tool_output',
++            'file_changes',
++            'commits',
++            'subagents',
++            'copies',
++            'provider_state',
++            'timestamps',
++            'message_author',
++            'mailbox_only',
++          ],
++        },
++      ];
++      const reserved = new Set(rows.map((row) => row.id));
++      reserved.add('header');
++      rows.forEach((row, position) => {
++        let id = row.id;
++        if (
++          !id ||
++          id === 'header' ||
++          Array.from(id).length > 256 ||
++          Array.from(id).some((character) => {
++            const point = character.codePointAt(0)!;
++            return point <= 31 || (point >= 127 && point <= 159);
++          }) ||
++          rows.filter((other) => other.id === id).length !== 1
++        ) {
++          id = `asr-${position}`;
++          while (reserved.has(id)) id += '-derived';
++          reserved.add(id);
++        }
++        const record: Record<string, unknown> = { id };
++        if (validTimestamp(row.timestamp)) record.ts = row.timestamp;
++        let payload: unknown;
++        try {
++          payload = JSON.parse(row.content);
++        } catch (error) {
++          if (!(error instanceof SyntaxError)) throw error;
++          payload = undefined;
++        }
++        if (payload && typeof payload === 'object' && 'text' in payload && typeof payload.text === 'string') {
++          Object.assign(record, {
++            type: 'message',
++            role: row.direction === 'in' ? 'user' : 'assistant',
++            content: [{ type: 'text', text: payload.text }],
++          });
++          if (row.direction === 'in' && row.kind === 'task') record.origin = 'scheduled';
++          if (row.sourceSessionId)
++            record.from = `nanoclaw:${encodeURIComponent(row.sourceSessionId).replace(/[!'()*]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`)}`;
++        } else {
++          Object.assign(record, {
++            type: 'gap',
++            reason: 'not_recorded',
++            count: 1,
++            detail: 'Mailbox payload has no supported text field.',
++          });
++        }
++        records.push(record);
++      });
++      return records.map((record) => JSON.stringify(record)).join('\n') + '\n';
++    } finally {
++      outbound.close();
++    }
++  } finally {
++    inbound.close();
++  }
++}
++
++if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
++  try {
++    const { values } = parseArgs({
++      options: { session: { type: 'string' }, directory: { type: 'string' }, format: { type: 'string' } },
++    });
++    if (!values.session || !values.directory || values.format !== 'agent-session')
++      throw new Error('use --session ID --directory PATH --format agent-session');
++    process.stdout.write(exportAgentSession(values.directory, values.session));
++  } catch (error) {
++    if (!(error instanceof Error)) throw error;
++    console.error(error.message);
++    process.exitCode = 1;
++  }
++}
+diff --git a/.claude/skills/export-agent-session/tsconfig.json b/.claude/skills/export-agent-session/tsconfig.json
+new file mode 100644
+index 0000000..3265c86
+--- /dev/null
++++ b/.claude/skills/export-agent-session/tsconfig.json
+@@ -0,0 +1,5 @@
++{
++  "extends": "../../../tsconfig.json",
++  "compilerOptions": { "noEmit": true, "rootDir": "../../..", "incremental": false },
++  "include": ["scripts/*.ts"]
++}
+-- 
+2.43.0
+

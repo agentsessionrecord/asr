@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-002",
+    "code": "extra-header",
+    "line": 2,
+    "pointer": "/type"
+  }
+]

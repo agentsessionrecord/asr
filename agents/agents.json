@@ -1,0 +1,227 @@
+[
+  {
+    "name": "amp",
+    "displayName": "Amp",
+    "homepage": "https://ampcode.com/"
+  },
+  {
+    "name": "antigravity",
+    "displayName": "Antigravity",
+    "homepage": "https://antigravity.google/"
+  },
+  {
+    "name": "astrbot",
+    "displayName": "AstrBot",
+    "homepage": "https://astrbot.app/"
+  },
+  {
+    "name": "auggie",
+    "displayName": "Auggie",
+    "homepage": "https://www.augmentcode.com/"
+  },
+  {
+    "name": "claude-code",
+    "displayName": "Claude Code",
+    "homepage": "https://code.claude.com/"
+  },
+  {
+    "name": "cline",
+    "displayName": "Cline",
+    "homepage": "https://cline.bot/"
+  },
+  {
+    "name": "codebuddy",
+    "displayName": "CodeBuddy",
+    "homepage": "https://www.codebuddy.cn/"
+  },
+  {
+    "name": "codex",
+    "displayName": "Codex",
+    "homepage": "https://openai.com/codex/"
+  },
+  {
+    "name": "continue",
+    "displayName": "Continue",
+    "homepage": "https://www.continue.dev/"
+  },
+  {
+    "name": "copilot-cli",
+    "displayName": "Copilot CLI",
+    "homepage": "https://github.com/github/copilot-cli"
+  },
+  {
+    "name": "crush",
+    "displayName": "Crush",
+    "homepage": "https://github.com/charmbracelet/crush"
+  },
+  {
+    "name": "cursor",
+    "displayName": "Cursor",
+    "homepage": "https://cursor.com/"
+  },
+  {
+    "name": "deepagents",
+    "displayName": "Deep Agents",
+    "homepage": "https://github.com/langchain-ai/deepagents"
+  },
+  {
+    "name": "deepseek-harness",
+    "displayName": "DeepSeek Harness",
+    "homepage": "https://www.deepseek.com/"
+  },
+  {
+    "name": "devin",
+    "displayName": "Devin",
+    "homepage": "https://devin.ai/"
+  },
+  {
+    "name": "droid",
+    "displayName": "Droid",
+    "homepage": "https://factory.ai/"
+  },
+  {
+    "name": "firebender",
+    "displayName": "Firebender",
+    "homepage": "https://firebender.com/"
+  },
+  {
+    "name": "forgecode",
+    "displayName": "ForgeCode",
+    "homepage": "https://forgecode.dev/"
+  },
+  {
+    "name": "fx",
+    "displayName": "FX",
+    "homepage": "https://vercel.com/"
+  },
+  {
+    "name": "gemini-cli",
+    "displayName": "Gemini CLI",
+    "homepage": "https://geminicli.com/"
+  },
+  {
+    "name": "goose",
+    "displayName": "Goose",
+    "homepage": "https://block.github.io/goose/"
+  },
+  {
+    "name": "grok-build",
+    "displayName": "Grok Build",
+    "homepage": "https://grok.com/"
+  },
+  {
+    "name": "hermes",
+    "displayName": "Hermes Agent",
+    "homepage": "https://hermes-agent.nousresearch.com/"
+  },
+  {
+    "name": "junie",
+    "displayName": "Junie",
+    "homepage": "https://www.jetbrains.com/junie/"
+  },
+  {
+    "name": "kilo",
+    "displayName": "Kilo",
+    "homepage": "https://kilo.ai/"
+  },
+  {
+    "name": "kimi-code",
+    "displayName": "Kimi Code",
+    "homepage": "https://www.kimi.com/code"
+  },
+  {
+    "name": "kiro",
+    "displayName": "Kiro",
+    "homepage": "https://kiro.dev/"
+  },
+  {
+    "name": "lingma",
+    "displayName": "Lingma",
+    "homepage": "https://lingma.aliyun.com/"
+  },
+  {
+    "name": "mimocode",
+    "displayName": "MiMoCode",
+    "homepage": "https://mimo.xiaomi.com/"
+  },
+  {
+    "name": "mistral-vibe",
+    "displayName": "Mistral Vibe",
+    "homepage": "https://github.com/mistralai/mistral-vibe"
+  },
+  {
+    "name": "mux",
+    "displayName": "Mux",
+    "homepage": "https://mux.coder.com/"
+  },
+  {
+    "name": "nanoclaw",
+    "displayName": "NanoClaw",
+    "homepage": "https://nanoclaw.dev/"
+  },
+  {
+    "name": "openclaw",
+    "displayName": "OpenClaw",
+    "homepage": "https://openclaw.ai/"
+  },
+  {
+    "name": "opencode",
+    "displayName": "OpenCode",
+    "homepage": "https://opencode.ai/"
+  },
+  {
+    "name": "openhands",
+    "displayName": "OpenHands",
+    "homepage": "https://openhands.dev/"
+  },
+  {
+    "name": "pi",
+    "displayName": "Pi",
+    "homepage": "https://pi.dev/"
+  },
+  {
+    "name": "qoder",
+    "displayName": "Qoder",
+    "homepage": "https://qoder.com/"
+  },
+  {
+    "name": "qwen-code",
+    "displayName": "Qwen Code",
+    "homepage": "https://github.com/QwenLM/qwen-code"
+  },
+  {
+    "name": "roo-code",
+    "displayName": "Roo Code",
+    "homepage": "https://roocode.com/"
+  },
+  {
+    "name": "rovodev",
+    "displayName": "Rovo Dev",
+    "homepage": "https://www.atlassian.com/software/rovo-dev"
+  },
+  {
+    "name": "shelley",
+    "displayName": "Shelley",
+    "homepage": "https://exe.dev/"
+  },
+  {
+    "name": "t3-code",
+    "displayName": "T3 Code",
+    "homepage": "https://t3.codes/"
+  },
+  {
+    "name": "tabnine",
+    "displayName": "Tabnine",
+    "homepage": "https://www.tabnine.com/"
+  },
+  {
+    "name": "warp",
+    "displayName": "Warp",
+    "homepage": "https://www.warp.dev/"
+  },
+  {
+    "name": "zed",
+    "displayName": "Zed",
+    "homepage": "https://zed.dev/"
+  }
+]

@@ -1,0 +1,359 @@
+From 0f3e30f3608278d9a58bd7f1ad2e35bdee2481de Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:28 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ .../examples/export_agent_session.rs          |  13 +
+ crates/forge_domain/src/agent_session.rs      | 269 ++++++++++++++++++
+ crates/forge_domain/src/lib.rs                |   1 +
+ crates/forge_main/src/cli.rs                  |   8 +
+ crates/forge_main/src/ui.rs                   |   8 +
+ 5 files changed, 299 insertions(+)
+ create mode 100644 crates/forge_domain/examples/export_agent_session.rs
+ create mode 100644 crates/forge_domain/src/agent_session.rs
+
+diff --git a/crates/forge_domain/examples/export_agent_session.rs b/crates/forge_domain/examples/export_agent_session.rs
+new file mode 100644
+index 0000000..7f5cd61
+--- /dev/null
++++ b/crates/forge_domain/examples/export_agent_session.rs
+@@ -0,0 +1,13 @@
++use std::{env, fs, io};
++
++use forge_domain::Conversation;
++
++fn main() -> anyhow::Result<()> {
++    let path = env::args()
++        .nth(1)
++        .ok_or_else(|| anyhow::anyhow!("usage: export_agent_session CONVERSATION.json"))?;
++    let value: serde_json::Value = serde_json::from_slice(&fs::read(path)?)?;
++    let conversation: Conversation =
++        serde_json::from_value(value.get("conversation").cloned().unwrap_or(value))?;
++    conversation.write_agent_session(io::stdout().lock())
++}
+diff --git a/crates/forge_domain/src/agent_session.rs b/crates/forge_domain/src/agent_session.rs
+new file mode 100644
+index 0000000..7d19500
+--- /dev/null
++++ b/crates/forge_domain/src/agent_session.rs
+@@ -0,0 +1,269 @@
++use std::collections::HashSet;
++use std::io::Write;
++
++use serde_json::{Value, json};
++
++use crate::{ContextMessage, Conversation, MessagePhase, Role, ToolValue};
++
++impl Conversation {
++    /// Writes retained conversation context as Agent Session Record JSON Lines.
++    ///
++    /// # Arguments
++    /// * `output` receives one session stream.
++    ///
++    /// # Errors
++    /// Returns an error for missing context, duplicate result IDs, or failed writes.
++    pub fn write_agent_session(&self, mut output: impl Write) -> anyhow::Result<()> {
++        let context = self
++            .context
++            .as_ref()
++            .ok_or_else(|| anyhow::anyhow!("conversation context is unavailable"))?;
++        let mut records = vec![json!({
++            "type":"session", "id":"header", "formatVersion":"0.1",
++            "agent":{"name":"forgecode"}, "sessionId":self.id.into_string(),
++            "producer":{"name":"forgecode-agent-session", "version":"0.1.0", "method":"native", "source":"forge-context"},
++            "startedAt":self.metadata.created_at.to_rfc3339(),
++            "missing":["history", "timestamps", "usage", "model", "approvals", "agent_settings", "tools", "file_changes", "commits", "subagents", "copies", "images", "provider_state", "content_order"]
++        })];
++        records.push(json!({"type":"gap", "id":"retained-context", "reason":"unknown", "detail":"Only retained model context is available. Earlier context and intermediate events may be absent."}));
++        let mut result_ids = HashSet::new();
++        let mut call_ids = HashSet::new();
++        for entry in &context.messages {
++            match &entry.message {
++                ContextMessage::Text(message) => {
++                    for call in message.tool_calls.iter().flatten() {
++                        if let Some(id) = &call.call_id {
++                            call_ids.insert(id.as_str().to_owned());
++                        }
++                    }
++                }
++                ContextMessage::Tool(result) => {
++                    if let Some(id) = &result.call_id {
++                        call_ids.insert(id.as_str().to_owned());
++                    }
++                }
++                ContextMessage::Image(_) => {}
++            }
++        }
++        for (position, entry) in context.messages.iter().enumerate() {
++            let id = format!("context-{position}");
++            match &entry.message {
++                ContextMessage::Text(message) => {
++                    let role = match message.role { Role::System => "system", Role::User => "user", Role::Assistant => "assistant" };
++                    let mut content = vec![json!({"type":"text", "text":message.content})];
++                    if let Some(reasoning) = &message.reasoning_details {
++                        for detail in reasoning {
++                            if detail.type_of.as_deref() == Some("reasoning.encrypted") {
++                                content.push(json!({"type":"reasoning", "visibility":"encrypted"}));
++                            } else {
++                                content.push(asr_reasoning(detail.text.as_deref().unwrap_or_default(), detail.type_of.as_deref() == Some("reasoning.summary")));
++                            }
++                        }
++                    }
++                    let mut record = json!({"type":"message", "id":id, "role":role, "content":content});
++                    if message.role == Role::Assistant { record["author"] = json!("model"); }
++                    if message.role == Role::System { record["origin"] = json!("instructions"); }
++                    if let Some(phase) = message.phase {
++                        record["phase"] = json!(match phase { MessagePhase::Commentary => "commentary", MessagePhase::FinalAnswer => "final" });
++                    }
++                    records.push(record);
++                    for (index, call) in message.tool_calls.iter().flatten().enumerate() {
++                        anyhow::ensure!(!call.name.as_str().is_empty(), "tool name is unavailable");
++                        let call_id = if let Some(id) = call.call_id.as_ref().filter(|id| !id.as_str().is_empty()) {
++                            id.as_str().to_owned()
++                        } else {
++                            let mut id = format!("derived-{position}-{index}");
++                            while !call_ids.insert(id.clone()) { id.push_str("-derived"); }
++                            id
++                        };
++                        records.push(json!({"type":"tool_call", "id":format!("{id}-call-{index}"),
++                            "callId":call_id,
++                            "name":call.name.as_str(), "inputText":call.arguments.clone().into_string(), "requestedBy":"model"}));
++                    }
++                }
++                ContextMessage::Tool(result) => {
++                    let mut record = json!({"type":"tool_result", "id":id,
++                        "status":if result.is_error() { "failed" } else { "completed" },
++                        "content":result.output.values.iter().filter_map(|value| match value {
++                            ToolValue::Text(text) | ToolValue::AI { value:text, .. } => Some(json!({"type":"text", "text":text})),
++                            ToolValue::Image(_) | ToolValue::Empty => None,
++                        }).collect::<Vec<Value>>()});
++                    if result.output.values.iter().any(|value| matches!(value, ToolValue::Image(_))) { record["truncated"] = json!(true); }
++                    if let Some(call_id) = result.call_id.as_ref().filter(|id| !id.as_str().is_empty()) {
++                        anyhow::ensure!(result_ids.insert(call_id.as_str()), "duplicate tool result ID");
++                        record["callId"] = json!(call_id.as_str());
++                    }
++                    records.push(record);
++                }
++                ContextMessage::Image(_) => records.push(json!({"type":"gap", "id":id, "reason":"not_recorded", "detail":"Image bytes are not exported."})),
++            }
++        }
++        for record in records {
++            serde_json::to_writer(&mut output, &record)?;
++            output.write_all(b"\n")?;
++        }
++        Ok(())
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::{Context, ConversationId};
++    use pretty_assertions::assert_eq;
++
++    #[test]
++    fn agent_session_preserves_text_and_unknown_authorship() {
++        let fixture = Conversation::new(
++            ConversationId::parse("00000000-0000-4000-8000-000000000001").unwrap(),
++        )
++        .context(
++            Context::default()
++                .messages(vec![ContextMessage::user("hello\n\"world\"", None).into()]),
++        );
++        let mut output = Vec::new();
++        fixture.write_agent_session(&mut output).unwrap();
++        let actual: Vec<Value> = String::from_utf8(output)
++            .unwrap()
++            .lines()
++            .map(|line| serde_json::from_str(line).unwrap())
++            .collect();
++        let expected = json!({"type":"message","id":"context-0","role":"user","content":[{"type":"text","text":"hello\n\"world\""}]});
++        assert_eq!(actual[2], expected);
++        assert_eq!(actual[0]["producer"]["method"], "native");
++        assert!(actual[0].get("endedAt").is_none());
++    }
++    #[test]
++    fn agent_session_preserves_tool_arguments_and_excludes_signatures() {
++        let call = crate::ToolCallFull::new("read")
++            .call_id(crate::ToolCallId::new("call-1"))
++            .arguments(crate::ToolCallArguments::Unparsed(
++                r#"{"number":9007199254740993}"#.into(),
++            ));
++        let assistant = ContextMessage::assistant("", None, None, Some(vec![call]));
++        let result = crate::ToolResult::new("read")
++            .call_id(Some(crate::ToolCallId::new("call-1")))
++            .success("result\n");
++        let mut fixture = Conversation::generate().context(
++            Context::default()
++                .add_message(assistant)
++                .add_message(ContextMessage::Tool(result.clone())),
++        );
++        if let ContextMessage::Text(message) =
++            &mut fixture.context.as_mut().unwrap().messages[0].message
++        {
++            message.thought_signature = Some("synthetic-signature".into());
++            message.reasoning_details = Some(vec![crate::ReasoningFull {
++                text: Some("summary\n".into()),
++                data: Some("opaque-synthetic-state".into()),
++                type_of: Some("reasoning.summary".into()),
++                ..Default::default()
++            }]);
++        }
++        let mut output = Vec::new();
++        fixture.write_agent_session(&mut output).unwrap();
++        let text = String::from_utf8(output).unwrap();
++        let actual: Vec<Value> = text
++            .lines()
++            .map(|line| serde_json::from_str(line).unwrap())
++            .collect();
++        assert_eq!(actual[3]["inputText"], r#"{"number":9007199254740993}"#);
++        assert_eq!(actual[3]["callId"], actual[4]["callId"]);
++        assert_eq!(
++            actual[2]["content"][1],
++            json!({"type":"reasoning", "visibility":"summary", "summary":["summary\n"]})
++        );
++        assert!(!text.contains("synthetic-signature"));
++        assert!(!text.contains("opaque-synthetic-state"));
++        fixture
++            .context
++            .as_mut()
++            .unwrap()
++            .messages
++            .push(ContextMessage::Tool(result).into());
++        let mut rejected = Vec::new();
++        assert!(fixture.write_agent_session(&mut rejected).is_err());
++        assert!(rejected.is_empty());
++    }
++
++    #[test]
++    fn agent_session_keeps_withheld_reasoning_markers() {
++        let mut message = ContextMessage::assistant("", None, None, None);
++        if let ContextMessage::Text(ref mut text) = message {
++            text.reasoning_details = Some(vec![
++                crate::ReasoningFull {
++                    type_of: Some("reasoning.summary".into()),
++                    text: Some(String::new()),
++                    ..Default::default()
++                },
++                crate::ReasoningFull {
++                    type_of: Some("reasoning.encrypted".into()),
++                    data: Some("synthetic-opaque".into()),
++                    ..Default::default()
++                },
++                crate::ReasoningFull {
++                    type_of: Some("reasoning.text".into()),
++                    text: Some("Exact\r\n".into()),
++                    ..Default::default()
++                },
++            ]);
++        }
++        let fixture = Conversation::generate().context(Context::default().add_message(message));
++        let mut output = Vec::new();
++        fixture.write_agent_session(&mut output).unwrap();
++        let text = String::from_utf8(output).unwrap();
++        let records: Vec<Value> = text
++            .lines()
++            .map(|line| serde_json::from_str(line).unwrap())
++            .collect();
++        assert_eq!(
++            records[2]["content"][1],
++            json!({"type":"reasoning", "visibility":"omitted"})
++        );
++        assert_eq!(
++            records[2]["content"][2],
++            json!({"type":"reasoning", "visibility":"encrypted"})
++        );
++        assert_eq!(
++            records[2]["content"][3],
++            json!({"type":"reasoning", "text":"Exact\r\n"})
++        );
++        assert!(!text.contains("synthetic-opaque"));
++    }
++
++    #[test]
++    fn agent_session_does_not_pair_a_derived_call_with_a_native_result() {
++        let call = crate::ToolCallFull::new("read")
++            .arguments(crate::ToolCallArguments::Unparsed("{}".into()));
++        let result = crate::ToolResult::new("read")
++            .call_id(Some(crate::ToolCallId::new("derived-0-0")))
++            .success("result");
++        let fixture = Conversation::generate().context(
++            Context::default()
++                .add_message(ContextMessage::assistant("", None, None, Some(vec![call])))
++                .add_message(ContextMessage::Tool(result)),
++        );
++        let mut output = Vec::new();
++        fixture.write_agent_session(&mut output).unwrap();
++        let actual: Vec<Value> = String::from_utf8(output)
++            .unwrap()
++            .lines()
++            .map(|line| serde_json::from_str(line).unwrap())
++            .collect();
++        let expected = (json!("derived-0-0-derived"), json!("derived-0-0"));
++        assert_eq!(
++            (actual[3]["callId"].clone(), actual[4]["callId"].clone()),
++            expected
++        );
++    }
++}
++
++fn asr_reasoning(text: &str, summary: bool) -> serde_json::Value {
++    if text.is_empty() {
++        serde_json::json!({"type":"reasoning", "visibility":"omitted"})
++    } else if summary {
++        serde_json::json!({"type":"reasoning", "visibility":"summary", "summary":[text]})
++    } else {
++        serde_json::json!({"type":"reasoning", "text":text})
++    }
++}
+diff --git a/crates/forge_domain/src/lib.rs b/crates/forge_domain/src/lib.rs
+index 5ae3fca..375fbd0 100644
+--- a/crates/forge_domain/src/lib.rs
++++ b/crates/forge_domain/src/lib.rs
+@@ -1,4 +1,5 @@
+ mod agent;
++mod agent_session;
+ mod attachment;
+ mod auth;
+ mod chat_request;
+diff --git a/crates/forge_main/src/cli.rs b/crates/forge_main/src/cli.rs
+index 1068f77..66e9699 100644
+--- a/crates/forge_main/src/cli.rs
++++ b/crates/forge_main/src/cli.rs
+@@ -716,6 +716,14 @@ pub struct ConversationCommandGroup {
+ }
+ #[derive(Subcommand, Debug, Clone)]
+ pub enum ConversationCommand {
++    /// Export retained context as Agent Session Record JSON Lines to stdout.
++    Export {
++        /// Conversation ID to export.
++        id: ConversationId,
++        /// Export format.
++        #[arg(long, value_parser = ["agent-session"])]
++        format: String,
++    },
+     /// List conversation history.
+     List {
+         /// Output in machine-readable format.
+diff --git a/crates/forge_main/src/ui.rs b/crates/forge_main/src/ui.rs
+index f1b516c..cdbd38b 100644
+--- a/crates/forge_main/src/ui.rs
++++ b/crates/forge_main/src/ui.rs
+@@ -916,6 +916,14 @@ impl<A: API + ConsoleWriter + 'static, F: Fn(ForgeConfig) -> A + Send + Sync> UI
+         conversation_group: crate::cli::ConversationCommandGroup,
+     ) -> anyhow::Result<()> {
+         match conversation_group.command {
++            ConversationCommand::Export { id, format: _ } => {
++                let conversation = self
++                    .api
++                    .conversation(&id)
++                    .await?
++                    .ok_or_else(|| anyhow::anyhow!("conversation not found"))?;
++                conversation.write_agent_session(std::io::stdout().lock())?;
++            }
+             ConversationCommand::List { porcelain } => {
+                 self.on_show_conversations(porcelain).await?;
+             }
+
+base-commit: 7639d2b18418bd1948609ffd4e46f4acca30a117

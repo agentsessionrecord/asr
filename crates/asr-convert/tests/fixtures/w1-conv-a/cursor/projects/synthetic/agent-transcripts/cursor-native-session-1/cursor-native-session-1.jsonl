@@ -1,0 +1,5 @@
+{"timestamp":"2026-06-24T12:00:00Z","role":"user","message":{"role":"user","content":[{"type":"text","text":"Create cursor-native-cli-oracle.txt with a short proof."}]}}
+{"timestamp":"2026-06-24T12:00:01Z","role":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"tool-1","name":"write_file","input":{"path":"cursor-native-cli-oracle.txt","content":"cursor native fixture proof"}}]}}
+{"timestamp":"2026-06-24T12:00:02Z","role":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"tool-1","content":"wrote cursor-native-cli-oracle.txt"}]}}
+{"timestamp":"2026-06-24T12:00:03Z","role":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"The proof file was written."}]}}
+{"timestamp":"2026-06-24T12:00:04Z","event":"turn_ended","message":{"content":[{"type":"text","text":"turn complete"}]}}

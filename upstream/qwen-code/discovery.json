@@ -1,0 +1,18 @@
+{
+  "agent": "qwen-code",
+  "exportCommand": [
+    "qwen",
+    "sessions",
+    "export",
+    "--format",
+    "agent-session"
+  ],
+  "nativePaths": [
+    "~/.qwen/projects/*/chats/*.jsonl",
+    "~/.qwen/projects/*/chats/archive/*.jsonl"
+  ],
+  "formatVersions": [
+    "0.1"
+  ],
+  "supportsDeletionHook": false
+}

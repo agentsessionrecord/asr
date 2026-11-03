@@ -1,0 +1,3 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"run-1","producer":{"name":"example-recorder","version":"1","method":"recorder","source":"example-connection"}}
+{"type":"tool_call","id":"call","callId":"call-1","name":"run_tests"}
+{"type":"approval","id":"decision","callId":"call-1","decision":"approved","ts":"2026-10-30T18:00:00Z","by":"user","scope":"once"}

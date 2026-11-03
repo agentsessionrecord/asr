@@ -1,0 +1,560 @@
+From 70c3e78252d4a8da63de0cd12fa4e7b9c4042e7e Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 16:26:17 -0500
+Subject: [PATCH 6/8] test: cover native session export boundaries
+
+---
+ src/sessions/agent-session-export.test.ts | 544 ++++++++++++++++++++++
+ 1 file changed, 544 insertions(+)
+ create mode 100644 src/sessions/agent-session-export.test.ts
+
+diff --git a/src/sessions/agent-session-export.test.ts b/src/sessions/agent-session-export.test.ts
+new file mode 100644
+index 00000000000..01c4b32c40c
+--- /dev/null
++++ b/src/sessions/agent-session-export.test.ts
+@@ -0,0 +1,544 @@
++import { execFileSync } from "node:child_process";
++import { createHash } from "node:crypto";
++import fs from "node:fs";
++import os from "node:os";
++import path from "node:path";
++import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
++import { sessionsExportCommand } from "../commands/sessions-export.js";
++import { createTestRuntime } from "../commands/test-runtime-config-helpers.js";
++import {
++  clearRuntimeConfigSnapshot,
++  setRuntimeConfigSnapshot,
++} from "../config/runtime-snapshot.js";
++import { createNonExitingRuntime } from "../runtime.js";
++import {
++  drainSessionStateForTest,
++  useSessionStoreTempDirs,
++} from "../test-utils/session-state-cleanup.js";
++import {
++  convertAgentSession as nativeConvert,
++  exportAgentSessionBundle,
++} from "./agent-session-export.js";
++import { object, parseObject } from "./agent-session-export.json.js";
++import { readAgentSessionExport } from "./agent-session-export.source.js";
++import {
++  createAgentSessionExportFixture,
++  syntheticId,
++  syntheticMessage,
++} from "./agent-session-export.test-support.js";
++import type { JsonObject, WindowExportSource } from "./agent-session-export.types.js";
++
++const vendor = (record: JsonObject | undefined) => object(object(record?._meta)["ai.openclaw"]);
++function validateRecords(records: JsonObject[]) {
++  if (!process.env.ASR_VALIDATOR) {
++    return;
++  }
++  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-asr-validation-"));
++  try {
++    const file = path.join(directory, "session.jsonl");
++    fs.writeFileSync(file, records.map((record) => JSON.stringify(record)).join("\n") + "\n");
++    execFileSync(process.execPath, [process.env.ASR_VALIDATOR, file], { stdio: "pipe" });
++  } finally {
++    fs.rmSync(directory, { recursive: true, force: true });
++  }
++}
++function convertAgentSession(source: WindowExportSource) {
++  const result = nativeConvert(source);
++  validateRecords(result.records);
++  return result;
++}
++const readStream = (file: string) => {
++  const records = fs.readFileSync(file, "utf8").trim().split("\n").map(parseObject);
++  validateRecords(records);
++  return records;
++};
++
++describe("native Agent Session export", () => {
++  const dirs = useSessionStoreTempDirs(afterAll, "openclaw-asr-");
++  beforeEach(() => setRuntimeConfigSnapshot({}));
++  afterEach(() => {
++    clearRuntimeConfigSnapshot();
++    vi.unstubAllEnvs();
++  });
++  async function fixture(full = false) {
++    const root = dirs.make();
++    const selection = await createAgentSessionExportFixture(
++      { ...process.env, OPENCLAW_STATE_DIR: root },
++      full ? {} : { windows: 1, messages: 2 },
++    );
++    await drainSessionStateForTest({ stateDir: root });
++    const sources: WindowExportSource[] = [];
++    readAgentSessionExport(selection, (source) => sources.push(source));
++    return { root, selection, source: sources[0]!, sources };
++  }
++
++  it("writes current ASR identity, settings and inclusive usage without legacy fields", async () => {
++    const { source } = await fixture();
++    const records = convertAgentSession(source).records;
++    expect(records[0]).toMatchObject({
++      producer: { source: "openclaw-sqlite" },
++      missing: expect.arrayContaining(["approvals", "agent_settings"]),
++    });
++    expect(records.every((record) => record.seq === undefined)).toBe(true);
++    expect(records).toContainEqual(
++      expect.objectContaining({
++        type: "inference",
++        id: "response-run-1",
++        model: { provider: "openai", requested: "fixture-model" },
++        usage: { inputTokens: 22, cacheReadTokens: 8, cacheWriteTokens: 2, outputTokens: 4 },
++      }),
++    );
++    expect(records.find((r) => r.type === "message" && r.role === "assistant")?.inferenceId).toBe(
++      "response-run-1",
++    );
++    expect(records.at(-1)).toMatchObject({
++      type: "session_info",
++      agentSettings: { approval: "workspace" },
++    });
++    expect(records.slice(0, -1).some((r) => object(r.agentSettings).approval)).toBe(false);
++  });
++
++  it("exports native SQLite history, exact identities, copied credit and private evidence without source writes", async () => {
++    const { root, selection } = await fixture(true);
++    const config = path.join(root, "openclaw.json");
++    fs.writeFileSync(config, JSON.stringify({ agents: { entries: { main: {} } } }));
++    vi.stubEnv("OPENCLAW_STATE_DIR", root);
++    vi.stubEnv("OPENCLAW_CONFIG_PATH", config);
++    clearRuntimeConfigSnapshot();
++    const digest = () =>
++      [
++        selection.path,
++        `${selection.path}-wal`,
++        path.join(root, "state/openclaw.sqlite"),
++        path.join(root, "state/openclaw.sqlite-wal"),
++      ]
++        .filter(fs.existsSync)
++        .map((file) => createHash("sha256").update(fs.readFileSync(file)).digest("hex"));
++    const before = digest();
++    const out = path.join(root, "export");
++    await sessionsExportCommand(
++      { format: "agent-session", agent: "main", all: true, output: out },
++      createTestRuntime(),
++    );
++    expect(digest()).toEqual(before);
++    const inventory = JSON.parse(fs.readFileSync(path.join(out, "openclaw-export.json"), "utf8"));
++    expect(inventory.sessions).toHaveLength(6);
++    const streams: JsonObject[][] = inventory.sessions.map((entry: { path: string }) =>
++      readStream(path.join(out, entry.path)),
++    );
++    const first = streams.find((records) => records[0]?.sessionId === syntheticId(1))!;
++    const second = streams.find((records) => records[0]?.sessionId === syntheticId(2))!;
++    expect(first[0]).toMatchObject({ id: syntheticId(1), cwd: "/workspace/personal-assistant" });
++    expect(first.find((r) => r.id === "u1")).toMatchObject({
++      type: "message",
++      author: "human",
++      origin: "external",
++      person: { id: "U-DANA", name: "Dana" },
++      content: [{ type: "text", text: "Please remember our meeting preference." }],
++    });
++    expect(second[0]).toMatchObject({
++      parent: {
++        session: `openclaw:${syntheticId(1)}`,
++        kind: "continues",
++        copiedThrough: expect.any(String),
++      },
++    });
++    expect(second.find((r) => r.id === "a1")?.copiedFrom).toEqual({
++      session: `openclaw:${syntheticId(1)}`,
++    });
++    expect(second.find((r) => r.id === "a2-edit")?.copiedFrom).toBeUndefined();
++    expect(second.filter((r) => r.type === "inference" && r.id === "response-final")).toHaveLength(
++      1,
++    );
++    expect(second.find((r) => r.id === "response-final")?.copiedFrom).toEqual({
++      session: `openclaw:${syntheticId(1)}`,
++    });
++    expect(second.some((r) => r.id === "a2")).toBe(true);
++    expect(first).toContainEqual(
++      expect.objectContaining({
++        type: "tool_call",
++        id: "nested-calendar",
++        callId: "nested-calendar",
++        requestedBy: "code",
++        parentCallId: "outer-code",
++      }),
++    );
++    expect(first).toContainEqual(
++      expect.objectContaining({
++        type: "tool_result",
++        callId: "nested-calendar",
++        content: [{ type: "text", text: "One meeting" }],
++      }),
++    );
++    const approval = first.find((r) => r.type === "approval" && r.id === "approval-1")!;
++    expect(approval).toMatchObject({
++      callId: "outer-code",
++      decision: "approved",
++      by: "user",
++      scope: "once",
++      native: { kind: "exec", resolver_id: "device-example" },
++    });
++    expect(approval.person).toBeUndefined();
++    expect(first.indexOf(approval)).toBeLessThan(first.findIndex((r) => r.id === "t2"));
++    expect(first).toContainEqual(
++      expect.objectContaining({
++        type: "approval",
++        callId: "auto-exec",
++        decision: "approved",
++        by: "classifier",
++      }),
++    );
++    expect(first.find((r) => r.id === "auto-result")).toMatchObject({ status: "failed" });
++    expect(object(first.find((r) => r.id === "auto-result")?.exec).exitCode).toBeUndefined();
++    expect(first).toContainEqual(
++      expect.objectContaining({
++        type: "file_change",
++        callId: "write-memory",
++        path: "/workspace/personal-assistant/MEMORY.md",
++        op: "modify",
++        status: "applied",
++        after: { text: "Meetings after lunch." },
++      }),
++    );
++    expect(first.find((r) => r.id === "cron-u")?.origin).toBe("scheduled");
++    expect(first.find((r) => r.id === "heartbeat")?.origin).toBe("scheduled");
++    expect(first.find((r) => r.id === "compact")).toMatchObject({
++      type: "message",
++      origin: "compaction",
++    });
++    expect(first.some((r) => r.type === "gap")).toBe(false);
++    const snapshot = object(vendor(first.at(-1)).stores);
++    expect(snapshot.unassignedLaneFacts).toEqual([
++      expect.objectContaining({ table: "conversation_deliveries", key: "unassigned" }),
++    ]);
++    const bytes = JSON.stringify(streams);
++    expect(bytes).not.toContain("ASR_SECRET_MUST_NOT_ESCAPE");
++    expect(bytes).not.toContain("synthetic-private-epoch");
++    expect(first.find((r) => r.id === "secret-1")?.truncated).toBe(true);
++    const image = (first.find((r) => r.id === "a2")!.content as JsonObject[])[1]!;
++    expect(Buffer.from(String(image.data), "base64")).toEqual(Buffer.alloc(65537, 7));
++    for (const records of streams) {
++      expect(new Set(records.map((r) => r.id)).size).toBe(records.length);
++      expect(
++        records.every((r) =>
++          [
++            "session",
++            "session_info",
++            "message",
++            "tool_call",
++            "tool_result",
++            "approval",
++            "file_change",
++            "vcs",
++            "inference",
++            "gap",
++          ].includes(String(r.type)),
++        ),
++      ).toBe(true);
++    }
++    const again = path.join(root, "again");
++    exportAgentSessionBundle([selection], again);
++    for (const entry of inventory.sessions) {
++      expect(fs.readFileSync(path.join(again, entry.path))).toEqual(
++        fs.readFileSync(path.join(out, entry.path)),
++      );
++    }
++    const output: string[] = [];
++    const stdout = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
++      output.push(String(chunk));
++      return true;
++    });
++    try {
++      await sessionsExportCommand(
++        { format: "agent-session", agent: "main", session: [syntheticId(1)] },
++        createNonExitingRuntime(),
++      );
++    } finally {
++      stdout.mockRestore();
++    }
++    const entry = inventory.sessions.find(
++      (item: { session: string }) => item.session === `openclaw:${syntheticId(1)}`,
++    );
++    expect(output.join("")).toBe(fs.readFileSync(path.join(out, entry.path), "utf8"));
++    expect(() => exportAgentSessionBundle([selection], out)).toThrow();
++    if (process.platform !== "win32") {
++      expect(fs.statSync(out).mode & 0o777).toBe(0o700);
++    }
++  });
++
++  it("maps approval status before decision, with no invented person, permanent grant or pending decision", async () => {
++    const { source } = await fixture(true);
++    const row = source.evidence.approvals[0]!;
++    for (const [status, decision] of [
++      ["allowed", "approved"],
++      ["denied", "denied"],
++      ["expired", "cancelled"],
++      ["cancelled", "cancelled"],
++      ["pending", undefined],
++    ] as const) {
++      row.status = status;
++      row.decision = "deny";
++      const record = convertAgentSession(source).records.find((r) => r.id === row.approval_id);
++      expect(record?.decision).toBe(decision);
++      if (decision === "cancelled") {
++        expect(record?.scope).toBeUndefined();
++        expect(record?.person).toBeUndefined();
++        expect(record?.by).toBeUndefined();
++      }
++    }
++    row.status = "allowed";
++    row.decision = "allow-always";
++    expect(
++      convertAgentSession(source).records.find((r) => r.id === row.approval_id)?.scope,
++    ).toBeUndefined();
++    const receipt = object(source.events.find(({ event }) => event?.id === "t2")?.event?.message);
++    const details = object(receipt.details);
++    details.status = "approval-pending";
++    const pendingReceipt = convertAgentSession(source).records;
++    expect(pendingReceipt.some((r) => r.type === "approval" && r.id === row.approval_id)).toBe(
++      false,
++    );
++    expect(object(vendor(pendingReceipt.find((r) => r.id === "t2")).approvalSnapshot).status).toBe(
++      "allowed",
++    );
++    details.status = "completed";
++    row.status = "denied";
++    row.resolver_kind = "system";
++    row.terminal_reason = "storage-corrupt";
++    const corrupt = convertAgentSession(source).records;
++    expect(corrupt.some((r) => r.type === "approval" && r.id === row.approval_id)).toBe(false);
++    expect(
++      object(vendor(corrupt.find((r) => r.id === "t2")).approvalSnapshot).terminal_reason,
++    ).toBe("storage-corrupt");
++  });
++
++  it("preserves branch order, folds result updates, and declines inferred calls or ambiguous joins", async () => {
++    const { source } = await fixture();
++    const header = source.events[0]!;
++    const native = [
++      syntheticMessage("u", null, { role: "user", content: "Prompt" }),
++      syntheticMessage("a", "u", {
++        role: "assistant",
++        provider: "openai",
++        model: "alias",
++        responseId: "response",
++        content: [{ type: "toolCall", id: "c", name: "exec", arguments: {} }],
++      }),
++      syntheticMessage("pending", "a", {
++        role: "toolResult",
++        toolCallId: "c",
++        details: { status: "running", durationMs: 7 },
++        content: "Running",
++      }),
++      syntheticMessage("done", "pending", {
++        role: "toolResult",
++        toolCallId: "c",
++        isError: false,
++        content: "Done",
++      }),
++      syntheticMessage("branch", "u", {
++        role: "assistant",
++        content: "Retained abandoned reply",
++        model: "alias",
++      }),
++      {
++        ...syntheticMessage("edit", null, { role: "user", content: "Edited prompt" }),
++        supersedesEntryId: "u",
++      },
++      syntheticMessage("ambiguous-calls", "edit", {
++        role: "assistant",
++        content: [
++          { type: "toolCall", id: "dupe", name: "read" },
++          { type: "toolCall", id: "dupe", name: "read" },
++        ],
++      }),
++      syntheticMessage("ambiguous-result", "ambiguous-calls", {
++        role: "toolResult",
++        toolCallId: "dupe",
++        content: "Unknown owner",
++      }),
++    ];
++    source.events = [header, ...native.map((event, seq) => ({ event, seq: seq + 1 }))];
++    const records = convertAgentSession(source).records;
++    expect(records.filter((r) => r.type === "message").map((r) => r.id)).toEqual([
++      "u",
++      "a",
++      "branch",
++      "edit",
++      "ambiguous-calls",
++    ]);
++    expect(records.filter((r) => r.type === "tool_result" && r.callId === "c")).toHaveLength(1);
++    expect(records.find((r) => r.id === "done")?.status).toBe("completed");
++    expect(records.find((r) => r.id === "done")?.durationMs).toBe(7);
++    expect(records.find((r) => r.id === "ambiguous-result")?.callId).toBeUndefined();
++    expect(records.filter((r) => r.type === "inference")).toHaveLength(1);
++    expect(records.find((r) => r.id === "branch")?.inferenceId).toBeUndefined();
++    source.events = source.events.map((item) => ({ ...item, seq: item.seq + 100 }));
++    expect(convertAgentSession(source).records.map((r) => r.id)).toEqual(records.map((r) => r.id));
++    source.events.push({
++      seq: 1000,
++      event: {
++        type: "message",
++        message: {
++          role: "assistant",
++          content: [{ type: "toolCall", id: "without-entry-id", name: "read" }],
++        },
++      },
++    });
++    expect(convertAgentSession(source).records).toContainEqual(
++      expect.objectContaining({ type: "tool_call", callId: "without-entry-id" }),
++    );
++  });
++
++  it("keeps zero values, exact text, safe native metadata, and configured effort separate from inference", async () => {
++    const { source } = await fixture();
++    source.node = {
++      ...source.node,
++      createdActor: { type: "human", source: "profile", id: "person-1", label: "Example" },
++    };
++    const wide = parseObject('{"integer":9007199254740993,"nullable":null}');
++    const native = [
++      { type: "thinking_level_change", id: "effort", thinkingLevel: "high" },
++      {
++        type: "custom",
++        id: "tool-definitions",
++        customType: "openclaw.system-prompt",
++        data: {
++          tools: [{ name: "read", description: "Read a file.", parameters: { type: "object" } }],
++        },
++      },
++      syntheticMessage("answer", null, {
++        role: "assistant",
++        provider: "openai",
++        model: "alias",
++        responseModel: "served",
++        responseId: "r",
++        stopReason: "stop",
++        usage: { input: 0, output: 0 },
++        content: [
++          { type: "thinking", redacted: true, thinkingSignature: "OPAQUE_SIGNATURE" },
++          { type: "text", text: "  Exact\r\n", textSignature: "OPAQUE_TEXT_SIGNATURE" },
++          {
++            type: "toolCall",
++            id: "wide",
++            name: "read",
++            arguments: wide,
++            thoughtSignature: "OPAQUE_TOOL_SIGNATURE",
++          },
++        ],
++        providerReplay: { secret: "OPAQUE_REPLAY" },
++      }),
++      syntheticMessage("result", "answer", {
++        role: "toolResult",
++        toolCallId: "wide",
++        isError: false,
++        content: "",
++        details: {
++          ...wide,
++          thinkingSignature: "OPAQUE_WIDE_SIGNATURE",
++          providerReplay: { state: "OPAQUE_WIDE_REPLAY" },
++          password: "ASR_SECRET_MUST_NOT_ESCAPE",
++        },
++      }),
++      { type: "custom", id: "no-tools", customType: "openclaw.system-prompt", data: { tools: [] } },
++      { type: "compaction", id: "lost", parentId: "pruned", summary: "Retained summary" },
++    ];
++    source.events = [source.events[0]!, ...native.map((event, seq) => ({ event, seq: seq + 1 }))];
++    const records = convertAgentSession(source).records;
++    expect(records[0]?.user).toMatchObject({ id: "person-1", name: "Example" });
++    expect(records.find((r) => r.id === "effort")?.agentSettings).toEqual({
++      modelSettings: { reasoningEffort: "high" },
++    });
++    expect(records.find((r) => r.id === "tool-definitions")?.tools).toEqual([
++      { name: "read", description: "Read a file.", inputSchema: { type: "object" } },
++    ]);
++    expect(records.find((r) => r.id === "no-tools")?.tools).toEqual([]);
++    const inference = records.find((r) => r.type === "inference")!;
++    expect(inference.model).toEqual({ provider: "openai", id: "served", requested: "alias" });
++    expect(inference.usage).toMatchObject({ inputTokens: 0, outputTokens: 0 });
++    expect(object(inference.usage).cacheReadTokens).toBeUndefined();
++    expect(inference.settings).toBeUndefined();
++    expect(records.find((r) => r.id === "answer")?.content).toEqual([
++      { type: "reasoning", visibility: "encrypted" },
++      { type: "text", text: "  Exact\r\n", author: undefined, origin: undefined },
++    ]);
++    expect(records.find((r) => r.id === "wide")?.input).toEqual({
++      integer: "9007199254740993",
++      nullable: null,
++    });
++    expect(object(vendor(records.find((r) => r.id === "result")).details).integer).toBe(
++      "9007199254740993",
++    );
++    expect(JSON.stringify(records)).not.toContain("OPAQUE_");
++    expect(JSON.stringify(records)).not.toContain("ASR_SECRET_MUST_NOT_ESCAPE");
++    expect(records.find((r) => r.id === "result")?.truncated).toBe(true);
++    const compact = records.findIndex((r) => r.id === "lost");
++    expect(records[compact + 1]).toMatchObject({ type: "gap", reason: "not_retained" });
++    source.node.createdActor = {
++      type: "human",
++      source: "profile",
++      id: "isolation-owner",
++      delegatedBy: { type: "agent", id: "creator-agent" },
++    };
++    expect(convertAgentSession(source).records[0]?.user).toBeUndefined();
++  });
++
++  it("keeps unknown reasoning exact and marks empty thinking omitted", async () => {
++    const { source } = await fixture();
++    const native = syntheticMessage("thinking", null, {
++      role: "assistant",
++      content: [
++        { type: "thinking", thinking: "Exact\r\n" },
++        { type: "thinking", thinking: "" },
++        { type: "thinking", redacted: true },
++      ],
++    });
++    source.events = [{ seq: 1, event: native }];
++    const message = convertAgentSession(source).records.find((record) => record.type === "message");
++    expect(message?.content).toEqual([
++      { type: "reasoning", text: "Exact\r\n" },
++      { type: "reasoning", visibility: "omitted" },
++      { type: "reasoning", visibility: "encrypted" },
++    ]);
++  });
++
++  it("keeps unknown-model calls, completion positions and explicit setting clears", async () => {
++    const { source } = await fixture();
++    const native = [
++      { type: "thinking_level_change", id: "set", thinkingLevel: "high" },
++      { type: "thinking_level_change", id: "clear", thinkingLevel: null },
++      syntheticMessage("first", null, {
++        role: "assistant",
++        provider: "openai",
++        responseId: "unknown-model",
++        timestamp: 1,
++        content: "First",
++      }),
++      syntheticMessage("notice", "first", { role: "user", content: "Notice" }),
++      syntheticMessage("last", "notice", {
++        role: "assistant",
++        provider: "openai",
++        responseId: "unknown-model",
++        timestamp: 1,
++        content: "Last",
++        usage: { input: 0, output: 1 },
++      }),
++    ];
++    source.events = [
++      source.events[0]!,
++      ...native.map((event, seq) => ({
++        event: { ...event, timestamp: `2026-10-31T12:00:0${seq}Z` },
++        seq: seq + 1,
++      })),
++    ];
++    const records = convertAgentSession(source).records;
++    expect(records.find((r) => r.id === "clear")?.agentSettings).toEqual({
++      modelSettings: { reasoningEffort: null },
++    });
++    const inference = records.find((r) => r.type === "inference")!;
++    expect(inference.model).toBeUndefined();
++    expect(inference.ts).toBe("2026-10-31T12:00:04Z");
++    expect(records.indexOf(inference)).toBeGreaterThan(records.findIndex((r) => r.id === "notice"));
++    expect(records[0]!.missing).toContain("model");
++  });
++});

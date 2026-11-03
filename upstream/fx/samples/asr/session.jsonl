@@ -1,0 +1,3 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"fx"},"sessionId":"cb1PK0RGxCmY","producer":{"name":"fx-agent-session","version":"0.1.0","method":"native","source":"fx-durable-session"},"missing":["timestamps","usage","model","approvals","agent_settings","tools","file_changes","commits","subagents","copies","images","provider_state","recovery_checkpoint","steering_assistant_prefix","tool_output","interrupted_tool_call"]}
+{"type":"message","id":"record-0","role":"user","content":[{"type":"text","text":"CONV_FIRST 1"}]}
+{"type":"message","id":"record-1","role":"assistant","content":[{"type":"text","text":"CONV_FIRST_ANSWER"}]}

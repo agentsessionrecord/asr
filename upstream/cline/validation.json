@@ -1,0 +1,52 @@
+[
+  {
+    "case": "cline-sample",
+    "valid": true,
+    "records": 6,
+    "errors": 0,
+    "warnings": 0,
+    "counts": {},
+    "currentCodeLiveTest": "unverified",
+    "evidenceScope": "Prior revision. Counts do not certify the current implementation."
+  },
+  {
+    "case": "roo-code-sample",
+    "valid": true,
+    "records": 6,
+    "errors": 0,
+    "warnings": 0,
+    "counts": {},
+    "currentCodeLiveTest": "unverified",
+    "evidenceScope": "Prior revision. Counts do not certify the current implementation."
+  },
+  {
+    "case": "continue-sample",
+    "valid": true,
+    "records": 7,
+    "errors": 0,
+    "warnings": 0,
+    "counts": {},
+    "currentCodeLiveTest": "unverified",
+    "evidenceScope": "Prior revision. Counts do not certify the current implementation."
+  },
+  {
+    "case": "cline-live",
+    "valid": true,
+    "records": 3,
+    "errors": 0,
+    "warnings": 0,
+    "counts": {},
+    "currentCodeLiveTest": "unverified",
+    "evidenceScope": "Prior revision. Counts do not certify the current implementation."
+  },
+  {
+    "case": "continue-live",
+    "valid": true,
+    "records": 4,
+    "errors": 0,
+    "warnings": 0,
+    "counts": {},
+    "currentCodeLiveTest": "unverified",
+    "evidenceScope": "Prior revision. Counts do not certify the current implementation."
+  }
+]

@@ -1,0 +1,89 @@
+[
+  {
+    "event": "SessionStart",
+    "payload": {
+      "hook_event_name": "SessionStart",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "source": "startup",
+      "permission_mode": "default"
+    }
+  },
+  {
+    "event": "UserPromptSubmit",
+    "payload": {
+      "hook_event_name": "UserPromptSubmit",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "generation_id": "synthetic-generation",
+      "prompt": "Write a synthetic file."
+    }
+  },
+  {
+    "event": "PreToolUse",
+    "payload": {
+      "hook_event_name": "PreToolUse",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_name": "Write",
+      "tool_input": {
+        "file_path": "/work/synthetic/file.txt",
+        "content": "synthetic"
+      }
+    }
+  },
+  {
+    "event": "PostToolUse",
+    "payload": {
+      "hook_event_name": "PostToolUse",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_name": "Write",
+      "tool_input": {
+        "file_path": "/work/synthetic/file.txt",
+        "content": "synthetic"
+      },
+      "tool_response": {
+        "filePath": "/work/synthetic/file.txt",
+        "success": true
+      }
+    }
+  },
+  {
+    "event": "Notification",
+    "payload": {
+      "hook_event_name": "Notification",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "message": "Permission requested.",
+      "notification_type": "permission_prompt"
+    }
+  },
+  {
+    "event": "PostCompact",
+    "payload": {
+      "hook_event_name": "PostCompact",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "trigger": "manual",
+      "compact_summary": "Synthetic summary."
+    }
+  },
+  {
+    "event": "Stop",
+    "payload": {
+      "hook_event_name": "Stop",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic"
+    }
+  },
+  {
+    "event": "SessionEnd",
+    "payload": {
+      "hook_event_name": "SessionEnd",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "reason": "other"
+    }
+  }
+]

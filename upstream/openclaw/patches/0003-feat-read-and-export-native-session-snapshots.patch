@@ -1,0 +1,480 @@
+From 6feca420fc747d5f71923da33650d8ec0e69fd85 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 16:26:16 -0500
+Subject: [PATCH 3/8] feat: read and export native session snapshots
+
+---
+ src/sessions/agent-session-export.source.ts | 311 ++++++++++++++++++++
+ src/sessions/agent-session-export.ts        | 145 +++++++++
+ 2 files changed, 456 insertions(+)
+ create mode 100644 src/sessions/agent-session-export.source.ts
+ create mode 100644 src/sessions/agent-session-export.ts
+
+diff --git a/src/sessions/agent-session-export.source.ts b/src/sessions/agent-session-export.source.ts
+new file mode 100644
+index 00000000000..d6c8c0d8a19
+--- /dev/null
++++ b/src/sessions/agent-session-export.source.ts
+@@ -0,0 +1,311 @@
++import { readTranscriptPayload } from "../config/sessions/transcript-payload-read.js";
++import { readDefaultProactiveJobReceiptInDatabase } from "../cron/proactive-job-receipt.kernel.js";
++import { executeSqliteQuerySync, getNodeSqliteKysely } from "../infra/kysely-sync.js";
++import { isPostgresSqlConnection } from "../infra/sql-connection.js";
++import { withOpenClawAgentDatabaseReadOnly } from "../state/openclaw-agent-db-readonly.js";
++import type { DB as AgentDB } from "../state/openclaw-agent-db.generated.js";
++import {
++  withArtifactPreservingStateReads,
++  withSynchronousArtifactPreservingStateSnapshot,
++  withExistingOpenClawStateDatabaseArtifactPreservingReadOnly,
++} from "../state/openclaw-state-db-readonly.js";
++import type { DB as StateDB } from "../state/openclaw-state-db.generated.js";
++import { object, parseObject, string } from "./agent-session-export.json.js";
++import { eventRun } from "./agent-session-export.transcript.js";
++import type { ExportEvent, WindowExportSource } from "./agent-session-export.types.js";
++
++export type AgentSessionExportSelection = {
++  agentId: string;
++  path: string;
++  sessionKey?: string;
++  sessions?: string[];
++  env?: NodeJS.ProcessEnv;
++};
++
++/** CLI-only adapter: each database is read through its existing snapshot owner.
++ * There is no cross-database transaction; side facts remain capture-time evidence.
++ * A window is released before reading the next window, bounding transcript memory.
++ */
++export function readAgentSessionExport(
++  selection: AgentSessionExportSelection,
++  visit: (source: WindowExportSource) => void,
++): number {
++  return withArtifactPreservingStateReads(() =>
++    withSynchronousArtifactPreservingStateSnapshot(() => {
++      const result = withOpenClawAgentDatabaseReadOnly(
++        (database) => {
++          if (isPostgresSqlConnection(database.db)) {
++            throw new Error("Agent Session export currently supports SQLite stores only");
++          }
++          const query = getNodeSqliteKysely<AgentDB>(database.db);
++          const read = <T>(statement: Parameters<typeof executeSqliteQuerySync<T>>[1]) =>
++            executeSqliteQuerySync(database.db, statement).rows;
++          let windows = query.selectFrom("session_windows").selectAll();
++          if (selection.sessionKey !== undefined) {
++            windows = windows.where("session_key", "=", selection.sessionKey);
++          }
++          if (selection.sessions?.length) {
++            windows = windows.where("session_id", "in", selection.sessions);
++          }
++          const selected = read(windows.orderBy("created_at").orderBy("session_id"));
++          for (const window of selected) {
++            const node = parseObject(
++              read(
++                query
++                  .selectFrom("session_nodes")
++                  .select("entry_json")
++                  .where("session_key", "=", window.session_key),
++              )[0]?.entry_json,
++            );
++            const currentNode = node.sessionId === window.session_id ? node : undefined;
++            const pending = read(
++              query
++                .selectFrom("session_pending_inputs")
++                .select(["consumed_event_id", "run_id", "session_id"])
++                .where("session_key", "=", window.session_key),
++            );
++            const inputRuns = new Map(
++              pending.flatMap((row) =>
++                row.session_id === window.session_id && row.consumed_event_id
++                  ? [[row.consumed_event_id, row.run_id] as const]
++                  : [],
++              ),
++            );
++            const events: ExportEvent[] = read(
++              query
++                .selectFrom("transcript_events")
++                .select(["seq", "event_json", "event_zstd", "event_utf8_bytes"])
++                .where("session_id", "=", window.session_id)
++                .orderBy("seq"),
++            ).map((row) => {
++              try {
++                return { seq: row.seq, event: parseObject(readTranscriptPayload(row)) };
++              } catch {
++                return { seq: row.seq };
++              }
++            });
++            const ancestorId =
++              window.previous_session_id ?? string(object(currentNode?.forkSource).sessionId);
++            const ancestor = ancestorId
++              ? {
++                  sessionId: ancestorId,
++                  eventIds: new Set(
++                    read(
++                      query
++                        .selectFrom("transcript_event_identities")
++                        .select("event_id")
++                        .where("session_id", "=", ancestorId),
++                    ).map((row) => row.event_id),
++                  ),
++                }
++              : undefined;
++            // Transcript run IDs may have been copied even if the ancestor was pruned.
++            // Only independent admission/audit rows establish side-store ownership.
++            const runOwners = new Map<string, string | null>();
++            const claimRun = (run: string, session: string) => {
++              if (!runOwners.has(run)) {
++                runOwners.set(run, session);
++              } else if (runOwners.get(run) !== session) {
++                runOwners.set(run, null);
++              }
++            };
++            for (const row of pending) {
++              claimRun(row.run_id, row.session_id);
++            }
++            const visibleRuns = new Set(
++              events.flatMap(({ event }) => {
++                const run = event && eventRun(event);
++                return run ? [run] : [];
++              }),
++            );
++            const evidence = withExistingOpenClawStateDatabaseArtifactPreservingReadOnly(
++              (state) => {
++                const sq = getNodeSqliteKysely<StateDB>(state.db);
++                const sr = <T>(statement: Parameters<typeof executeSqliteQuerySync<T>>[1]) =>
++                  executeSqliteQuerySync(state.db, statement).rows;
++                const audit = sr(
++                  sq
++                    .selectFrom("audit_events")
++                    .selectAll()
++                    .where("agent_id", "=", selection.agentId)
++                    .where("session_key", "=", window.session_key)
++                    .orderBy("sequence"),
++                );
++                for (const row of audit) {
++                  if (row.kind === "agent_run" && row.run_id && row.session_id) {
++                    claimRun(row.run_id, row.session_id);
++                  }
++                }
++                const cron = sr(
++                  sq
++                    .selectFrom("cron_jobs")
++                    .selectAll()
++                    .where("agent_id", "=", selection.agentId)
++                    .orderBy("store_key")
++                    .orderBy("job_id"),
++                );
++                const heartbeatJobs = [...new Set(cron.map((job) => job.store_key))].flatMap(
++                  (store) => {
++                    const receipt = readDefaultProactiveJobReceiptInDatabase(
++                      state.db,
++                      store,
++                      selection.agentId,
++                    );
++                    // A converted arbitrary job has no recorded conversion time. Only the
++                    // original default job carries the original heartbeat admission intent.
++                    return receipt?.phase === "complete" && receipt.heartbeatEnabled !== undefined
++                      ? [{ jobId: receipt.jobId, since: receipt.provisionedAtMs }]
++                      : [];
++                  },
++                );
++                // The agent/key filters avoid scanning unrelated transcripts or credential tables.
++                return {
++                  approvals: sr(
++                    sq
++                      .selectFrom("operator_approvals")
++                      .select([
++                        "approval_id",
++                        "kind",
++                        "cursor_id",
++                        "source_session_id",
++                        "source_run_id",
++                        "source_tool_call_id",
++                        "status",
++                        "decision",
++                        "terminal_reason",
++                        "presentation_json",
++                        "created_at_ms",
++                        "expires_at_ms",
++                        "resolved_at_ms",
++                        "resolver_kind",
++                        "resolver_id",
++                        "consumed_at_ms",
++                        "consumed_by",
++                      ])
++                      .where("source_session_id", "=", window.session_id)
++                      .orderBy("cursor_id"),
++                  ),
++                  skills: sr(
++                    sq
++                      .selectFrom("skill_workshop_changes")
++                      .selectAll()
++                      .where("agent_id", "=", selection.agentId)
++                      .where("session_key", "=", window.session_key)
++                      .orderBy("cursor_id"),
++                  ),
++                  queue: sr(
++                    sq
++                      .selectFrom("delivery_queue_entries")
++                      .selectAll()
++                      .where("session_key", "=", window.session_key)
++                      .orderBy("queue_name")
++                      .orderBy("id"),
++                  ),
++                  cron,
++                  heartbeatJobs,
++                  receipts: sr(
++                    sq
++                      .selectFrom("cron_run_receipts")
++                      .selectAll()
++                      .where("agent_id", "=", selection.agentId)
++                      .orderBy("receipt_id"),
++                  ).filter(
++                    (row) =>
++                      row.request_run_id !== null &&
++                      (visibleRuns.has(row.request_run_id) || runOwners.has(row.request_run_id)),
++                  ),
++                  audit: audit.filter((row) => row.session_id === window.session_id),
++                  bindings: sr(
++                    sq
++                      .selectFrom("plugin_state_entries")
++                      .selectAll()
++                      .where("plugin_id", "=", "codex")
++                      .where("namespace", "=", "app-server-thread-bindings")
++                      .where("entry_key", "=", `session:${selection.agentId}:${window.session_id}`),
++                  ),
++                  sharedStateAvailable: true,
++                };
++              },
++              { env: selection.env },
++            );
++            visit({
++              agentId: selection.agentId,
++              window,
++              node: currentNode,
++              events,
++              inputRuns,
++              runOwners,
++              ancestor,
++              leafId:
++                read(
++                  query
++                    .selectFrom("session_transcript_index_state")
++                    .select("leaf_event_id")
++                    .where("session_id", "=", window.session_id),
++                )[0]?.leaf_event_id ?? undefined,
++              cold:
++                read(
++                  query
++                    .selectFrom("session_transcript_cold_archives")
++                    .select("session_id")
++                    .where("session_id", "=", window.session_id),
++                ).length > 0,
++              conversations: read(
++                query
++                  .selectFrom("session_conversations")
++                  .innerJoin(
++                    "conversations",
++                    "conversations.conversation_id",
++                    "session_conversations.conversation_id",
++                  )
++                  .selectAll("conversations")
++                  .select("session_conversations.role")
++                  .where("session_id", "=", window.session_id)
++                  .orderBy("conversations.conversation_id"),
++              ),
++              evidence: {
++                approvals: [],
++                skills: [],
++                queue: [],
++                cron: [],
++                receipts: [],
++                audit: [],
++                bindings: [],
++                heartbeatJobs: [],
++                sharedStateAvailable: false,
++                ...evidence,
++                deliveries: read(
++                  query
++                    .selectFrom("conversation_deliveries")
++                    .selectAll()
++                    .where("source_session_key", "=", window.session_key)
++                    .orderBy("operation_id"),
++                ),
++                reactions: read(
++                  query
++                    .selectFrom("session_reactions")
++                    .selectAll()
++                    .where("session_id", "=", window.session_id)
++                    .orderBy("message_id")
++                    .orderBy("identity_id")
++                    .orderBy("emoji"),
++                ),
++                heartbeat: read(
++                  query
++                    .selectFrom("heartbeat_outcomes")
++                    .selectAll()
++                    .where("run_session_key", "=", window.session_key)
++                    .orderBy("session_key"),
++                ),
++              },
++            });
++          }
++          return selected.length;
++        },
++        { agentId: selection.agentId, path: selection.path, env: selection.env },
++        { snapshot: true },
++      );
++      return result.found ? result.value : 0;
++    }),
++  );
++}
+diff --git a/src/sessions/agent-session-export.ts b/src/sessions/agent-session-export.ts
+new file mode 100644
+index 00000000000..ca879d6d28a
+--- /dev/null
++++ b/src/sessions/agent-session-export.ts
+@@ -0,0 +1,145 @@
++import { createHash } from "node:crypto";
++import fs from "node:fs";
++import path from "node:path";
++import { VERSION } from "../version.js";
++import { appendExportEvidence } from "./agent-session-export.evidence.js";
++import {
++  meta,
++  object,
++  sanitizeRecord,
++  sessionRef,
++  string,
++  timestamp,
++  unsafeNumbers,
++} from "./agent-session-export.json.js";
++import {
++  readAgentSessionExport,
++  type AgentSessionExportSelection,
++} from "./agent-session-export.source.js";
++import { TranscriptExport } from "./agent-session-export.transcript.js";
++import type { AsrRecord, JsonObject, WindowExportSource } from "./agent-session-export.types.js";
++
++export function convertAgentSession(source: WindowExportSource): { records: AsrRecord[] } {
++  const transcript = new TranscriptExport(source);
++  transcript.convert();
++  const side = appendExportEvidence(transcript);
++  const { window } = source;
++  const fork = object(source.node?.forkSource);
++  const previous = string(fork.sessionId) ?? window.previous_session_id;
++  const parent = previous
++    ? {
++        session: sessionRef(previous),
++        kind: window.reason === "fork" ? "fork" : "continues",
++        copiedThrough: transcript.copiedThrough,
++      }
++    : undefined;
++  const nativeHeader = source.events.find(({ event }) => event?.type === "session")?.event;
++  const creator = object(source.node?.createdActor);
++  const actor = ["human", "agent"].includes(String(object(creator.delegatedBy).type))
++    ? object(creator.delegatedBy)
++    : creator;
++  const user =
++    actor.type === "human" && (string(actor.id) || string(actor.label))
++      ? {
++          id: string(actor.id) || undefined,
++          name: string(actor.label) || undefined,
++          source: `_ai.openclaw/${string(actor.source) || "creator"}`,
++        }
++      : undefined;
++  const header: AsrRecord = {
++    type: "session",
++    id: transcript.ids.claim(string(nativeHeader?.id), "header", window.session_id),
++    formatVersion: "0.1",
++    agent: { name: "openclaw" },
++    sessionId: window.session_id,
++    producer: { name: "openclaw", version: VERSION, method: "native", source: "openclaw-sqlite" },
++    startedAt: timestamp(nativeHeader?.timestamp) ?? timestamp(window.started_at),
++    endedAt: timestamp(window.ended_at),
++    cwd: transcript.cwd,
++    user,
++    parent,
++    _meta: meta({
++      agentId: source.agentId,
++      sessionKey: window.session_key,
++      harnessId: window.agent_harness_id,
++      transcriptVersion: nativeHeader?.version,
++      parentSessionKey: window.parent_session_key,
++      spawnedBy: window.spawned_by,
++      forkSource: source.node?.forkSource,
++      conversations: source.conversations,
++    }),
++  };
++  const records = [header, ...transcript.records, ...side].map((record) => {
++    const cleaned = sanitizeRecord(record, transcript.losses);
++    if (unsafeNumbers(cleaned)) {
++      throw new Error("ASR export: unsafe native number has no lossless destination");
++    }
++    return cleaned;
++  });
++  records[0]!.missing = [...transcript.losses].toSorted();
++  return { records };
++}
++
++/** A directory of standalone ASR files. The private OpenClaw inventory is not an
++ * ASR collection receipt; only a collector could supply authenticated receipt facts. */
++export function exportAgentSessionBundle(
++  selections: AgentSessionExportSelection[],
++  output: string,
++): {
++  output: string;
++  sessions: number;
++  records: number;
++  bytes: number;
++} {
++  const destination = path.resolve(output);
++  fs.mkdirSync(destination, { mode: 0o700 });
++  fs.mkdirSync(path.join(destination, "sessions"), { mode: 0o700 });
++  const sessions: JsonObject[] = [];
++  let recordCount = 0;
++  let bytes = 0;
++  for (const selection of selections) {
++    readAgentSessionExport(selection, (source) => {
++      const { records } = convertAgentSession(source);
++      const ref = sessionRef(source.window.session_id);
++      const file = `sessions/${createHash("sha256").update(ref).digest("hex")}.jsonl`;
++      const fd = fs.openSync(path.join(destination, file), "wx", 0o600);
++      const digest = createHash("sha256");
++      let byteLength = 0;
++      try {
++        for (const record of records) {
++          const line = `${JSON.stringify(record)}\n`;
++          fs.writeFileSync(fd, line);
++          digest.update(line);
++          byteLength += Buffer.byteLength(line);
++        }
++      } finally {
++        fs.closeSync(fd);
++      }
++      recordCount += records.length;
++      bytes += byteLength;
++      sessions.push({
++        session: ref,
++        path: file,
++        sha256: digest.digest("hex"),
++        byteLength,
++        records: records.length,
++      });
++    });
++  }
++  if (!sessions.length) {
++    throw new Error("No stored windows matched the export selection");
++  }
++  fs.writeFileSync(
++    path.join(destination, "openclaw-export.json"),
++    `${JSON.stringify(
++      {
++        producer: { name: "openclaw", version: VERSION },
++        sessions,
++      },
++      null,
++      2,
++    )}\n`,
++    { flag: "wx", mode: 0o600 },
++  );
++  return { output: destination, sessions: sessions.length, records: recordCount, bytes };
++}

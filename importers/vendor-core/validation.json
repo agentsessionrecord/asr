@@ -1,0 +1,32 @@
+[
+  {
+    "importer": "anthropic-compliance",
+    "records": 10,
+    "errors": 0,
+    "warnings": 0,
+    "codes": {}
+  },
+  {
+    "importer": "openai-codex-logs",
+    "records": 6,
+    "errors": 0,
+    "warnings": 0,
+    "codes": {}
+  },
+  {
+    "importer": "copilot",
+    "records": 5,
+    "errors": 0,
+    "warnings": 1,
+    "codes": {
+      "warning:call-without-result": 1
+    }
+  },
+  {
+    "importer": "entire",
+    "records": 5,
+    "errors": 0,
+    "warnings": 0,
+    "codes": {}
+  }
+]

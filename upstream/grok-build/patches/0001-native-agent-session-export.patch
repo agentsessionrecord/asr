@@ -1,0 +1,378 @@
+From 1747e0cb3a829d7382ebdb697818da77884ad6bb Mon Sep 17 00:00:00 2001
+From: ASR contributors <asr@example.invalid>
+Date: Sun, 1 Nov 2026 13:06:44 -0500
+Subject: [PATCH] feat: add native Agent Session Record export
+
+---
+ .../src/agent_session.rs                      | 292 ++++++++++++++++++
+ .../xai-grok-session-events/src/lib.rs        |   1 +
+ .../xai-grok-session-events/src/log.rs        |  19 ++
+ 3 files changed, 312 insertions(+)
+ create mode 100644 crates/codegen/xai-grok-session-events/src/agent_session.rs
+
+diff --git a/crates/codegen/xai-grok-session-events/src/agent_session.rs b/crates/codegen/xai-grok-session-events/src/agent_session.rs
+new file mode 100644
+index 0000000..0d260f1
+--- /dev/null
++++ b/crates/codegen/xai-grok-session-events/src/agent_session.rs
+@@ -0,0 +1,292 @@
++//! Opt-in ASR projection of the typed session event log, without transcript capture.
++
++use std::collections::HashSet;
++use std::fs::{File, OpenOptions};
++use std::io::{self, BufRead, BufReader, Write};
++use std::path::{Path, PathBuf};
++
++use serde_json::{Value, json};
++
++use crate::types::{Event, PermissionDecision, ToolCompletedSource, ToolOutcome};
++
++pub(crate) struct AgentSessionWriter {
++    path: PathBuf,
++    state: Option<(File, String, usize)>,
++    completed: HashSet<String>,
++}
++
++impl AgentSessionWriter {
++    pub(crate) fn new(directory: &Path) -> Self {
++        Self {
++            path: directory.join("agent-session.jsonl"),
++            state: None,
++            completed: HashSet::new(),
++        }
++    }
++
++    pub(crate) fn emit(&mut self, event: &Event, ts: &str) -> io::Result<()> {
++        if let Event::TurnStarted { session_id, .. } = event {
++            if self.state.is_none() {
++                self.open(session_id)?;
++            }
++            if self
++                .state
++                .as_ref()
++                .is_some_and(|(_, id, _)| id != session_id)
++            {
++                return Err(io::Error::other("ASR session identity changed"));
++            }
++        }
++        let Some((file, _, next_id)) = &mut self.state else {
++            return Ok(());
++        };
++        let mut record = match event {
++            Event::TurnStarted { yolo_mode, .. } => json!({
++                "type": "session_info", "agentSettings": {"approval": {"yolo_mode": yolo_mode}}
++            }),
++            Event::YoloToggled { enabled } => json!({
++                "type": "session_info", "agentSettings": {"approval": {"yolo_mode": enabled}}
++            }),
++            Event::PermissionResolved {
++                tool_name,
++                decision,
++                ..
++            } => {
++                let decision = match decision {
++                    PermissionDecision::Allow => "approved",
++                    PermissionDecision::Deny => "denied",
++                    PermissionDecision::Cancelled => "cancelled",
++                    PermissionDecision::Followup => return Ok(()),
++                };
++                // The event has no call ID or decider. A name is only a subject.
++                json!({"type": "approval", "decision": decision, "subject": tool_name})
++            }
++            Event::ToolCompleted {
++                tool_call_id,
++                duration_ms,
++                outcome,
++                source: ToolCompletedSource::Shell,
++                ..
++            } => {
++                if !tool_call_id.is_empty() && !self.completed.insert(tool_call_id.clone()) {
++                    return Err(io::Error::other(
++                        "duplicate native terminal tool observation",
++                    ));
++                }
++                let status = match outcome {
++                    ToolOutcome::Success => "completed",
++                    ToolOutcome::Error | ToolOutcome::InvalidTool => "failed",
++                    ToolOutcome::PermissionRejected | ToolOutcome::HookDenied => "denied",
++                    ToolOutcome::PermissionCancelled | ToolOutcome::Cancelled => "cancelled",
++                    ToolOutcome::Followup => "unknown",
++                };
++                let mut result = json!({"type": "tool_result", "status": status});
++                let object = result
++                    .as_object_mut()
++                    .ok_or_else(|| io::Error::other("ASR record is not an object"))?;
++                if !tool_call_id.is_empty() {
++                    object.insert("callId".into(), json!(tool_call_id));
++                }
++                if *duration_ms <= 9_007_199_254_740_991 {
++                    object.insert("durationMs".into(), json!(duration_ms));
++                } else {
++                    object.insert(
++                        "_meta".into(),
++                        json!({"com.xai.grok.export":{"durationMs":duration_ms.to_string()}}),
++                    );
++                }
++                result
++            }
++            _ => return Ok(()),
++        };
++        let object = record
++            .as_object_mut()
++            .ok_or_else(|| io::Error::other("ASR record is not an object"))?;
++        object.insert("id".into(), json!(format!("event-{next_id}")));
++        object.insert("ts".into(), json!(ts));
++        serde_json::to_writer(&mut *file, &record)?;
++        file.write_all(b"\n")?;
++        *next_id += 1;
++        Ok(())
++    }
++
++    fn open(&mut self, session_id: &str) -> io::Result<()> {
++        if session_id.is_empty() {
++            return Err(io::Error::other("empty native session ID"));
++        }
++        let mut options = OpenOptions::new();
++        options.read(true).append(true).create(true);
++        #[cfg(unix)]
++        {
++            use std::os::unix::fs::OpenOptionsExt;
++            options.mode(0o600);
++        }
++        let mut file = options.open(&self.path)?;
++        let lines = BufReader::new(&file)
++            .lines()
++            .collect::<io::Result<Vec<_>>>()?;
++        let count = lines.len();
++        if let Some(first) = lines.first() {
++            let header: Value = serde_json::from_str(first)?;
++            if header.get("sessionId").and_then(Value::as_str) != Some(session_id)
++                || header
++                    .get("producer")
++                    .and_then(|p| p.get("name"))
++                    .and_then(Value::as_str)
++                    != Some("grok-event-asr")
++            {
++                return Err(io::Error::other("existing ASR belongs to another source"));
++            }
++            for line in &lines {
++                let row = serde_json::from_str::<Value>(line)?;
++                if row.get("type").and_then(Value::as_str) == Some("tool_result")
++                    && let Some(id) = row.get("callId").and_then(Value::as_str)
++                {
++                    self.completed.insert(id.to_owned());
++                }
++            }
++            let bytes = std::fs::read(&self.path)?;
++            if !bytes.ends_with(b"\n") {
++                return Err(io::Error::other("incomplete ASR tail"));
++            }
++        } else {
++            let header = json!({"type":"session", "id":"header", "formatVersion":"0.1",
++                "agent":{"name":"grok-build"}, "sessionId":session_id,
++                "producer":{"name":"grok-event-asr","version":"1","method":"native","source":"grok-events-1.0"},
++                "missing":["messages","tool_calls","tool_output","usage","model","reasoning","file_changes","commits","subagents","copies","tools","agent_settings","approvals","provider_state","history","workspace_events","duration"]});
++            serde_json::to_writer(&mut file, &header)?;
++            file.write_all(b"\n")?;
++        }
++        self.state = Some((file, session_id.to_owned(), count));
++        Ok(())
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::{
++        EVENT_SCHEMA_VERSION, EventWriter, SessionRelationship, ToolCompletedSource,
++        TurnOutcomeLabel,
++    };
++
++    #[test]
++    fn native_events_export_and_resume_without_fabricated_lifecycle() {
++        let directory = tempfile::tempdir().unwrap();
++        let start = || Event::TurnStarted {
++            session_id: "synthetic-session".into(),
++            turn_number: 1,
++            model_id: "requested".into(),
++            yolo_mode: false,
++            conversation_message_count: 0,
++            session_relationship: SessionRelationship::Primary,
++            schema_version: EVENT_SCHEMA_VERSION.into(),
++            redirect_kind: None,
++        };
++        let writer = EventWriter::open_internal(directory.path(), true);
++        writer.emit(start());
++        writer.emit(Event::PermissionResolved {
++            tool_name: "shell".into(),
++            decision: PermissionDecision::Deny,
++            wait_ms: 0,
++        });
++        writer.emit(Event::ToolCompleted {
++            tool_name: "shell".into(),
++            duration_ms: 0,
++            outcome: ToolOutcome::PermissionRejected,
++            tool_call_id: "native-call".into(),
++            source: ToolCompletedSource::Shell,
++            rewriting_hook: None,
++        });
++        writer.emit(Event::TurnEnded {
++            outcome: TurnOutcomeLabel::Completed,
++            cancellation_category: None,
++            cancellation_context: None,
++        });
++        drop(writer);
++        EventWriter::open_internal(directory.path(), true).emit(start());
++        let text = std::fs::read_to_string(directory.path().join("agent-session.jsonl")).unwrap();
++        let rows: Vec<Value> = text
++            .lines()
++            .map(|line| serde_json::from_str(line).unwrap())
++            .collect();
++        assert_eq!(rows.len(), 5);
++        let [header, info, approval, result, resumed] = rows.as_slice() else {
++            panic!("five records");
++        };
++        assert!(header.get("endedAt").is_none());
++        assert!(info.get("endedAt").is_none());
++        assert_eq!(approval.get("decision"), Some(&json!("denied")));
++        assert!(approval.get("by").is_none());
++        assert!(approval.get("callId").is_none());
++        assert_eq!(result.get("status"), Some(&json!("denied")));
++        assert_eq!(result.get("durationMs"), Some(&json!(0)));
++        assert_ne!(info.get("id"), resumed.get("id"));
++    }
++
++    #[test]
++    fn ignores_workspace_hop_and_rejects_duplicate_shell_results_after_resume() {
++        let directory = tempfile::tempdir().unwrap();
++        let mut writer = AgentSessionWriter::new(directory.path());
++        writer.open("synthetic").unwrap();
++        let event = |source| Event::ToolCompleted {
++            tool_name: "shell".into(),
++            duration_ms: u64::MAX,
++            outcome: ToolOutcome::Success,
++            tool_call_id: "call".into(),
++            source,
++            rewriting_hook: None,
++        };
++        writer
++            .emit(
++                &event(ToolCompletedSource::Workspace),
++                "2026-01-01T00:00:00Z",
++            )
++            .unwrap();
++        writer
++            .emit(&event(ToolCompletedSource::Shell), "2026-01-01T00:00:01Z")
++            .unwrap();
++        assert!(
++            writer
++                .emit(&event(ToolCompletedSource::Shell), "2026-01-01T00:00:02Z")
++                .is_err()
++        );
++        drop(writer);
++        let mut resumed = AgentSessionWriter::new(directory.path());
++        resumed.open("synthetic").unwrap();
++        assert!(
++            resumed
++                .emit(&event(ToolCompletedSource::Shell), "2026-01-01T00:00:03Z")
++                .is_err()
++        );
++        let text = std::fs::read_to_string(directory.path().join("agent-session.jsonl")).unwrap();
++        let rows: Vec<Value> = text
++            .lines()
++            .map(|line| serde_json::from_str(line).unwrap())
++            .collect();
++        assert_eq!(rows.len(), 2);
++        assert!(rows[1].get("durationMs").is_none());
++        assert!(text.contains(&u64::MAX.to_string()));
++    }
++
++    #[test]
++    fn refuses_other_session_or_incomplete_output() {
++        let directory = tempfile::tempdir().unwrap();
++        let mut writer = AgentSessionWriter::new(directory.path());
++        writer.open("one").unwrap();
++        drop(writer);
++        assert!(
++            AgentSessionWriter::new(directory.path())
++                .open("two")
++                .is_err()
++        );
++        let path = directory.path().join("agent-session.jsonl");
++        let mut file = OpenOptions::new().append(true).open(path).unwrap();
++        file.write_all(b"{").unwrap();
++        assert!(
++            AgentSessionWriter::new(directory.path())
++                .open("one")
++                .is_err()
++        );
++    }
++}
+diff --git a/crates/codegen/xai-grok-session-events/src/lib.rs b/crates/codegen/xai-grok-session-events/src/lib.rs
+index afe524b..f7ccc73 100644
+--- a/crates/codegen/xai-grok-session-events/src/lib.rs
++++ b/crates/codegen/xai-grok-session-events/src/lib.rs
+@@ -6,6 +6,7 @@
+ 
+ #![deny(clippy::indexing_slicing)]
+ 
++mod agent_session;
+ pub mod log;
+ pub mod tracker;
+ pub mod types;
+diff --git a/crates/codegen/xai-grok-session-events/src/log.rs b/crates/codegen/xai-grok-session-events/src/log.rs
+index 0a19069..9fc7837 100644
+--- a/crates/codegen/xai-grok-session-events/src/log.rs
++++ b/crates/codegen/xai-grok-session-events/src/log.rs
+@@ -27,11 +27,19 @@ pub struct EventWriter {
+ 
+ struct EventWriterInner {
+     file: Mutex<Option<File>>,
++    agent_session: Mutex<Option<crate::agent_session::AgentSessionWriter>>,
+     error_logged: AtomicBool,
+ }
+ 
+ impl EventWriter {
+     pub fn open(session_dir: &Path) -> Self {
++        Self::open_internal(
++            session_dir,
++            std::env::var_os("GROK_ASR_EXPORT").is_some_and(|v| v == "1"),
++        )
++    }
++
++    pub(crate) fn open_internal(session_dir: &Path, export_asr: bool) -> Self {
+         let path = session_dir.join(EVENTS_FILE);
+         let file = std::fs::OpenOptions::new()
+             .create(true)
+@@ -45,6 +53,9 @@ impl EventWriter {
+         Self {
+             inner: Arc::new(EventWriterInner {
+                 file: Mutex::new(file),
++                agent_session: Mutex::new(
++                    export_asr.then(|| crate::agent_session::AgentSessionWriter::new(session_dir)),
++                ),
+                 error_logged: AtomicBool::new(false),
+             }),
+         }
+@@ -54,6 +65,7 @@ impl EventWriter {
+         Self {
+             inner: Arc::new(EventWriterInner {
+                 file: Mutex::new(None),
++                agent_session: Mutex::new(None),
+                 error_logged: AtomicBool::new(true), // True from the start, so this writer never warns
+             }),
+         }
+@@ -78,6 +90,13 @@ impl EventWriter {
+         {
+             tracing::warn!(error = %e, "{EVENTS_FILE} write failed");
+         }
++        if let Ok(mut asr) = self.inner.agent_session.lock()
++            && let Some(writer) = asr.as_mut()
++            && let Err(error) = writer.emit(&entry.event, &entry.ts)
++        {
++            tracing::warn!(%error, "agent-session export stopped");
++            *asr = None;
++        }
+     }
+ }
+ 

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "agent": "crush",
+  "base": "b576f95896704c88ed84b2f16c3c346d6c58cb42",
+  "head": "794e53e86087dd945473bb044a57ffeceda9ad50",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "794e53e86087dd945473bb044a57ffeceda9ad50",
+      "sha256": "2a8d99fd86059261ecfd0d3f643a18fbd84ad79eb30bb975dd95b50d4d79048b"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "../kimi-code/contracts.mjs",
+      "crush"
+    ]
+  ],
+  "provenance": {
+    "repository": "https://github.com/charmbracelet/crush",
+    "base": "b576f95896704c88ed84b2f16c3c346d6c58cb42",
+    "head": "794e53e86087dd945473bb044a57ffeceda9ad50",
+    "branch": "codex/fix2-repo",
+    "files": {
+      "patches/0001-native-agent-session-export.patch": "2a8d99fd86059261ecfd0d3f643a18fbd84ad79eb30bb975dd95b50d4d79048b",
+      "live-test.json": "a7d5642a9a2a88c340e7d73a71c66908055c20b8264820a938d8b19d44e9cb5d",
+      "samples/native/native.json": "2682bd931bdc0b9aa0c389f390cd95a03dcf0a5c2def5c95d3d699ceb4123930",
+      "samples/asr/session.jsonl": "abdea1efa71338ecdfa395f4ef84059c423507c28425b7d3c919f3a4158fd29b",
+      "PROPOSAL.md": "5dfe6e3d735f1bc50fd4b9fa8fc2bc2e52b23a378b37825436626f248b63c223",
+      "TESTS.json": "5d62b8d326de1b4c1c4c2cfc9efba7c87dbea282e2ffd32cd862d667de301019",
+      ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944"
+    }
+  },
+  "files": {
+    ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
+    "PROPOSAL.md": "5dfe6e3d735f1bc50fd4b9fa8fc2bc2e52b23a378b37825436626f248b63c223",
+    "README.md": "ecf91efc1b4bd57fc42111b7368b3dec3cdb222588714c065ca394fb9c202482",
+    "TESTS.json": "5d62b8d326de1b4c1c4c2cfc9efba7c87dbea282e2ffd32cd862d667de301019",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "live-test.json": "a7d5642a9a2a88c340e7d73a71c66908055c20b8264820a938d8b19d44e9cb5d",
+    "patches/0001-native-agent-session-export.patch": "2a8d99fd86059261ecfd0d3f643a18fbd84ad79eb30bb975dd95b50d4d79048b",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "abdea1efa71338ecdfa395f4ef84059c423507c28425b7d3c919f3a4158fd29b",
+    "samples/native/native.json": "2682bd931bdc0b9aa0c389f390cd95a03dcf0a5c2def5c95d3d699ceb4123930"
+  }
+}

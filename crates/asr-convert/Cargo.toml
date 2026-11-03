@@ -1,0 +1,23 @@
+[package]
+name = "asr-convert"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+asr-core = { path = "../asr-core" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tempfile.workspace = true
+rusqlite.workspace = true
+regex.workspace = true
+aho-corasick.workspace = true
+walkdir.workspace = true
+zstd.workspace = true
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+rmpv = "1"
+base64 = "0.22"
+jsonschema = { version = "0.29", default-features = false }

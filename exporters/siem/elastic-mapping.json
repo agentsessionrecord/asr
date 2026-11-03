@@ -1,0 +1,34 @@
+{
+  "mappings": {
+    "dynamic": false,
+    "properties": {
+      "time": {"type": "date", "format": "epoch_millis"},
+      "class_uid": {"type": "integer"},
+      "category_uid": {"type": "integer"},
+      "activity_id": {"type": "integer"},
+      "type_uid": {"type": "integer"},
+      "severity_id": {"type": "integer"},
+      "status_id": {"type": "integer"},
+      "exit_code": {"type": "long"},
+      "metadata": {"properties": {
+        "version": {"type": "keyword"},
+        "uid": {"type": "keyword"},
+        "event_code": {"type": "keyword"}
+      }},
+      "file": {"properties": {"path": {"type": "keyword"}}},
+      "file_result": {"properties": {"path": {"type": "keyword"}}},
+      "unmapped": {"properties": {"asr": {"properties": {
+        "session": {"type": "keyword"},
+        "record": {"type": "keyword"},
+        "position": {"type": "integer"},
+        "credited": {"type": "boolean"},
+        "missing": {"type": "keyword"},
+        "decision": {"type": "keyword"},
+        "by": {"type": "keyword"},
+        "scope": {"type": "keyword"},
+        "content": {"type": "object", "enabled": false},
+        "agent_settings": {"type": "object", "enabled": false}
+      }}}}
+    }
+  }
+}

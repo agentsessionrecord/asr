@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-023",
+    "code": "schema.type",
+    "line": 2,
+    "pointer": "/callId"
+  }
+]

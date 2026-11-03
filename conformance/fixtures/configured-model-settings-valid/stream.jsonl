@@ -1,0 +1,5 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"audit-7","producer":{"name":"example-export","version":"1.0","method":"native"}}
+{"type":"session_info","id":"settings","agentSettings":{"modelSettings":{"reasoningEffort":"high","temperature":0,"maxOutputTokens":0,"serviceTier":"_future"}}}
+{"type":"session_info","id":"partial","agentSettings":{"modelSettings":{"reasoningEffort":"low"}}}
+{"type":"inference","id":"model-call","model":{"requested":"example"}}
+{"type":"session_info","id":"unchanged","agentSettings":{"modelSettings":{}}}

@@ -1,0 +1,67 @@
+---
+title: "Apply native export patches"
+description: "Review local patches that add ASR export to pinned agent source revisions."
+---
+
+Each package contains local source patches and a proposal. Nothing in this
+catalog implies an upstream release or an accepted patch. Choose the exact
+source base in the package's manifest and use a separate writable checkout.
+
+Each README gives installation, native export usage, recorded facts, losses and
+test evidence. Package checks validate digests, patch syntax, synthetic source
+contracts and ASR samples. The reproduction command replays the ordered series
+through a temporary Git index. It does not build the upstream agent or run a
+model session.
+
+Test status comes from the [repository registry](https://github.com/agentsessionrecord/asr/blob/main/registry.json).
+`passed` names a tested path. `partial` means only part of the host path ran.
+`not-live-tested` means no qualifying host or service run is recorded.
+`not-applicable` applies to offline tools and shared libraries.
+Read each README for the version, test scope and remaining limits.
+
+| Tool README | Live-test status |
+| --- | --- |
+| [AstrBot ASR export](https://github.com/agentsessionrecord/asr/blob/main/upstream/astrbot/README.md) | `partial` |
+| [Cline native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/cline/README.md) | `partial` |
+| [Codex native export design feedback](https://github.com/agentsessionrecord/asr/blob/main/upstream/codex/README.md) | `partial` |
+| [Continue native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/continue/README.md) | `partial` |
+| [Crush native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/crush/README.md) | `partial` |
+| [Deep Agents Code ASR export](https://github.com/agentsessionrecord/asr/blob/main/upstream/deepagents/README.md) | `partial` |
+| [DeepSeek harness native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/deepseek-harness/README.md) | `not-live-tested` |
+| [ForgeCode native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/forgecode/README.md) | `partial` |
+| [fx native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/fx/README.md) | `not-live-tested` |
+| [Gemini CLI native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/gemini-cli/README.md) | `partial` |
+| [Goose native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/goose/README.md) | `partial` |
+| [Grok Build native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/grok-build/README.md) | `not-live-tested` |
+| [Hermes native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/hermes/README.md) | `partial` |
+| [Kilo Code native ASR export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/kilo/README.md) | `partial` |
+| [Kimi Code native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/kimi-code/README.md) | `partial` |
+| [Mistral Vibe native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/mistral-vibe/README.md) | `partial` |
+| [Mux native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/mux/README.md) | `partial` |
+| [NanoClaw native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/nanoclaw/README.md) | `not-live-tested` |
+| [OpenClaw native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/openclaw/README.md) | `partial` |
+| [OpenCode native ASR export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/opencode/README.md) | `partial` |
+| [OpenHands Canvas ASR export](https://github.com/agentsessionrecord/asr/blob/main/upstream/openhands/README.md) | `partial` |
+| [Pi native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/pi/README.md) | `partial` |
+| [Qwen Code native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/qwen-code/README.md) | `partial` |
+| [Roo Code native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/roo-code/README.md) | `not-live-tested` |
+| [Shelley native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/shelley/README.md) | `partial` |
+| [Warp native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/warp/README.md) | `not-live-tested` |
+| [Zed native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/zed/README.md) | `not-live-tested` |
+
+## Capture and host limits
+
+Most packages add offline export of retained native history. Grok Build adds
+an opt-in event sidecar. OpenHands and Roo Code add export choices in their
+existing interfaces. Other packages expose CLI commands, examples or an
+authenticated route. Read the selected package's usage before applying it.
+
+Stored history can lack approval decisions, final model inputs, usage, file
+changes, commits or session relationships. The patch preserves supported facts
+and declares known losses. A valid export does not establish complete capture.
+
+Gemini CLI, Qwen Code, OpenClaw, Continue and OpenHands have `partial` status for
+limited host paths. Their READMEs state which command, export function or SDK
+boundary ran. Zed retains an upstream human review marker. The package check
+does not remove that requirement. Review and build an upstream candidate using
+its own instructions before using the patch beyond its tested scope.

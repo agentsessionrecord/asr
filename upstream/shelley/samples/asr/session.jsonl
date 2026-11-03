@@ -1,0 +1,8 @@
+{"agent":{"name":"shelley"},"cwd":"/work/app","formatVersion":"0.1","id":"header","missing":["usage","model","approvals","agent_settings","tools","file_changes","commits","subagents","copies","provider_state","native_events","tool_result_updates"],"producer":{"method":"native","name":"shelley-agent-session","source":"shelley-sqlite","version":"0.1.0"},"sessionId":"synthetic-shelley","startedAt":"2026-01-01T00:00:00Z","type":"session"}
+{"content":[{"text":"Read the synthetic item.\n","type":"text"}],"id":"prompt","role":"user","ts":"2026-01-01T00:00:00Z","type":"message"}
+{"author":"model","content":[{"text":"Check the item.\n","type":"reasoning"}],"id":"call","role":"assistant","ts":"2026-01-01T00:00:00Z","type":"message"}
+{"callId":"call-1","id":"asr-1-1","inputText":"{\"number\":9007199254740993}","name":"read","requestedBy":"model","ts":"2026-01-01T00:00:00Z","type":"tool_call"}
+{"content":[{"text":"Continue.\n","type":"text"}],"id":"notice","role":"user","ts":"2026-01-01T00:00:00Z","type":"message"}
+{"callId":"call-1","content":[{"text":"failed\n","type":"text"}],"id":"result","status":"failed","ts":"2026-01-01T00:00:00Z","type":"tool_result"}
+{"author":"model","content":[{"type":"reasoning","visibility":"encrypted"}],"id":"reply","role":"assistant","ts":"2026-01-01T00:00:00Z","type":"message"}
+{"author":"model","content":[{"text":"Finished.\n","type":"text"}],"id":"asr-5-1","role":"assistant","ts":"2026-01-01T00:00:00Z","type":"message"}

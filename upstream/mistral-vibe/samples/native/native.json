@@ -1,0 +1,57 @@
+{
+  "format": "vibe.public-session-state/v1",
+  "eventId": 4,
+  "session": {
+    "id": "synthetic-vibe",
+    "status": {
+      "type": "idle"
+    },
+    "createdAt": 1,
+    "updatedAt": 2,
+    "cwd": "/work/synthetic"
+  },
+  "historyBeforeCursor": "older",
+  "history": [
+    {
+      "sessionId": "synthetic-vibe",
+      "createdAt": 1,
+      "updatedAt": 2,
+      "generationStatus": "completed",
+      "type": "message",
+      "id": "u",
+      "role": "user",
+      "source": "turn_start",
+      "content": [
+        {
+          "type": "text",
+          "text": "Exact\r\n"
+        }
+      ]
+    },
+    {
+      "sessionId": "synthetic-vibe",
+      "createdAt": 1,
+      "updatedAt": 2,
+      "generationStatus": "completed",
+      "type": "reasoning",
+      "id": "r",
+      "text": "Check the fixture.",
+      "summary": []
+    },
+    {
+      "sessionId": "synthetic-vibe",
+      "createdAt": 1,
+      "updatedAt": 2,
+      "generationStatus": "completed",
+      "type": "message",
+      "id": "a",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "SYNTHETIC-OK"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "agent": "hermes",
+  "base": "c7c7e0fa92f40c8f526e4a52c0966c128245ffd3",
+  "head": "06146ba228f7c9a757e78f72c58625a63eeb8d5c",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "06146ba228f7c9a757e78f72c58625a63eeb8d5c",
+      "sha256": "3d06a564ddcf4a02ffdeb1248f98ef937bf0a56b04073712d9cd8822770190c2"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "--test",
+      "check.test.mjs"
+    ]
+  ],
+  "provenance": {
+    "repository": "https://github.com/NousResearch/hermes-agent.git",
+    "base": "c7c7e0fa92f40c8f526e4a52c0966c128245ffd3",
+    "commit": "06146ba228f7c9a757e78f72c58625a63eeb8d5c",
+    "patch": "patches/0001-native-agent-session-export.patch",
+    "patchSha256": "3d06a564ddcf4a02ffdeb1248f98ef937bf0a56b04073712d9cd8822770190c2"
+  },
+  "files": {
+    ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
+    "PROPOSAL.md": "a20be3f3229fc0619038615dced0dbfe9c9074fa194b1cb7fee8707e9c0e43da",
+    "README.md": "0661c9eae4cbcbcc0c9299e4fb5af69afead27ccb944e23804ffaaeaa9c02616",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "check.test.mjs": "1ea0a59dded17c00d3c64de31ea2b44d6cb92aadfdc4a69735116e1b67b59ca4",
+    "patches/0001-native-agent-session-export.patch": "3d06a564ddcf4a02ffdeb1248f98ef937bf0a56b04073712d9cd8822770190c2",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "2eac55fbc2cda4a056d0dab10e09761fec661dec74951f005d1f7473c337723b",
+    "samples/native/native.json": "506ade39a5bf94c0ddd9e617ef0e76f22d47cb9fb191529f4b0fa86ed2cdd068"
+  }
+}

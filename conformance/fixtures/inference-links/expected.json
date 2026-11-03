@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "warning",
+    "requirement": "ASR-070",
+    "code": "unresolved-inference",
+    "line": 4,
+    "pointer": "/inferenceId"
+  }
+]

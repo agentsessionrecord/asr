@@ -1,0 +1,17 @@
+{
+  "name": "asr-gemini-cli",
+  "version": "0.1.0",
+  "description": "Passive local Agent Session Record hook recorder",
+  "settings": [
+    {
+      "name": "ASR output directory",
+      "description": "Absolute path to a private local recording directory",
+      "envVar": "ASR_OUTPUT_DIR"
+    },
+    {
+      "name": "ASR content policy",
+      "description": "Use full to retain available text or metadata to omit it",
+      "envVar": "ASR_CONTENT"
+    }
+  ]
+}

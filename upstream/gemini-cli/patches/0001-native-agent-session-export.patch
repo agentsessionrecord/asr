@@ -1,0 +1,1109 @@
+From 23f3d8e2fb46a21404cb7f98a956bc115805c388 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:28 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ docs/cli/agent-session-export.md              |  30 ++
+ docs/sidebar.json                             |   4 +
+ packages/cli/src/commands/sessions.ts         |  24 ++
+ .../src/commands/sessions/agent-session.ts    | 357 ++++++++++++++++++
+ .../cli/src/commands/sessions/export.test.ts  | 252 +++++++++++++
+ packages/cli/src/commands/sessions/export.ts  | 351 +++++++++++++++++
+ packages/cli/src/config/config.ts             |   3 +
+ 7 files changed, 1021 insertions(+)
+ create mode 100644 docs/cli/agent-session-export.md
+ create mode 100644 packages/cli/src/commands/sessions.ts
+ create mode 100644 packages/cli/src/commands/sessions/agent-session.ts
+ create mode 100644 packages/cli/src/commands/sessions/export.test.ts
+ create mode 100644 packages/cli/src/commands/sessions/export.ts
+
+diff --git a/docs/cli/agent-session-export.md b/docs/cli/agent-session-export.md
+new file mode 100644
+index 0000000..d8149a3
+--- /dev/null
++++ b/docs/cli/agent-session-export.md
+@@ -0,0 +1,30 @@
++# Export saved sessions
++
++Export a saved Gemini conversation in an open format that search and code history
++tools can read. The export works offline and does not start a model call.
++
++```sh
++gemini sessions export --format agent-session --session SESSION_ID
++```
++
++This command writes one session to standard output. To save separate files, use
++`--output DIRECTORY`. Repeat `--session` to select several sessions. Without a
++selector, directory output includes all saved sessions in the current project.
++Existing files are refused. Files use private permissions and names derived from
++the session identity.
++
++Use `--input FILE` to read a specific transcript without loading global settings.
++Repeat it for several files. `--since` accepts an RFC 3339 timestamp and selects
++files by modification time. Missing sessions and ambiguous selections fail.
++
++The export keeps recorded messages, tool requests and available results. Updated
++results appear where their final version was saved. Retained work stays available
++after a rewind. Gaps identify corrupt or incomplete history.
++
++Saved conversations do not contain every approval, setting, model call or file
++edit. The export declares these limits. It supports current JSONL recordings and
++legacy JSON files. Select a single recording segment when several files share a
++session identity.
++
++Known credentials and opaque provider state are excluded. Review the export
++before sharing because a filter cannot recognize every secret in ordinary text.
+diff --git a/docs/sidebar.json b/docs/sidebar.json
+index bf82bc8..1cc2453 100644
+--- a/docs/sidebar.json
++++ b/docs/sidebar.json
+@@ -42,6 +42,10 @@
+             "label": "Manage sessions and history",
+             "slug": "docs/cli/tutorials/session-management"
+           },
++          {
++            "label": "Export Agent Session Record",
++            "slug": "docs/cli/agent-session-export"
++          },
+           {
+             "label": "Plan tasks with todos",
+             "slug": "docs/cli/tutorials/task-planning"
+diff --git a/packages/cli/src/commands/sessions.ts b/packages/cli/src/commands/sessions.ts
+new file mode 100644
+index 0000000..eabbbe7
+--- /dev/null
++++ b/packages/cli/src/commands/sessions.ts
+@@ -0,0 +1,24 @@
++/**
++ * @license
++ * Copyright 2026 Google LLC
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import type { CommandModule } from 'yargs';
++import { exportCommand } from './sessions/export.js';
++import { initializeOutputListenersAndFlush } from '../gemini.js';
++
++export const sessionsCommand: CommandModule = {
++  command: 'sessions',
++  describe: 'Export saved sessions',
++  builder: (yargs) =>
++    yargs
++      .middleware((argv) => {
++        initializeOutputListenersAndFlush();
++        argv['isCommand'] = true;
++      })
++      .command(exportCommand)
++      .demandCommand(1)
++      .version(false),
++  handler: () => {},
++};
+diff --git a/packages/cli/src/commands/sessions/agent-session.ts b/packages/cli/src/commands/sessions/agent-session.ts
+new file mode 100644
+index 0000000..ca27c6f
+--- /dev/null
++++ b/packages/cli/src/commands/sessions/agent-session.ts
+@@ -0,0 +1,357 @@
++/**
++ * @license
++ * Copyright 2026 Google LLC
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import { createHash } from 'node:crypto';
++import * as fs from 'node:fs';
++import * as path from 'node:path';
++
++export type RecordValue = Record<string, unknown>;
++const isObject = (value: unknown): value is RecordValue =>
++  value !== null && typeof value === 'object' && !Array.isArray(value);
++export const isString = (value: unknown): value is string =>
++  typeof value === 'string';
++export const list = (value: unknown): unknown[] =>
++  Array.isArray(value) ? value : [];
++export const object = (value: unknown): RecordValue =>
++  isObject(value) ? value : {};
++
++export function parseNative(text: string): unknown {
++  return JSON.parse(
++    text,
++    (_key, value: unknown, context?: { source: string }) => {
++      if (
++        typeof value === 'number' &&
++        Math.abs(value) > Number.MAX_SAFE_INTEGER
++      ) {
++        if (!context?.source)
++          throw new Error('Exact native integers require Node.js 22 or newer');
++        return context.source;
++      }
++      return value;
++    },
++  );
++}
++
++export function nativeLines(text: string): unknown[] {
++  const lines = text.split('\n');
++  const tail = lines.pop();
++  const records = lines.map((line) => {
++    try {
++      const value: unknown = parseNative(line);
++      if (!value || typeof value !== 'object' || Array.isArray(value))
++        return null;
++      return value;
++    } catch {
++      return null;
++    }
++  });
++  if (tail) records.push(null);
++  return records;
++}
++
++export function timestamp(value: unknown): string | undefined {
++  return typeof value === 'string' &&
++    /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(
++      value,
++    ) &&
++    Number.isFinite(Date.parse(value))
++    ? value
++    : undefined;
++}
++
++const kindByName: Record<string, string> = {
++  read_file: 'read',
++  read_many_files: 'read',
++  list_directory: 'read',
++  write_file: 'edit',
++  replace: 'edit',
++  edit: 'edit',
++  run_shell_command: 'execute',
++  grep_search: 'search',
++  glob: 'search',
++  web_fetch: 'fetch',
++  google_web_search: 'search',
++};
++
++export class SessionExport {
++  readonly records: RecordValue[] = [];
++  readonly missing = new Set([
++    'approvals',
++    'agent_settings',
++    'tools',
++    'usage',
++    'model',
++    'inference_settings',
++    'file_changes',
++    'commits',
++    'copies',
++    'subagents',
++    'instructions',
++    'exit_codes',
++    'native_metadata',
++    'message_author',
++    'tool_output',
++    'reasoning',
++    'provider_state',
++  ]);
++  private readonly used = new Set<string>();
++  private readonly secrets = Object.entries(process.env)
++    .filter(
++      ([key, value]) =>
++        /key|token|password|secret/i.test(key) && value && value.length >= 8,
++    )
++    .map(([, value]) => value!);
++
++  constructor(
++    readonly vendor: string,
++    private readonly reserved = new Set<string>(),
++  ) {}
++
++  id(key: string, native?: string): string {
++    let id =
++      native &&
++      native.length <= 256 &&
++      !Array.from(native).some(
++        (char) => char.charCodeAt(0) <= 31 || char.charCodeAt(0) === 127,
++      )
++        ? native
++        : `asr-${createHash('sha256').update(key).digest('hex')}`;
++    while (this.used.has(id) || (id !== native && this.reserved.has(id)))
++      id = `asr-${createHash('sha256')
++        .update(id + key)
++        .digest('hex')}`;
++    this.used.add(id);
++    return id;
++  }
++
++  add(key: string, record: RecordValue, native?: string): RecordValue {
++    const raw: RecordValue = { ...record, id: this.id(key, native) };
++    let shortened = false;
++    const clean = (value: unknown, field = ''): unknown => {
++      const entry = object(value);
++      if (
++        field === 'functionResponse' &&
++        /^(request_secret|get_password|get_credential)$/i.test(
++          String(entry['name']),
++        )
++      ) {
++        shortened = true;
++        return { id: entry['id'], name: entry['name'] };
++      }
++      if (
++        (field === 'functionCall' || field === '') &&
++        /^(request_secret|get_password|get_credential)$/i.test(
++          String(entry['name']),
++        )
++      ) {
++        value = {
++          ...entry,
++          args: undefined,
++          input: undefined,
++          truncated: true,
++        };
++        shortened = true;
++      }
++      if (
++        /^(?:thoughtSignature|signature|encryptedContent|encrypted_content|authorization|token|session[_-]?(?:key|token)|auth[_-]?token|client[_-]?secret|private[_-]?key|secret[_-]?(?:answer|value)|api[_-]?key|access[_-]?token|refresh[_-]?token|password|secret|credentials)$/i.test(
++          field,
++        )
++      ) {
++        shortened = true;
++        return undefined;
++      }
++      if (typeof value === 'string') {
++        let text = value.replace(
++          /\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|Bearer\s+[A-Za-z0-9._~+/-]{20,})\b/gi,
++          '[redacted]',
++        );
++        for (const secret of this.secrets)
++          text = text.split(secret).join('[redacted]');
++        if (text !== value) shortened = true;
++        return text;
++      }
++      if (Array.isArray(value))
++        return value.map((entry) => clean(entry) ?? null);
++      if (value && typeof value === 'object') {
++        return Object.fromEntries(
++          Object.entries(value).flatMap(([k, v]) => {
++            const cleaned = clean(v, k);
++            return cleaned === undefined ? [] : [[k, cleaned]];
++          }),
++        );
++      }
++      return value;
++    };
++    const result = object(clean(raw));
++    if (
++      raw['type'] === 'tool_result' &&
++      Array.isArray(raw['content']) &&
++      raw['content'].some((part) => {
++        const response = object(
++          object(object(part)['part'])['functionResponse'],
++        );
++        const output = object(response['response'])['output'];
++        return (
++          typeof output === 'string' && output.includes('<tool_output_masked>')
++        );
++      })
++    )
++      result['truncated'] = true;
++    if (shortened) {
++      result['truncated'] = true;
++      this.missing.add('secrets');
++    }
++    this.records.push(result);
++    return result;
++  }
++
++  gap(key: string, reason = 'unparseable'): void {
++    this.missing.add('history');
++    this.add(key, { type: 'gap', reason, count: 1 });
++  }
++
++  parts(value: unknown): RecordValue[] {
++    return (
++      Array.isArray(value)
++        ? value
++        : value === undefined || value === null
++          ? []
++          : [value]
++    ).map((part: unknown) => {
++      if (typeof part === 'string') return { type: 'text', text: part };
++      const p = object(part);
++      if (isString(p['text'])) {
++        return p['thought']
++          ? asrReasoning(p['text'], true)
++          : { type: 'text', text: p['text'] };
++      }
++      if (p['thought'] === true || p['thoughtSignature'])
++        return { type: 'reasoning', visibility: 'omitted' };
++      const media = object(p['inlineData']);
++      if (
++        isString(media['mimeType']) &&
++        /^(image|audio)\//.test(media['mimeType'])
++      ) {
++        return {
++          type: media['mimeType'].split('/')[0],
++          mimeType: media['mimeType'],
++          data: media['data'],
++        };
++      }
++      return { type: `${this.vendor}/part`, part: p };
++    });
++  }
++
++  call(
++    key: string,
++    call: RecordValue,
++    ts?: string,
++    native?: string,
++    turnId?: string,
++  ): void {
++    this.add(
++      key,
++      {
++        type: 'tool_call',
++        callId:
++          isString(call['id']) && call['id'] ? call['id'] : `derived-${key}`,
++        name: call['name'],
++        input: call['args'],
++        ts,
++        kind: isString(call['name']) ? kindByName[call['name']] : undefined,
++        requestedBy: call['requestedBy'],
++        turnId,
++      },
++      native,
++    );
++  }
++
++  finish(header: RecordValue): string {
++    const session = this.add('header', {
++      type: 'session',
++      formatVersion: '0.1',
++      ...header,
++      missing: [...this.missing].sort(),
++    });
++    if (session['sessionId'] !== header['sessionId'])
++      throw new Error('Session identity contains excluded data');
++    session['missing'] = [...this.missing].sort();
++    return (
++      [session, ...this.records.slice(0, -1)]
++        .map((r) => JSON.stringify(r))
++        .join('\n') + '\n'
++    );
++  }
++}
++
++export interface ExportArgs {
++  format: string;
++  session?: string[];
++  input?: string[];
++  output?: string;
++  since?: string;
++}
++
++export function exportFiles(
++  args: ExportArgs,
++  files: string[],
++  convert: (text: string) => string,
++): void {
++  if (args.format !== 'agent-session')
++    throw new Error('Unsupported export format');
++  if (!args.output && args.session?.length !== 1)
++    throw new Error('Select exactly one --session or supply --output');
++  const since = args.since ? timestamp(args.since) : undefined;
++  if (args.since && !since)
++    throw new Error('--since must be an RFC 3339 timestamp');
++  const wanted = new Set(args.session);
++  const exports = new Map<string, string>();
++  for (const file of [...new Set(files)].sort()) {
++    if (since && fs.statSync(file).mtimeMs < Date.parse(since)) continue;
++    const text = new TextDecoder('utf-8', { fatal: true }).decode(
++      fs.readFileSync(file),
++    );
++    if (wanted.size) {
++      let identity: unknown;
++      try {
++        identity = object(parseNative(text))['sessionId'];
++      } catch {
++        identity = object(
++          nativeLines(text).find((r) => isString(object(r)['sessionId'])),
++        )['sessionId'];
++      }
++      if (typeof identity !== 'string' || !wanted.has(identity)) continue;
++    }
++    const stream = convert(text);
++    const sessionId = object(parseNative(stream.split('\n')[0]))['sessionId'];
++    if (!isString(sessionId))
++      throw new Error('Missing exported session identity');
++    if (wanted.size && !wanted.has(sessionId)) continue;
++    if (exports.has(sessionId))
++      throw new Error('Several source files have the same session identity');
++    exports.set(sessionId, stream);
++  }
++  if (!exports.size || [...wanted].some((id) => !exports.has(id)))
++    throw new Error('Selected session source is unavailable');
++  if (!args.output) {
++    process.stdout.write([...exports.values()][0]);
++    return;
++  }
++  fs.mkdirSync(args.output, { recursive: true, mode: 0o700 });
++  for (const [id, stream] of exports) {
++    const name = createHash('sha256').update(id).digest('hex') + '.jsonl';
++    fs.writeFileSync(path.join(args.output, name), stream, {
++      mode: 0o600,
++      flag: 'wx',
++    });
++  }
++}
++
++function asrReasoning(text: unknown, summary = false): { type: string; visibility?: string; text?: string; summary?: string[] } {
++  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
++  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
++  return { type: "reasoning", text };
++}
+diff --git a/packages/cli/src/commands/sessions/export.test.ts b/packages/cli/src/commands/sessions/export.test.ts
+new file mode 100644
+index 0000000..2f97778
+--- /dev/null
++++ b/packages/cli/src/commands/sessions/export.test.ts
+@@ -0,0 +1,252 @@
++/**
++ * @license
++ * Copyright 2026 Google LLC
++ * SPDX-License-Identifier: Apache-2.0
++ */
++import { describe, it, expect, vi } from 'vitest';
++import * as fs from 'node:fs';
++import * as os from 'node:os';
++import * as path from 'node:path';
++import { exportSession, exportCommand } from './export.js';
++import { exportFiles, parseNative } from './agent-session.js';
++
++const discovery = vi.hoisted(() => ({ directory: '' }));
++vi.mock('@google/gemini-cli-core', () => ({
++  Storage: class {
++    async initialize() {}
++    getProjectTempDir() {
++      return discovery.directory;
++    }
++  },
++}));
++
++const records = (text: string) =>
++  text
++    .trimEnd()
++    .split('\n')
++    .map((line) => JSON.parse(line));
++const at = '2026-10-30T12:00:00Z';
++
++const extra = (id: string) =>
++  JSON.stringify({
++    id,
++    timestamp: at,
++    type: 'user',
++    content: 'hello\r\n  world ',
++  });
++const fixture = () =>
++  JSON.stringify({
++    sessionId: 'synthetic-session',
++    projectHash: 'synthetic-project',
++    startTime: at,
++  }) +
++  '\n' +
++  extra('prompt') +
++  '\n';
++
++describe('Agent Session Record export', () => {
++  it('discovers current project storage and filters unrelated sessions before decoding', async () => {
++    const dir = fs.mkdtempSync(
++      path.join(os.tmpdir(), 'agent-session-discovery-'),
++    );
++    discovery.directory = dir;
++    const store = path.join(dir, 'chats');
++    fs.mkdirSync(store, { recursive: true });
++    fs.writeFileSync(path.join(store, 'session-synthetic.jsonl'), fixture());
++    fs.writeFileSync(path.join(store, 'session-synthetic.json'), fixture());
++    const write = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
++    try {
++      await exportCommand.handler({
++        format: 'agent-session',
++        session: ['synthetic-session'],
++        _: [],
++        $0: 'test',
++      });
++      expect(write).toHaveBeenCalledWith(exportSession(fixture()));
++    } finally {
++      write.mockRestore();
++      fs.rmSync(dir, { recursive: true, force: true });
++    }
++  });
++
++  it('writes deterministic native streams with exact text and no invented outcomes', () => {
++    const source = fixture();
++    const a = exportSession(source);
++    expect(exportSession(source)).toBe(a);
++    const output = records(a);
++    expect(output[0].producer.method).toBe('native');
++    expect(output[0].sessionId).toBe('synthetic-session');
++    expect(output[0]).not.toHaveProperty('endedAt');
++    expect(output.some((r) => r.type === 'approval')).toBe(false);
++    expect(output.some((r) => r.type === 'inference')).toBe(false);
++    expect(output.find((r) => r.id === 'prompt').content).toEqual([
++      { type: 'text', text: 'hello\r\n  world ' },
++    ]);
++    expect(new Set(output.map((r) => r.id)).size).toBe(output.length);
++  });
++
++  it('keeps large native values exact before JavaScript can round them', () => {
++    expect(parseNative('{"id":9007199254740993}')).toEqual({
++      id: '9007199254740993',
++    });
++  });
++
++  it('marks corrupt complete lines and incomplete tails without dropping later work', () => {
++    const source =
++      fixture() + 'broken\n' + extra('later') + '\n' + '{"unfinished":';
++    const output = records(exportSession(source));
++    expect(output.filter((r) => r.type === 'gap')).toHaveLength(2);
++    expect(output.some((r) => r.id === 'later')).toBe(true);
++    expect(output[0].missing).toContain('history');
++  });
++
++  it('omits known secrets and opaque provider state', () => {
++    const source = fixture().replace(
++      'hello\\r\\n  world ',
++      'Bearer ' + 'a'.repeat(32),
++    );
++    const stream = exportSession(source);
++    expect(stream).not.toContain('a'.repeat(32));
++    expect(records(stream)[0].missing).toContain('secrets');
++    expect(records(stream).find((r) => r.id === 'prompt').truncated).toBe(true);
++  });
++
++  it('does not emit a session for missing identity', () => {
++    expect(() => exportSession('{}\n')).toThrow('identity');
++  });
++
++  it('rejects ambiguous stdout, unavailable sessions and invalid time filters', () => {
++    expect(() =>
++      exportFiles({ format: 'agent-session' }, [], exportSession),
++    ).toThrow('exactly one');
++    expect(() =>
++      exportFiles(
++        { format: 'agent-session', session: ['missing'] },
++        [],
++        exportSession,
++      ),
++    ).toThrow('unavailable');
++    expect(() =>
++      exportFiles(
++        { format: 'agent-session', session: ['missing'], since: 'yesterday' },
++        [],
++        exportSession,
++      ),
++    ).toThrow('RFC 3339');
++  });
++
++  it('writes safe private filenames and refuses to overwrite files', () => {
++    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-session-export-'));
++    try {
++      const input = path.join(dir, 'source.jsonl');
++      fs.writeFileSync(input, fixture());
++      const output = path.join(dir, 'exports');
++      const args = { format: 'agent-session', output };
++      exportFiles(args, [input], exportSession);
++      const [name] = fs.readdirSync(output);
++      expect(name).toMatch(/^[a-f0-9]{64}\.jsonl$/);
++      if (process.platform !== 'win32')
++        expect(fs.statSync(path.join(output, name)).mode & 0o777).toBe(0o600);
++      expect(() => exportFiles(args, [input], exportSession)).toThrow();
++      const write = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
++      try {
++        exportFiles(
++          { format: 'agent-session', session: ['synthetic-session'] },
++          [input],
++          exportSession,
++        );
++        expect(write).toHaveBeenCalledWith(exportSession(fixture()));
++      } finally {
++        write.mockRestore();
++      }
++    } finally {
++      fs.rmSync(dir, { recursive: true, force: true });
++    }
++  });
++});
++describe('Gemini journal revisions', () => {
++  it('folds result updates at completion after intervening messages and retains rewound work', () => {
++    const model = {
++      id: 'model',
++      type: 'gemini',
++      timestamp: at,
++      content: '',
++      toolCalls: [
++        {
++          id: 'call',
++          name: 'read_file',
++          args: { file_path: '/work/example.txt' },
++          status: 'executing',
++          timestamp: at,
++        },
++      ],
++    };
++    const final = {
++      ...model,
++      toolCalls: [
++        {
++          ...model.toolCalls[0],
++          status: 'success',
++          result: [
++            {
++              functionResponse: {
++                id: 'call',
++                name: 'read_file',
++                response: { output: 'done' },
++              },
++            },
++          ],
++        },
++      ],
++    };
++    const source =
++      fixture() +
++      [model, JSON.parse(extra('notice')), final, { $rewindTo: 'model' }]
++        .map((row) => JSON.stringify(row))
++        .join('\n') +
++      '\n';
++    const output = records(exportSession(source));
++    expect(output.filter((r) => r.type === 'tool_call')).toHaveLength(1);
++    expect(output.filter((r) => r.type === 'tool_result')).toHaveLength(1);
++    expect(output.find((r) => r.type === 'tool_result').status).toBe(
++      'completed',
++    );
++    expect(output.findIndex((r) => r.id === 'notice')).toBeLessThan(
++      output.findIndex((r) => r.type === 'tool_result'),
++    );
++  });
++
++  it('applies content patches at their native position without moving intervening records', () => {
++    const source =
++      fixture() +
++      [
++        JSON.parse(extra('changed')),
++        JSON.parse(extra('notice')),
++        { $patch: { updates: [{ id: 'changed', content: 'final' }] } },
++      ]
++        .map((row) => JSON.stringify(row))
++        .join('\n') +
++      '\n';
++    const output = records(exportSession(source));
++    expect(output.find((r) => r.id === 'changed').content[0].text).toBe(
++      'final',
++    );
++    expect(output.findIndex((r) => r.id === 'notice')).toBeLessThan(
++      output.findIndex((r) => r.id === 'changed'),
++    );
++    expect(output.find((r) => r.id === 'changed')).not.toHaveProperty('ts');
++  });
++
++  it('supports a legacy snapshot without borrowing export-time facts', () => {
++    const output = records(
++      exportSession(
++        JSON.stringify({
++          sessionId: 'legacy',
++          messages: [JSON.parse(extra('prompt'))],
++        }),
++      ),
++    );
++    expect(output[0].sessionId).toBe('legacy');
++    expect(output[0]).not.toHaveProperty('cwd');
++  });
++});
+diff --git a/packages/cli/src/commands/sessions/export.ts b/packages/cli/src/commands/sessions/export.ts
+new file mode 100644
+index 0000000..aa62e9e
+--- /dev/null
++++ b/packages/cli/src/commands/sessions/export.ts
+@@ -0,0 +1,351 @@
++/**
++ * @license
++ * Copyright 2026 Google LLC
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import type { CommandModule } from 'yargs';
++import type { MessageRecord, ToolCallRecord } from '@google/gemini-cli-core';
++import * as fs from 'node:fs';
++import * as path from 'node:path';
++import {
++  SessionExport,
++  exportFiles,
++  nativeLines,
++  object,
++  list,
++  isString,
++  parseNative,
++  timestamp,
++  type ExportArgs,
++  type RecordValue,
++} from './agent-session.js';
++
++function isMessage(value: unknown): value is MessageRecord {
++  const r = object(value);
++  return (
++    isString(r['id']) &&
++    ['user', 'gemini', 'info', 'warning', 'error'].includes(String(r['type']))
++  );
++}
++function isTool(value: unknown): value is ToolCallRecord {
++  const r = object(value);
++  return isString(r['id']) && isString(r['name']);
++}
++
++type SavedTool = { value: ToolCallRecord; first: number; completed: number };
++type SavedMessage = {
++  value: MessageRecord;
++  first: number;
++  completed: number;
++  tools: Map<string, SavedTool>;
++};
++
++export function exportSession(text: string): string {
++  let observations: unknown[];
++  try {
++    const snapshot = object(parseNative(text));
++    observations = Array.isArray(snapshot['messages'])
++      ? [snapshot, ...list(snapshot['messages'])]
++      : nativeLines(text);
++  } catch {
++    observations = nativeLines(text);
++  }
++  const header = object(
++    observations.find((r) => isString(object(r)['sessionId'])),
++  );
++  if (!isString(header['sessionId']) || !header['sessionId'])
++    throw new Error('Missing native session identity');
++  const out = new SessionExport(
++    'com.google.gemini-cli',
++    new Set(
++      observations
++        .map((r) => object(r)['id'])
++        .filter((id): id is string => typeof id === 'string'),
++    ),
++  );
++  const messages = new Map<string, SavedMessage>();
++  const callPositions = new Map<string, number>();
++  const events: Array<{ at: number; order: number; write: () => void }> = [];
++  const queue = (at: number, order: number, write: () => void) =>
++    events.push({ at, order, write });
++  const save = (raw: unknown, at: number) => {
++    const value = object(raw);
++    if (!isMessage(raw)) {
++      queue(at, 0, () => out.gap(`invalid-${at}`));
++      return;
++    }
++    const id = raw.id;
++    for (const [index, part] of (Array.isArray(value['content'])
++      ? value['content']
++      : [value['content']]
++    ).entries()) {
++      const call = object(object(part)['functionCall']);
++      if (object(part)['functionCall']) {
++        const key = `${id}-${String(call['id'] ?? index)}`;
++        if (!callPositions.has(key)) callPositions.set(key, at);
++      }
++    }
++    const old = messages.get(id);
++    const contentChanged =
++      !old ||
++      JSON.stringify(old.value.content) !== JSON.stringify(value['content']);
++    const saved: SavedMessage = {
++      value: raw,
++      first: old?.first ?? at,
++      completed: contentChanged ? at : old.completed,
++      tools: old?.tools ?? new Map<string, SavedTool>(),
++    };
++    for (const tool of Array.isArray(value['toolCalls'])
++      ? value['toolCalls']
++      : []) {
++      const t = object(tool);
++      if (!isTool(tool) || !t['id']) {
++        queue(at, 0, () => out.gap(`invalid-tool-${at}`));
++        continue;
++      }
++      const previous = saved.tools.get(tool.id);
++      saved.tools.set(tool.id, {
++        value: tool,
++        first: previous?.first ?? at,
++        completed:
++          previous &&
++          JSON.stringify(previous.value.result) ===
++            JSON.stringify(t['result']) &&
++          previous.value.status === t['status']
++            ? previous.completed
++            : at,
++      });
++    }
++    messages.set(id, saved);
++  };
++  observations.forEach((raw, at) => {
++    const r = object(raw);
++    if (raw === null) queue(at, 0, () => out.gap(`line-${at}`));
++    else if (r['id'] !== undefined) save(r, at);
++    else if (r['$patch']) {
++      const patch = object(r['$patch']);
++      for (const update of Array.isArray(patch['updates'])
++        ? patch['updates']
++        : [patch]) {
++        const u = object(update);
++        const old = messages.get(String(u['id']));
++        if (!old) {
++          if (u['id'] !== undefined) queue(at, 0, () => out.gap(`patch-${at}`));
++          continue;
++        }
++        const merged: RecordValue = { ...old.value, ...u };
++        if (Array.isArray(u['toolCalls'])) {
++          merged['toolCalls'] = list(u['toolCalls']).map((tool: unknown) => ({
++            ...old.tools.get(String(object(tool)['id']))?.value,
++            ...object(tool),
++          }));
++        }
++        save(merged, at);
++      }
++    } else if (r['$set']) {
++      const set = object(r['$set']);
++      if (Array.isArray(set['messages']))
++        set['messages'].forEach((m) => save(m, at));
++    } else if (!r['sessionId'] && !r['$rewindTo']) {
++      queue(at, 0, () => out.gap(`unsupported-${at}`, 'not_recorded'));
++    }
++  });
++  const results = new Map<
++    string,
++    { at: number; ts?: string; content: unknown; status: string }
++  >();
++  const status = (native: string | undefined) =>
++    ({ success: 'completed', error: 'failed', cancelled: 'cancelled' })[
++      native ?? ''
++    ] ?? 'unknown';
++  for (const [id, saved] of messages) {
++    const m = saved.value;
++    const ts =
++      saved.first === saved.completed ? timestamp(m.timestamp) : undefined;
++    if (!ts) out.missing.add('timestamps');
++    if (saved.first !== saved.completed) out.missing.add('message_updates');
++    const parts = Array.isArray(m.content) ? m.content : [m.content];
++    const contentCalls = new Set(
++      parts.map((p) => object(object(p)['functionCall'])['id']),
++    );
++    let block: unknown[] = [];
++    let segment = 0;
++    const flush = (order: number) => {
++      if (!block.length) return;
++      const content = out.parts(block);
++      const native = segment++ === 0 ? id : undefined;
++      queue(saved.completed, order, () =>
++        out.add(
++          `${id}-text-${order}`,
++          {
++            type: 'message',
++            role: m.type === 'gemini' ? 'assistant' : 'user',
++            ...(m.type === 'gemini'
++              ? { author: 'model' }
++              : m.type !== 'user'
++                ? { author: 'harness', origin: 'notice' }
++                : {}),
++            content,
++            ts,
++          },
++          native,
++        ),
++      );
++      block = [];
++    };
++    parts.forEach((part, index) => {
++      const p = object(part);
++      if (p['functionCall']) {
++        flush(index * 2);
++        const call = object(p['functionCall']);
++        const tool = saved.tools.get(String(call['id']));
++        const nativeId = segment++ === 0 ? id : undefined;
++        queue(
++          callPositions.get(`${id}-${String(call['id'] ?? index)}`) ??
++            saved.completed,
++          index * 2 + 1,
++          () =>
++            out.call(
++              `${id}-call-${index}`,
++              {
++                ...call,
++                requestedBy: m.type === 'gemini' ? 'model' : undefined,
++                ...(tool ? { args: tool.value.args } : {}),
++              },
++              ts,
++              nativeId,
++            ),
++        );
++      } else if (p['functionResponse']) {
++        flush(index * 2);
++        const response = object(p['functionResponse']);
++        if (isString(response['id'])) {
++          const existing = results.get(response['id']);
++          if (!existing || existing.at <= saved.completed)
++            results.set(response['id'], {
++              at: saved.completed,
++              ts,
++              content: [part],
++              status: existing?.status ?? 'unknown',
++            });
++        } else
++          queue(saved.completed, index * 2, () =>
++            out.add(`${id}-unpaired-${index}`, {
++              type: 'tool_result',
++              status: 'unknown',
++              content: out.parts([part]),
++              ts,
++            }),
++          );
++      } else block.push(part);
++    });
++    flush(parts.length * 2);
++    for (const [callId, tool] of saved.tools) {
++      const t = tool.value;
++      if (!contentCalls.has(callId))
++        queue(tool.first, 100, () =>
++          out.call(
++            `${id}-call-${callId}`,
++            {
++              id: callId,
++              name: t.name,
++              args: t.args,
++              requestedBy: m.type === 'gemini' ? 'model' : undefined,
++            },
++            timestamp(t.timestamp),
++          ),
++        );
++      if (t.result !== undefined && t.result !== null) {
++        const parts = Array.isArray(t.result) ? t.result : [t.result];
++        const responses = parts.filter((p) => object(p)['functionResponse']);
++        const matching = responses.length
++          ? responses.filter(
++              (p) => object(object(p)['functionResponse'])['id'] === callId,
++            )
++          : parts;
++        const existing = results.get(callId);
++        if (matching.length && (!existing || existing.at <= tool.completed))
++          results.set(callId, {
++            at: tool.completed,
++            ts: undefined,
++            content: matching,
++            status: status(t.status),
++          });
++        else if (existing) existing.status = status(t.status);
++      }
++    }
++  }
++  for (const [callId, result] of results) {
++    if (!result.ts) out.missing.add('timestamps');
++    queue(result.at, 1000, () =>
++      out.add(`result-${callId}`, {
++        type: 'tool_result',
++        callId,
++        status: result.status,
++        content: out.parts(result.content),
++        ts: result.ts,
++      }),
++    );
++  }
++  events
++    .sort((a, b) => a.at - b.at || a.order - b.order)
++    .forEach((e) => e.write());
++  return out.finish({
++    agent: { name: 'gemini-cli' },
++    sessionId: header['sessionId'],
++    startedAt: timestamp(header['startTime']),
++    producer: {
++      name: 'gemini-cli-export',
++      version: '1',
++      method: 'native',
++      source: 'gemini-chat-recording',
++    },
++  });
++}
++
++export const exportCommand: CommandModule<unknown, ExportArgs> = {
++  command: 'export',
++  describe: 'Export saved sessions as Agent Session Record JSONL',
++  builder: (yargs) =>
++    yargs
++      .option('format', {
++        type: 'string',
++        choices: ['agent-session'],
++        demandOption: true,
++      })
++      .option('session', { type: 'string', array: true })
++      .option('input', {
++        type: 'string',
++        array: true,
++        describe:
++          'Read explicit native session files instead of current project storage',
++      })
++      .option('since', { type: 'string' })
++      .option('output', {
++        type: 'string',
++        describe:
++          'Write private files to a directory without replacing existing files',
++      }),
++  handler: async (args) => {
++    let files = args.input;
++    if (!files) {
++      const { Storage } = await import('@google/gemini-cli-core');
++      const storage = new Storage(process.cwd());
++      await storage.initialize();
++      const dir = path.join(storage.getProjectTempDir(), 'chats');
++      files = fs
++        .readdirSync(dir)
++        .filter(
++          (name) =>
++            /^session-.*\.jsonl?$/.test(name) &&
++            !(
++              name.endsWith('.json') &&
++              fs.existsSync(path.join(dir, name + 'l'))
++            ),
++        )
++        .map((name) => path.join(dir, name));
++    }
++    exportFiles(args, files, exportSession);
++  },
++};
+diff --git a/packages/cli/src/config/config.ts b/packages/cli/src/config/config.ts
+index 3c6672e..e735651 100755
+--- a/packages/cli/src/config/config.ts
++++ b/packages/cli/src/config/config.ts
+@@ -61,6 +61,7 @@ import {
+ import { loadSandboxConfig } from './sandboxConfig.js';
+ import { resolvePath } from '../utils/resolvePath.js';
+ import { isRecord } from '../utils/settingsUtils.js';
++import { sessionsCommand } from '../commands/sessions.js';
+ import { RESUME_LATEST } from '../utils/sessionUtils.js';
+ 
+ import { isWorkspaceTrusted } from './trustedFolders.js';
+@@ -184,6 +185,7 @@ export async function parseArguments(
+     })
+     .middleware((argv) => {
+       const commandModules = [
++        sessionsCommand,
+         mcpCommand,
+         extensionsCommand,
+         skillsCommand,
+@@ -278,6 +280,7 @@ export async function parseArguments(
+       return true;
+     });
+ 
++  yargsInstance.command(sessionsCommand);
+   yargsInstance.command(mcpCommand);
+   yargsInstance.command(extensionsCommand);
+   yargsInstance.command(skillsCommand);
+
+base-commit: a60946692b11e2f144a8fe4db46bbc4e514daa7a

@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-001",
+    "code": "invalid-utf8",
+    "line": 2,
+    "pointer": ""
+  }
+]

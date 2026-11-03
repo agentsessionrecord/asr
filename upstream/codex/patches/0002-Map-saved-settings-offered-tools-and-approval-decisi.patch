@@ -1,0 +1,560 @@
+From a66bd87f42e866a5538b5baf77dc15daaf463c19 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:32:25 -0500
+Subject: [PATCH] Map saved settings, offered tools, and approval decisions
+
+---
+ codex-rs/session-export/src/mapping/events.rs | 158 +++++++++++-
+ codex-rs/session-export/src/mapping/mod.rs    |   4 +
+ .../session-export/src/mapping/structure.rs   |  63 ++++-
+ codex-rs/session-export/src/tests.rs          | 224 ++++++++++++++++++
+ 4 files changed, 440 insertions(+), 9 deletions(-)
+
+diff --git a/codex-rs/session-export/src/mapping/events.rs b/codex-rs/session-export/src/mapping/events.rs
+index 1617a1d276..027bea31ba 100644
+--- a/codex-rs/session-export/src/mapping/events.rs
++++ b/codex-rs/session-export/src/mapping/events.rs
+@@ -91,10 +91,97 @@ impl Mapper {
+     }
+ 
+     pub(super) fn config(&mut self, base: &Value, p: &Value, turn: bool) -> anyhow::Result<()> {
++        let mut settings = json!({});
++        copy(&mut settings, "approval", p, "approval_policy");
++        copy(&mut settings, "sandbox", p, "sandbox_policy");
++        copy(&mut settings, "mode", &p["collaboration_mode"], "mode");
++        for (src, dst) in [
++            ("approval_policy", "approval"),
++            ("sandbox_policy", "sandbox"),
++        ] {
++            if p.get(src).is_some_and(Value::is_null) {
++                settings[dst] = Value::Null;
++            }
++        }
++        if p.get("collaboration_mode").is_some_and(Value::is_null)
++            || p["collaboration_mode"]
++                .get("mode")
++                .is_some_and(Value::is_null)
++        {
++            settings["mode"] = Value::Null;
++        }
++        if let Some(o) = p.as_object() {
++            for (k, v) in o {
++                self.settings[k] = v.clone();
++            }
++        }
++        if turn && p.get("approvals_reviewer").is_none() {
++            // An old snapshot cannot establish who reviews this newer turn.
++            self.settings["approvals_reviewer"] = Value::Null;
++        }
++        if settings.get("approval").is_some()
++            || settings.get("sandbox").is_some()
++            || settings.get("mode").is_some()
++            || p.get("approvals_reviewer").is_some()
++        {
++            let policy = self.settings["approval_policy"].as_str();
++            let reviewer = self.settings["approvals_reviewer"].as_str();
++            let asks = match (policy, reviewer) {
++                (Some("never"), _) => Some("never"),
++                (Some("on-request" | "untrusted" | "on-failure"), Some("user")) => {
++                    Some("sometimes")
++                }
++                _ => None,
++            };
++            if let Some(asks) = asks {
++                settings["asks"] = asks.into();
++            }
++            // A reviewer-only change must invalidate an old asks value too.
++            else if p.get("approvals_reviewer").is_some() {
++                copy(&mut settings, "approval", &self.settings, "approval_policy");
++            }
++        }
++        if p["sandbox_policy"]["type"] == "external-sandbox" {
++            settings["externalSandbox"] = json!({"source":"setting","native":p["sandbox_policy"]});
++        } else if p.get("sandbox_policy").is_some() {
++            // Stop applying a previously declared outer boundary.
++            settings["externalSandbox"] = json!({});
++        }
++        let mut configured = model_settings(p, if turn { "effort" } else { "reasoning_effort" });
++        for (src, dst) in [
++            (
++                if turn { "effort" } else { "reasoning_effort" },
++                "reasoningEffort",
++            ),
++            ("service_tier", "serviceTier"),
++        ] {
++            if p.get(src).is_some_and(Value::is_null) {
++                configured[dst] = Value::Null;
++            }
++        }
++        if configured.as_object().is_some_and(|o| !o.is_empty()) {
++            settings["modelSettings"] = configured;
++        }
+         if turn && let Some(id) = base["turnId"].as_str() {
+             self.configs.insert(id.to_owned(), p.clone());
+         }
+-        self.audit(base, "settings", p)
++        if settings.as_object().is_some_and(|o| !o.is_empty()) {
++            let mut r = record(base, "session_info");
++            r["agentSettings"] = settings;
++            meta(
++                &mut r,
++                if turn {
++                    "turnContext"
++                } else {
++                    "threadSettings"
++                },
++                p.clone(),
++            );
++            self.emit(r)?;
++        } else {
++            self.audit(base, "settings", p)?;
++        }
++        Ok(())
+     }
+ 
+     pub(super) fn usage(&mut self, base: &Value, p: &Value) -> anyhow::Result<()> {
+@@ -133,15 +220,72 @@ impl Mapper {
+     }
+ 
+     pub(super) fn auto_approval(&mut self, base: &Value, call: &Value) -> anyhow::Result<()> {
+-        self.audit(
+-            base,
+-            "automatic_approval",
+-            &json!({"call_id":call, "auto_approved":true}),
+-        )
++        let mut r = record(base, "approval");
++        if let Some(call) = call.as_str() {
++            r["callId"] = call.into();
++        } else {
++            return Ok(());
++        }
++        r["decision"] = "approved".into();
++        r["native"] = json!({"auto_approved":true});
++        // The flag states that no approval request was needed, but does not
++        // distinguish mode, policy, hook or a reused grant, nor grant lifetime.
++        self.emit(r)?;
++        Ok(())
+     }
+ 
+     pub(super) fn approval(&mut self, base: &Value, p: &Value) -> anyhow::Result<()> {
+-        self.audit(base, "approval", p)
++        let raw = &p["decision"];
++        let d = raw.as_str().or_else(|| {
++            raw.as_object()
++                .and_then(|o| o.keys().next().map(String::as_str))
++        });
++        let (decision, scope) = match d {
++            Some("approved") => ("approved", Some("once")),
++            Some("approved_for_session") => ("approved", Some("session")),
++            Some(
++                "approved_with_amendment"
++                | "approved_execpolicy_amendment"
++                | "approved_mcp_policy_amendment"
++                | "approved_with_network_policy_allow",
++            ) => ("approved", Some("always")),
++            Some("denied" | "denied_with_network_policy_deny") => ("denied", None),
++            Some("timed_out") => ("cancelled", None),
++            // Current native Abort says a person denied and paused the turn.
++            // It is not an unanswered cancellation (see spec feedback).
++            Some("abort") => ("denied", None),
++            Some("network_policy_amendment") => {
++                match raw["network_policy_amendment"]["network_policy_amendment"]["action"].as_str()
++                {
++                    Some("allow") => ("approved", Some("always")),
++                    Some("deny") => ("denied", None),
++                    _ => return self.audit(base, "tool_decision", p),
++                }
++            }
++            _ => return self.audit(base, "tool_decision", p),
++        };
++        let mut r = record(base, "approval");
++        r["decision"] = decision.into();
++        r["native"] = raw.clone();
++        copy(&mut r, "callId", p, "call_id");
++        copy(&mut r, "subject", p, "subject");
++        if r.get("callId").is_none() && r.get("subject").is_none() {
++            return self.audit(base, "tool_decision", p);
++        }
++        if let Some(scope) = scope {
++            r["scope"] = scope.into();
++        }
++        if let Some(by) = match p["source"].as_str() {
++            Some("User" | "user") if decision != "cancelled" => Some("user"),
++            Some("Config" | "config") => Some("policy"),
++            Some("AutomatedReviewer" | "automated_reviewer") => Some("classifier"),
++            _ => None,
++        } {
++            r["by"] = by.into();
++        }
++        meta(&mut r, "toolDecision", p.clone());
++        self.emit(r)?;
++        Ok(())
+     }
+ }
+ 
+diff --git a/codex-rs/session-export/src/mapping/mod.rs b/codex-rs/session-export/src/mapping/mod.rs
+index 9d0cd74d52..1250001af0 100644
+--- a/codex-rs/session-export/src/mapping/mod.rs
++++ b/codex-rs/session-export/src/mapping/mod.rs
+@@ -22,6 +22,8 @@ pub(crate) struct Mapper {
+     pub missing: BTreeSet<String>,
+     pub current_turn: Option<String>,
+     pub configs: HashMap<String, Value>,
++    pub settings: Value,
++    pub offered_tools: Vec<Value>,
+     pub copied_last: Option<String>,
+     copying: bool,
+     copy_prefix_open: bool,
+@@ -86,6 +88,8 @@ impl Mapper {
+             missing,
+             current_turn: None,
+             configs: HashMap::new(),
++            settings: json!({}),
++            offered_tools: Vec::new(),
+             copied_last: None,
+             copying: false,
+             copy_prefix_open: true,
+diff --git a/codex-rs/session-export/src/mapping/structure.rs b/codex-rs/session-export/src/mapping/structure.rs
+index a3aedb10c8..a9bbf930b4 100644
+--- a/codex-rs/session-export/src/mapping/structure.rs
++++ b/codex-rs/session-export/src/mapping/structure.rs
+@@ -4,7 +4,12 @@ impl Mapper {
+     pub fn header(&self) -> Value {
+         let p = &self.meta;
+         let mut missing = self.missing.clone();
+-        missing.insert("agent_settings".into());
++        if self.configs.is_empty()
++            || self.settings.get("approval_policy").is_none()
++            || self.settings.get("sandbox_policy").is_none()
++        {
++            missing.insert("agent_settings".into());
++        }
+         if self.index.inference_last.is_empty() {
+             missing.insert("usage".into());
+         }
+@@ -163,7 +168,61 @@ impl Mapper {
+     }
+ 
+     pub(super) fn tools(&mut self, base: &Value, definitions: &Value) -> anyhow::Result<()> {
+-        self.audit(base, "tool_definitions", definitions)
++        // Native removals are customizable prose, without a durable list of
++        // removed names. Do not leave a known-stale catalog in effect.
++        if self.index.tools_removed {
++            return self.audit(
++                base,
++                "tool_definitions_with_unresolved_removals",
++                definitions,
++            );
++        }
++        let mut tools = Vec::new();
++        collect_tools(definitions, None, &mut tools);
++        if tools.is_empty() {
++            return self.audit(base, "tool_definitions", definitions);
++        }
++        // AdditionalTools and dynamic_tools are additions, not a full inventory.
++        // Retain the known union and declare that built-in tools may be absent.
++        for tool in tools {
++            self.offered_tools
++                .retain(|old| old["name"] != tool["name"] || old["source"] != tool["source"]);
++            self.offered_tools.push(tool);
++        }
++        let mut r = record(base, "session_info");
++        r["tools"] = json!(self.offered_tools);
++        meta(&mut r, "toolDefinitions", definitions.clone());
++        self.emit(r)?;
++        Ok(())
++    }
++}
++
++fn collect_tools(definitions: &Value, namespace: Option<&str>, out: &mut Vec<Value>) {
++    for tool in definitions.as_array().into_iter().flatten() {
++        if tool["type"] == "namespace" {
++            collect_tools(&tool["tools"], tool["name"].as_str(), out);
++            continue;
++        }
++        let definition = if tool["function"].is_object() {
++            &tool["function"]
++        } else {
++            tool
++        };
++        let Some(name) = definition["name"].as_str() else {
++            continue;
++        };
++        let mut r = json!({"name":name});
++        copy(&mut r, "description", definition, "description");
++        for key in ["parameters", "input_schema", "inputSchema"] {
++            if let Some(schema) = definition.get(key) {
++                r["inputSchema"] = schema.clone();
++                break;
++            }
++        }
++        if let Some(source) = tool["namespace"].as_str().or(namespace) {
++            r["source"] = source.into();
++        }
++        out.push(r);
+     }
+ }
+ 
+diff --git a/codex-rs/session-export/src/tests.rs b/codex-rs/session-export/src/tests.rs
+index 1a35131696..732c22b079 100644
+--- a/codex-rs/session-export/src/tests.rs
++++ b/codex-rs/session-export/src/tests.rs
+@@ -136,6 +136,76 @@ fn identities_and_reasoning_follow_current_spec() {
+     assert_eq!(h["producer"]["source"], "codex-rollout");
+ }
+ #[test]
++fn turn_settings_and_session_configuration_do_not_leak_between_turns() {
++    let (_, r) = mapped(vec![
++        line(
++            "event_msg",
++            json!({"type":"thread_settings_applied","thread_settings":{"reasoning_effort":"low","service_tier":"priority"}}),
++        ),
++        line(
++            "turn_context",
++            json!({"turn_id":"a","model":"requested","effort":"high","approval_policy":"on-request","approvals_reviewer":"user","sandbox_policy":{"type":"external-sandbox","network_access":"enabled"},"collaboration_mode":{"mode":"plan"}}),
++        ),
++        line(
++            "token_usage_record",
++            json!({"turn_id":"a","response_id":"resp-a","usage":{"input_tokens":20,"cached_input_tokens":10,"cache_write_input_tokens":0,"output_tokens":5,"reasoning_output_tokens":2}}),
++        ),
++        line(
++            "turn_context",
++            json!({"turn_id":"b","model":"other","approval_policy":{"granular":{"rules":true}},"sandbox_policy":{"type":"read-only"}}),
++        ),
++        line(
++            "token_usage_record",
++            json!({"turn_id":"b","response_id":"resp-b","usage":{"input_tokens":0}}),
++        ),
++    ]);
++    let settings = rows(&r, "session_info");
++    assert_eq!(
++        settings[0]["agentSettings"]["modelSettings"]["reasoningEffort"],
++        "low"
++    );
++    assert_eq!(settings[1]["agentSettings"]["asks"], "sometimes");
++    assert_eq!(
++        settings[1]["agentSettings"]["externalSandbox"]["source"],
++        "setting"
++    );
++    assert!(
++        settings[1]["agentSettings"]["externalSandbox"]
++            .get("kind")
++            .is_none()
++    );
++    assert!(settings[2]["agentSettings"].get("asks").is_none());
++    assert_eq!(settings[2]["agentSettings"]["externalSandbox"], json!({}));
++    let inferences = rows(&r, "inference");
++    assert_eq!(inferences[0]["id"], "resp-a");
++    assert_eq!(inferences[0]["settings"], json!({"reasoningEffort":"high"}));
++    assert_eq!(inferences[0]["model"], json!({"requested":"requested"}));
++    assert_eq!(inferences[0]["usage"]["inputTokens"], 20);
++    assert_eq!(inferences[0]["usage"]["cacheWriteTokens"], 0);
++    assert!(inferences[1].get("settings").is_none());
++    assert_eq!(inferences[1]["usage"], json!({"inputTokens":0}));
++}
++#[test]
++fn asks_never_and_automatic_review_use_saved_facts() {
++    let (_, r) = mapped(vec![
++        line(
++            "turn_context",
++            json!({"approval_policy":"never","sandbox_policy":{"type":"danger-full-access"}}),
++        ),
++        line(
++            "turn_context",
++            json!({"approval_policy":"on-request","approvals_reviewer":"auto_review"}),
++        ),
++        line(
++            "turn_context",
++            json!({"approval_policy":"untrusted","approvals_reviewer":"user"}),
++        ),
++    ]);
++    assert_eq!(r[0]["agentSettings"]["asks"], "never");
++    assert!(r[1]["agentSettings"].get("asks").is_none());
++    assert_eq!(r[2]["agentSettings"]["asks"], "sometimes");
++}
++#[test]
+ fn tool_updates_fold_once_at_last_source_position_in_either_order() {
+     for order in [
+         vec![call("c"), output("c", "model"), completion("c")],
+@@ -170,6 +240,81 @@ fn duplicate_calls_and_outputs_keep_ambiguous_native_call_id() {
+     assert_ne!(r[0]["id"], r[1]["id"]);
+ }
+ #[test]
++fn decisions_have_their_own_order_and_are_not_inferred_from_success() {
++    let (h, r) = mapped(vec![
++        call("c"),
++        line(
++            "event_msg",
++            json!({"type":"tool_decision","call_id":"c","decision":"approved_for_session","source":"User"}),
++        ),
++        line(
++            "event_msg",
++            json!({"type":"tool_decision","call_id":"c","decision":"denied","source":"Config","subject":"sandbox escape"}),
++        ),
++        completion("c"),
++        line(
++            "event_msg",
++            json!({"type":"tool_decision","call_id":"c","decision":"timed_out","source":"AutomatedReviewer"}),
++        ),
++        line(
++            "event_msg",
++            json!({"type":"tool_decision","call_id":"c","decision":"abort","source":"User"}),
++        ),
++    ]);
++    let a = rows(&r, "approval");
++    assert_eq!(a.len(), 4);
++    assert_eq!(a[0]["scope"], "session");
++    assert_eq!(a[0]["by"], "user");
++    assert_eq!(a[1]["by"], "policy");
++    assert_eq!(a[2]["decision"], "cancelled");
++    assert!(a[2].get("scope").is_none());
++    assert_eq!(a[3]["decision"], "denied");
++    assert!(
++        h["missing"]
++            .as_array()
++            .unwrap()
++            .contains(&json!("approvals"))
++    );
++}
++#[test]
++fn opaque_and_structured_amendments_preserve_lifetimes() {
++    let (_, r) = mapped(vec![
++        line(
++            "codex.tool_decision",
++            json!({"call_id":"c","decision":{"approved_execpolicy_amendment":{"proposed_execpolicy_amendment":["ls"]}},"source":"User"}),
++        ),
++        line(
++            "codex.tool_decision",
++            json!({"call_id":"c","decision":"approved_mcp_policy_amendment","source":"User"}),
++        ),
++    ]);
++    assert_eq!(r[0]["scope"], "always");
++    assert_eq!(r[1]["scope"], "always");
++}
++#[test]
++fn partial_tool_definitions_accumulate_without_inventing_builtin_tools() {
++    let (h, r) = mapped(vec![
++        line(
++            "session_meta",
++            json!({"id":THREAD,"base_instructions":{"text":"synthetic instructions"},"dynamic_tools":[{"name":"one","description":"first","input_schema":{"type":"object"}}]}),
++        ),
++        line(
++            "response_item",
++            json!({"type":"additional_tools","tools":[{"type":"namespace","name":"example","tools":[{"type":"function","name":"two","description":"second","parameters":{"type":"object"}}]}]}),
++        ),
++    ]);
++    assert_eq!(r[0]["role"], "system");
++    assert_eq!(r[0]["origin"], "instructions");
++    assert_eq!(r[2]["tools"].as_array().unwrap().len(), 2);
++    assert_eq!(r[2]["tools"][1]["source"], "example");
++    assert!(
++        h["missing"]
++            .as_array()
++            .unwrap()
++            .contains(&json!("tool_definitions"))
++    );
++}
++#[test]
+ fn patches_preserve_file_endpoints_and_require_recorded_application() {
+     let (_, r) = mapped(vec![
+         line(
+@@ -228,6 +373,54 @@ fn unknown_turn_model_keeps_the_identified_inference() {
+     assert!(h["missing"].as_array().unwrap().contains(&json!("model")));
+ }
+ 
++#[test]
++fn configured_nulls_clear_facts_but_are_not_inference_settings() {
++    let (_, r) = mapped(vec![
++        line(
++            "turn_context",
++            json!({"turn_id":"a","model":"alias","effort":"high","approval_policy":"never"}),
++        ),
++        line(
++            "turn_context",
++            json!({"turn_id":"b","model":"alias","effort":null,"service_tier":null,"approval_policy":null}),
++        ),
++        line(
++            "token_usage_record",
++            json!({"turn_id":"b","response_id":"response","usage":{"input_tokens":0}}),
++        ),
++    ]);
++    assert_eq!(
++        rows(&r, "session_info")[1]["agentSettings"]["modelSettings"],
++        json!({"reasoningEffort":null,"serviceTier":null})
++    );
++    assert!(
++        rows(&r, "session_info")[1]["agentSettings"]
++            .get("approval")
++            .is_some()
++    );
++    assert!(rows(&r, "inference")[0].get("settings").is_none());
++}
++
++#[test]
++fn folded_results_keep_completion_time_and_snapshot_approvals_adjacent() {
++    let mut early = completion("c");
++    early["payload"]["item"]["type"] = "FileChange".into();
++    early["payload"]["item"]["auto_approved"] = true.into();
++    early["timestamp"] = "2026-10-27T12:00:01Z".into();
++    let notice = line(
++        "response_item",
++        json!({"type":"message","role":"user","content":"Notice"}),
++    );
++    let mut final_output = output("c", "done");
++    final_output["timestamp"] = "2026-10-27T12:00:03Z".into();
++    let (_, r) = mapped(vec![call("c"), early, notice, final_output]);
++    let result = r.iter().position(|r| r["type"] == "tool_result").unwrap();
++    assert_eq!(r[result]["ts"], "2026-10-27T12:00:03Z");
++    assert_eq!(r[result - 1]["type"], "approval");
++    assert!(r[result - 1].get("ts").is_none());
++    assert_eq!(r[result - 2]["type"], "message");
++}
++
+ #[test]
+ fn wide_native_values_are_strings_and_unsafe_core_counts_are_omitted() {
+     let wide: Value = serde_json::from_str(r#"{"type":"function_call","call_id":"wide","name":"read","arguments":"{\"counter\":9007199254740993}"}"#).unwrap();
+@@ -504,6 +697,22 @@ fn a_shrinking_source_ends_with_one_gap() {
+     assert!(source.next().unwrap().is_none());
+ }
+ 
++#[test]
++fn prior_reviewer_does_not_fill_an_older_style_turn_snapshot() {
++    let (_, r) = mapped(vec![
++        line(
++            "turn_context",
++            json!({"turn_id":"a","approval_policy":"on-request","approvals_reviewer":"user"}),
++        ),
++        line(
++            "turn_context",
++            json!({"turn_id":"b","approval_policy":"on-request"}),
++        ),
++    ]);
++    assert_eq!(r[0]["agentSettings"]["asks"], "sometimes");
++    assert!(r[1]["agentSettings"].get("asks").is_none());
++}
++
+ #[test]
+ fn credential_fields_are_removed_from_encoded_arguments_and_copies() {
+     let (h, r) = mapped(vec![
+@@ -580,3 +789,18 @@ fn aliases_are_resolved_and_unavailable_sources_are_reported() {
+     assert_eq!(inventory.segments[0].thread_id, THREAD);
+     assert_eq!(inventory.unavailable[0]["code"], "unavailable-alias");
+ }
++
++#[test]
++fn unresolved_native_tool_removals_do_not_leave_stale_offered_tools() {
++    let (_, records) = mapped(vec![
++        line(
++            "response_item",
++            json!({"type":"additional_tools","tools":[{"name":"one"}]}),
++        ),
++        line(
++            "response_item",
++            json!({"type":"message","role":"developer","content":[{"type":"input_text","text":"custom removal notice"}],"internal_chat_message_metadata_passthrough":{"content_item_kinds":["tools.removed_definition"]}}),
++        ),
++    ]);
++    assert!(!records.iter().any(|r| r.get("tools").is_some()));
++}
+
+base-commit: ff2346f33f851bd4e90c8e42ae60abcc7e7f293b
+prerequisite-patch-id: 2220e2a5515375ff44cc39a18d985dbe59a53dab

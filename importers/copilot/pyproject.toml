@@ -1,0 +1,17 @@
+[project]
+name = "asr-copilot"
+version = "0.1.0"
+description = "Import GitHub streamed Copilot API usage bodies"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["asr-importer-core"]
+
+[project.scripts]
+asr-import-copilot = "asr_copilot.__main__:main"
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+asr-importer-core = { workspace = true }

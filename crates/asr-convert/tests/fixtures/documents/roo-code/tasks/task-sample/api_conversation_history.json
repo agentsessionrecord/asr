@@ -1,0 +1,39 @@
+[
+  {
+    "id": "prompt",
+    "role": "user",
+    "content": "Read it."
+  },
+  {
+    "id": "request",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "tool_use",
+        "id": "read-1",
+        "name": "read_file",
+        "input": {
+          "path": "src/parser.py",
+          "exact": 9007199254740993
+        }
+      }
+    ]
+  },
+  {
+    "id": "result",
+    "role": "user",
+    "content": [
+      {
+        "type": "tool_result",
+        "tool_use_id": "read-1",
+        "is_error": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "  ready\n"
+          }
+        ]
+      }
+    ]
+  }
+]

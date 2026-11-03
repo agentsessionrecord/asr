@@ -1,0 +1,8 @@
+[
+  {
+    "severity": "error",
+    "code": "schema.const",
+    "line": 1,
+    "pointer": "/$schema"
+  }
+]

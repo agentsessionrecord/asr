@@ -1,0 +1,5 @@
+{"type":"session","id":"synthetic-openclaw","cwd":"/work/app"}
+{"type":"message","id":"user","message":{"role":"user","content":"display prompt"}}
+{"type":"custom","id":"prompt","customType":"openclaw.system-prompt","data":{"renderedPrefix":"Synthetic instructions.","tools":[{"name":"read","description":"Read a file","parameters":{"type":"object"}}]}}
+{"type":"message","id":"assistant","message":{"role":"assistant","responseId":"response-1","model":"requested","responseModel":"served","content":[{"type":"text","text":"answer"},{"type":"toolCall","id":"call-1","name":"read","arguments":{"path":"hello.txt"}}],"usage":{"input":10,"cacheRead":2,"cacheWrite":3,"output":0}}}
+{"type":"message","id":"result","message":{"role":"toolResult","toolCallId":"call-1","isError":false,"content":[{"type":"text","text":"hello"}]}}

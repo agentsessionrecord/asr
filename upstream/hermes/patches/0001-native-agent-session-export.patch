@@ -1,0 +1,718 @@
+From 06146ba228f7c9a757e78f72c58625a63eeb8d5c Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:28 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ hermes_cli/session_export_asr.py             | 405 +++++++++++++++++++
+ hermes_cli/sessions_cmd.py                   |   9 +
+ hermes_cli/subcommands/sessions.py           |  13 +-
+ tests/hermes_cli/fixtures/agent_session.json |  66 +++
+ tests/hermes_cli/test_session_export_asr.py  | 146 +++++++
+ 5 files changed, 637 insertions(+), 2 deletions(-)
+ create mode 100644 hermes_cli/session_export_asr.py
+ create mode 100644 tests/hermes_cli/fixtures/agent_session.json
+ create mode 100644 tests/hermes_cli/test_session_export_asr.py
+
+diff --git a/hermes_cli/session_export_asr.py b/hermes_cli/session_export_asr.py
+new file mode 100644
+index 00000000..60bce074
+--- /dev/null
++++ b/hermes_cli/session_export_asr.py
+@@ -0,0 +1,405 @@
++"""Native Agent Session Record export of durable session rows."""
++
++from __future__ import annotations
++
++import hashlib
++import json
++import math
++from datetime import UTC, datetime
++from decimal import Decimal
++from pathlib import Path
++import sys
++from urllib.parse import quote
++
++VENDOR = "ai.nousresearch.hermes"
++MISSING = [
++    "approvals",
++    "agent_settings",
++    "tools",
++    "usage",
++    "model",
++    "copies",
++    "subagents",
++    "file_changes",
++    "commits",
++    "exit_codes",
++    "inference_settings",
++    "native_metadata",
++]
++SECRET_KEYS = frozenset(
++    {
++        "password",
++        "api_key",
++        "apikey",
++        "access_token",
++        "refresh_token",
++        "authorization",
++        "secret",
++    }
++)
++
++
++def _asr_reasoning(text: str, summary: bool = False) -> dict[str, object]:
++    if not text:
++        return {"type": "reasoning", "visibility": "omitted"}
++    if summary:
++        return {"type": "reasoning", "visibility": "summary", "summary": [text]}
++    return {"type": "reasoning", "text": text}
++
++
++def _timestamp(value):
++    if value is None:
++        return None
++    if isinstance(value, str):
++        value = datetime.fromisoformat(value).timestamp()
++    if not math.isfinite(value):
++        raise ValueError("Invalid source timestamp")
++    return datetime.fromtimestamp(value, UTC).isoformat().replace("+00:00", "Z")
++
++
++def _clean(value):
++    from agent.redact import redact_sensitive_text
++
++    if isinstance(value, str):
++        cleaned = redact_sensitive_text(value, force=True, redact_url_credentials=True)
++        return "[redacted]" if cleaned != value else value
++    if isinstance(value, bool):
++        return value
++    if isinstance(value, int) and abs(value) > 2**53 - 1:
++        return str(value)
++    if isinstance(value, (float, Decimal)):
++        return str(value) if abs(value) > 2**53 - 1 else float(value)
++    if isinstance(value, list):
++        return [_clean(item) for item in value]
++    if isinstance(value, dict):
++        return {
++            key: "[redacted]" if key.lower() in SECRET_KEYS else _clean(item)
++            for key, item in value.items()
++            if key not in ("signature", "thoughtSignature")
++        }
++    return value
++
++
++def _parts(content):
++    if content is None:
++        return []
++    if isinstance(content, str):
++        return [{"type": "text", "text": content}]
++    if not isinstance(content, list):
++        raise ValueError("Unsupported native content")
++    parts = []
++    for part in content:
++        if not isinstance(part, dict):
++            raise ValueError("Invalid native content part")
++        kind = part.get("type")
++        if kind in ("text", "resource", "resource_link"):
++            parts.append(part)
++        elif kind == "image_url":
++            url = part["image_url"]["url"]
++            if url.startswith("data:") and ";base64," in url:
++                mime, data = url[5:].split(";base64,", 1)
++                parts.append({"type": "image", "mimeType": mime, "data": data})
++            else:
++                raise ValueError("Image bytes are not stored")
++        else:
++            raise ValueError("Unsupported native content part")
++    return parts
++
++
++def _redacted(before, after):
++    if isinstance(before, str):
++        return before != after
++    if isinstance(before, list):
++        return any(_redacted(a, b) for a, b in zip(before, after))
++    if isinstance(before, dict):
++        return any(
++            key not in after
++            or (key.lower() in SECRET_KEYS and value != after[key])
++            or _redacted(value, after[key])
++            for key, value in before.items()
++        )
++    return False
++
++
++def _decode_content(content):
++    if isinstance(content, str) and content.startswith("\x00json:"):
++        return json.loads(content[6:], parse_float=Decimal)
++    return content
++
++
++def _row_records(row):
++    content = _parts(
++        _decode_content(
++            row.get("api_content")
++            if row.get("api_content") is not None
++            else row.get("content")
++        )
++    )
++    role = row["role"]
++    if role == "tool":
++        result = {"type": "tool_result", "status": "unknown", "content": content}
++        if row.get("tool_call_id"):
++            result["callId"] = str(row["tool_call_id"])
++        return [result]
++    if role not in ("user", "assistant", "system", "developer"):
++        raise ValueError("Unsupported native role")
++    message = {"type": "message", "role": role, "content": content}
++    if role == "assistant":
++        message["author"] = "model"
++        reasoning = row.get("reasoning_content")
++        if reasoning is None:
++            reasoning = row.get("reasoning")
++        if reasoning is not None:
++            content.insert(0, _asr_reasoning(reasoning, False))
++    if role in ("system", "developer"):
++        message["origin"] = "instructions"
++    if row.get("_compressed_summary"):
++        message.update(author="harness", origin="compaction")
++    records = [message] if content or not row.get("tool_calls") else []
++    calls = row.get("tool_calls") or []
++    if isinstance(calls, str):
++        calls = json.loads(calls, parse_float=Decimal)
++    for index, call in enumerate(calls):
++        function = call["function"]
++        record = {
++            "type": "tool_call",
++            "callId": str(call.get("id") or f"row-{row['id']}-call-{index}"),
++        }
++        if function.get("name") is not None:
++            record["name"] = function["name"]
++        if "arguments" in function:
++            args = function["arguments"]
++            if isinstance(args, str):
++                try:
++                    record["input"] = json.loads(args, parse_float=Decimal)
++                except ValueError:
++                    record["inputText"] = args
++            else:
++                record["input"] = args
++        records.append(record)
++    if row.get("_compressed_summary"):
++        records.append(
++            {
++                "type": "gap",
++                "reason": "not_retained",
++                "detail": "The summary does not establish that all earlier history survives.",
++            }
++        )
++    return records
++
++
++def render_agent_session(session, messages, *, copied_uids=(), parent_kind=None):
++    sid = session["id"]
++    if not isinstance(sid, str) or not sid:
++        raise ValueError("Missing native session ID")
++    header = {
++        "type": "session",
++        "id": "header",
++        "formatVersion": "0.1",
++        "agent": {"name": "hermes"},
++        "sessionId": sid,
++        "producer": {
++            "name": "hermes-session-export",
++            "version": "1",
++            "method": "native",
++            "source": "hermes-sqlite",
++        },
++        "missing": list(MISSING),
++    }
++    for source, target in (("started_at", "startedAt"), ("ended_at", "endedAt")):
++        if session.get(source) is not None:
++            header[target] = _timestamp(session[source])
++    if session.get("cwd") and Path(session["cwd"]).is_absolute():
++        header["cwd"] = session["cwd"]
++    parent = session.get("parent_session_id")
++    if parent and parent_kind:
++        header["parent"] = {
++            "session": "hermes:" + quote(parent, safe="-._~"),
++            "kind": parent_kind,
++        }
++    last_results = {
++        str(row["tool_call_id"]): pos
++        for pos, row in enumerate(messages)
++        if row.get("role") == "tool" and row.get("tool_call_id")
++    }
++    records = [header]
++    for pos, row in enumerate(messages):
++        try:
++            items = _row_records(row)
++        except (ValueError, TypeError, KeyError):
++            items = [
++                {
++                    "type": "gap",
++                    "reason": "unparseable",
++                    "count": 1,
++                    "detail": "A native message row could not be mapped.",
++                }
++            ]
++            header["missing"].append("corrupt_or_unsupported_content")
++        if (
++            row.get("role") == "tool"
++            and row.get("tool_call_id")
++            and last_results[str(row["tool_call_id"])] != pos
++        ):
++            items = [
++                {
++                    "type": "gap",
++                    "reason": "not_retained",
++                    "detail": "An intermediate tool result was folded into its last stored result.",
++                }
++            ]
++            header["missing"].append("tool_result_updates")
++        for index, record in enumerate(items):
++            native_id = str(row["id"])
++            record["id"] = native_id if len(items) == 1 else f"{native_id}:{index}"
++            try:
++                if row.get("timestamp") is not None:
++                    record["ts"] = _timestamp(row["timestamp"])
++            except (ValueError, TypeError, OverflowError):
++                header["missing"].append("timestamps")
++            if row.get("message_uid") in copied_uids and parent:
++                record["copiedFrom"] = {
++                    "session": "hermes:" + quote(parent, safe="-._~")
++                }
++            record["_meta"] = {
++                VENDOR: {
++                    "nativeRowId": native_id,
++                    "active": row.get("active"),
++                    "compacted": row.get("compacted"),
++                    "effectDisposition": row.get("effect_disposition"),
++                }
++            }
++            records.append(record)
++    snapshot = {
++        "type": "session_info",
++        "id": "snapshot",
++        "missing": ["agent_settings"],
++        "_meta": {VENDOR: {"requestedModel": session.get("model")}},
++    }
++    if session.get("title") is not None:
++        snapshot["title"] = session["title"]
++    records.append(snapshot)
++    cleaned = []
++    for record in records:
++        result = _clean(record)
++        if _redacted(record, result):
++            result["truncated"] = True
++            header["missing"].append("secrets_or_unsafe_numbers")
++        cleaned.append(result)
++    cleaned[0]["missing"] = sorted(set(header["missing"]))
++    return "".join(
++        json.dumps(record, ensure_ascii=False, allow_nan=False) + "\n"
++        for record in cleaned
++    )
++
++
++def _snapshot(db, sid):
++    def read(conn):
++        conn.execute("BEGIN")
++        try:
++            session = conn.execute(
++                "SELECT * FROM sessions WHERE id = ?", (sid,)
++            ).fetchone()
++            if session is None:
++                raise ValueError("Selected session is unavailable")
++            session = dict(session)
++            messages = [
++                dict(row)
++                for row in conn.execute(
++                    "SELECT * FROM messages WHERE session_id = ? ORDER BY id", (sid,)
++                )
++            ]
++            parent = session.get("parent_session_id")
++            copied = {
++                row[0]
++                for row in conn.execute(
++                    "SELECT message_uid FROM messages WHERE session_id = ? AND message_uid IS NOT NULL",
++                    (parent,),
++                )
++            }
++            parent_row = conn.execute(
++                "SELECT end_reason FROM sessions WHERE id = ?", (parent,)
++            ).fetchone()
++            config = json.loads(session.get("model_config") or "{}")
++            kind = (
++                "fork"
++                if config.get("_branched_from") == parent and parent
++                else "subagent"
++                if config.get("_delegate_from") == parent and parent
++                else "continues"
++                if parent_row and parent_row[0] == "compression"
++                else None
++            )
++            return render_agent_session(
++                session, messages, copied_uids=copied, parent_kind=kind
++            )
++        finally:
++            conn.execute("ROLLBACK")
++
++    return db._read_retrying_ioerr(read)
++
++
++def run_agent_session_export(db, args):
++    try:
++        output = getattr(args, "asr_output", None) or args.output
++        selected = list(getattr(args, "agent_sessions", None) or [])
++        if args.session_id:
++            selected.append(args.session_id)
++        if (
++            args.only
++            or args.upload
++            or args.delete_after_verified
++            or args.lineage != "single"
++        ):
++            raise ValueError(
++                "agent-session does not support view, upload, deletion or logical-lineage options"
++            )
++        if not output and len(selected) != 1:
++            raise ValueError("stdout requires exactly one --session or --session-id")
++        ids = []
++        if selected:
++            for sid in selected:
++                resolved = db.resolve_session_id(sid)
++                if not resolved:
++                    raise ValueError("Selected session is unavailable or ambiguous")
++                if resolved not in ids:
++                    ids.append(resolved)
++        else:
++            ids = [
++                row[0]
++                for row in db._read_all(
++                    "SELECT id FROM sessions ORDER BY started_at, id"
++                )
++            ]
++        if getattr(args, "since", None):
++            since = datetime.fromisoformat(args.since)
++            if since.tzinfo is None:
++                raise ValueError("--since requires a timezone")
++            changed = {
++                row[0]
++                for row in db._read_all(
++                    "SELECT s.id FROM sessions s WHERE MAX(s.started_at, COALESCE(s.last_activity_at, s.started_at), "
++                    "COALESCE(s.ended_at, s.started_at), COALESCE((SELECT MAX(timestamp) FROM messages m WHERE m.session_id=s.id), s.started_at)) >= ?",
++                    (since.timestamp(),),
++                )
++            }
++            ids = [sid for sid in ids if sid in changed]
++        db.assert_exports_safe(ids)
++        streams = [(sid, _snapshot(db, sid)) for sid in ids]
++        if output:
++            directory = Path(output).expanduser()
++            directory.mkdir(parents=True, exist_ok=True)
++            for sid, stream in streams:
++                filename = hashlib.sha256(sid.encode()).hexdigest() + ".jsonl"
++                (directory / filename).write_text(
++                    stream, encoding="utf-8", newline="\n"
++                )
++            print(f"Exported {len(streams)} session(s).", file=sys.stderr)
++        elif len(streams) == 1:
++            sys.stdout.write(streams[0][1])
++        else:
++            raise ValueError("No selected session changed since --since")
++        return 0
++    except (ValueError, OSError) as exc:
++        print(f"ASR export failed: {exc}", file=sys.stderr)
++        return 1
+diff --git a/hermes_cli/sessions_cmd.py b/hermes_cli/sessions_cmd.py
+index ae92efd1..de54b9ff 100644
+--- a/hermes_cli/sessions_cmd.py
++++ b/hermes_cli/sessions_cmd.py
+@@ -367,6 +367,12 @@ def _cmd_list(db, args):
+ # -- export -----------------------------------------------------------------
+ 
+ def _cmd_export(db, args):
++    if args.format == "agent-session":
++        if _any_filter_args(args) or args.dry_run:
++            print("agent-session uses --session and --since selectors.", file=sys.stderr)
++            return 1
++        from hermes_cli.session_export_asr import run_agent_session_export
++        return run_agent_session_export(db, args)
+     from hermes_cli.session_filters import build_prune_filters
+     filters = None
+     if _any_filter_args(args):
+@@ -1390,6 +1396,9 @@ _DB_HANDLERS = {
+ 
+ def _print_empty_store(action: str, args) -> None:
+     """A profile that never created state.db: report empty instead of opening a writer that creates it."""
++    if action == "export" and args.format == "agent-session":
++        print("ASR export failed: session history is unavailable.", file=sys.stderr)
++        return 1
+     if action == "stats":
+         print("Total sessions: 0\nTotal messages: 0")
+     elif action == "pinned":
+diff --git a/hermes_cli/subcommands/sessions.py b/hermes_cli/subcommands/sessions.py
+index e4180e0c..cbd1a4c9 100644
+--- a/hermes_cli/subcommands/sessions.py
++++ b/hermes_cli/subcommands/sessions.py
+@@ -12,6 +12,15 @@ def _flag(parser, *names, help, **kw):
+     parser.add_argument(*names, action="store_true", help=help, **kw)
+ 
+ 
++def _add_agent_session_export_args(parser):
++    parser.add_argument("--session-id", help="Session ID or unique prefix to export")
++    parser.add_argument("--session", dest="agent_sessions", action="append",
++        help="agent-session only: select a session, repeat for several")
++    parser.add_argument("--output", dest="asr_output",
++        help="agent-session only: directory for one JSONL file per session")
++    parser.add_argument("--since", help="agent-session only: changed since an RFC 3339 timestamp")
++
++
+ def cmd_sessions_lazy(args, **kwargs):
+     """``hermes sessions`` handler; sessions_cmd imports only when the subcommand runs."""
+     from hermes_cli.sessions_cmd import cmd_sessions
+@@ -104,7 +113,7 @@ def build_sessions_parser(subparsers, *, cmd_sessions: Callable) -> None:
+             "to write a default-named file into; - for stdout (jsonl/trace only; jsonl requires OUTPUT). "
+             "md/qmd: a directory, one file per session (default: <hermes home>/session-exports)")
+     sessions_export.add_argument(
+-        "--format", choices=["jsonl", "md", "qmd", "html", "trace"], default="jsonl",
++        "--format", choices=["jsonl", "md", "qmd", "html", "trace", "agent-session"], default="jsonl",
+         help="Export format (default: jsonl). 'trace' emits Claude Code JSONL "
+             "for the Hugging Face Agent Trace Viewer")
+     _flag(sessions_export, "--upload",
+@@ -117,7 +126,7 @@ def build_sessions_parser(subparsers, *, cmd_sessions: Callable) -> None:
+     sessions_export.add_argument("--only", choices=["user-prompts"],
+         help="Export only a filtered view (user-prompts: one prompt record "
+             "per line for jsonl, headed sections for md)")
+-    sessions_export.add_argument("--session-id", help="Session ID or unique prefix to export")
++    _add_agent_session_export_args(sessions_export)
+     _add_session_filter_args(
+         sessions_export, "Only export sessions older than AGE (duration like '5h'/'2d', "
+         "bare number of days, or an ISO timestamp). Filtered exports include pinned and archived "
+diff --git a/tests/hermes_cli/fixtures/agent_session.json b/tests/hermes_cli/fixtures/agent_session.json
+new file mode 100644
+index 00000000..c8c6c524
+--- /dev/null
++++ b/tests/hermes_cli/fixtures/agent_session.json
+@@ -0,0 +1,66 @@
++{
++  "session": {
++    "id": "synthetic-hermes-1",
++    "started_at": 1793534400,
++    "cwd": "/work/example",
++    "title": "Read the fixture",
++    "model": "example-model"
++  },
++  "messages": [
++    {
++      "id": 1,
++      "role": "user",
++      "timestamp": 1793534400,
++      "content": "Read fixture.txt.\n",
++      "active": 1
++    },
++    {
++      "id": 2,
++      "role": "assistant",
++      "timestamp": 1793534399,
++      "content": "Inspecting.\n",
++      "tool_calls": [
++        {
++          "id": "read-1",
++          "function": {
++            "name": "read_file",
++            "arguments": "{\"path\":\"fixture.txt\",\"nativeCounter\":9007199254740993}"
++          }
++        }
++      ],
++      "active": 1
++    },
++    {
++      "id": 3,
++      "role": "tool",
++      "timestamp": 1793534401,
++      "tool_call_id": "read-1",
++      "content": "loading",
++      "active": 1
++    },
++    {
++      "id": 4,
++      "role": "user",
++      "timestamp": 1793534402,
++      "content": "Keep the newline.\n",
++      "active": 1
++    },
++    {
++      "id": 5,
++      "role": "tool",
++      "timestamp": 1793534403,
++      "tool_call_id": "read-1",
++      "content": "display form",
++      "api_content": "sample\n",
++      "active": 1
++    },
++    {
++      "id": 6,
++      "role": "assistant",
++      "timestamp": 1793534404,
++      "reasoning_content": "The fixture is readable.",
++      "content": "The fixture contains sample.\n",
++      "active": 1
++    }
++  ]
++}
+diff --git a/tests/hermes_cli/test_session_export_asr.py b/tests/hermes_cli/test_session_export_asr.py
+new file mode 100644
+index 00000000..92f66461
+--- /dev/null
++++ b/tests/hermes_cli/test_session_export_asr.py
+@@ -0,0 +1,146 @@
++"""Native ASR export contracts for durable history and the real session command."""
++
++import argparse
++import hashlib
++import json
++from pathlib import Path
++
++from hermes_cli.session_export_asr import render_agent_session
++from hermes_cli.sessions_cmd import cmd_sessions
++from hermes_cli.subcommands.sessions import build_sessions_parser
++from hermes_state import SessionDB
++
++
++def rows(output):
++    assert output.endswith("\n")
++    return [json.loads(line) for line in output.splitlines()]
++
++
++def parse(*argv):
++    parser = argparse.ArgumentParser()
++    build_sessions_parser(parser.add_subparsers(), cmd_sessions=cmd_sessions)
++    return parser.parse_args(["sessions", "export", "--format", "agent-session", *argv])
++
++
++def test_synthetic_mapping_fixture():
++    fixture = json.loads((Path(__file__).parent / "fixtures" / "agent_session.json").read_text())
++    result = rows(render_agent_session(fixture["session"], fixture["messages"]))
++    assert result[0]["sessionId"] == fixture["session"]["id"]
++    assert result[3]["input"]["nativeCounter"] == "9007199254740993"
++    assert result[6]["content"][0]["text"] == "sample\n"
++
++
++def test_source_order_final_result_and_unknown_facts():
++    session = {"id": "synthetic-hermes", "started_at": 0, "model": "requested-alias"}
++    messages = [
++        {"id": 9007199254740993, "role": "user", "timestamp": 10, "content": "read\n"},
++        {"id": 2, "role": "assistant", "timestamp": 9, "tool_calls": [
++            {"id": "read-1", "function": {"name": "read_file", "arguments": '{"n":9007199254740993,"decimal":9007199254740993.1,"small":0.25}'}}]},
++        {"id": 3, "role": "tool", "tool_call_id": "read-1", "content": "intermediate"},
++        {"id": 4, "role": "user", "content": "a notice"},
++        {"id": 5, "role": "tool", "tool_call_id": "read-1", "content": "display",
++         "api_content": "model-facing\n", "effect_disposition": "none"},
++    ]
++    output = render_agent_session(session, messages)
++    result = rows(output)
++    assert result[1]["id"] == "9007199254740993"
++    assert result[1]["ts"] > result[2]["ts"]
++    assert result[1]["content"][0]["text"] == "read\n"
++    assert "author" not in result[1]
++    assert result[2]["input"]["n"] == "9007199254740993"
++    assert result[2]["input"]["decimal"] == "9007199254740993.1"
++    assert result[2]["input"]["small"] == 0.25
++    assert "truncated" not in result[2]
++    assert result[3]["type"] == "gap"
++    assert result[4]["content"][0]["text"] == "a notice"
++    assert result[5]["status"] == "unknown"
++    assert result[5]["content"][0]["text"] == "model-facing\n"
++    assert "endedAt" not in result[0]
++    assert not any(row["type"] in ("approval", "inference") for row in result)
++    assert render_agent_session(session, messages) == output
++
++
++def test_redaction_corruption_compaction_and_copies():
++    session = {"id": "child", "parent_session_id": "parent:with#reserved"}
++    messages = [
++        {"id": 1, "role": "assistant", "content": "password=synthetic-secret"},
++        {"id": 2, "role": "assistant", "tool_calls": "{broken"},
++        {"id": 3, "role": "user", "content": "summary", "_compressed_summary": True,
++         "message_uid": "copied-uid"},
++    ]
++    output = render_agent_session(session, messages, copied_uids={"copied-uid"}, parent_kind="fork")
++    result = rows(output)
++    assert "synthetic-secret" not in output
++    assert result[1]["truncated"]
++    assert result[2]["reason"] == "unparseable"
++    assert result[3]["origin"] == "compaction"
++    assert result[3]["author"] == "harness"
++    assert result[4]["reason"] == "not_retained"
++    assert result[3]["copiedFrom"]["session"] == "hermes:parent%3Awith%23reserved"
++    assert "secrets_or_unsafe_numbers" in result[0]["missing"]
++
++
++def test_real_store_command_directory_and_read_only(tmp_path, monkeypatch, capsys):
++    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
++    path = tmp_path / "state.db"
++    with SessionDB(db_path=path) as db:
++        db.create_session("../synthetic-session", "cli", model="example-model")
++        db.append_message("../synthetic-session", "user", "hello\n", timestamp=10)
++        db.append_message("../synthetic-session", "assistant", "ready\n", timestamp=9)
++        db.create_session("other", "cli")
++    before = hashlib.sha256(path.read_bytes()).digest()
++    output_dir = tmp_path / "exports"
++    assert cmd_sessions(parse("--session", "../synthetic-session", "--output", str(output_dir))) == 0
++    files = list(output_dir.glob("*.jsonl"))
++    assert len(files) == 1
++    assert len(files[0].stem) == 64
++    result = rows(files[0].read_text())
++    assert result[0]["sessionId"] == "../synthetic-session"
++    assert result[1]["content"][0]["text"] == "hello\n"
++    assert hashlib.sha256(path.read_bytes()).digest() == before
++    assert capsys.readouterr().out == ""
++    assert cmd_sessions(parse("--session", "other")) == 0
++    assert rows(capsys.readouterr().out)[0]["sessionId"] == "other"
++
++
++def test_rejects_ambiguous_stdout_missing_session_and_empty_store(tmp_path, monkeypatch, capsys):
++    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
++    assert cmd_sessions(parse("--session", "missing")) == 1
++    assert capsys.readouterr().out == ""
++    with SessionDB(db_path=tmp_path / "state.db") as db:
++        db.create_session("one", "cli")
++    assert cmd_sessions(parse()) == 1
++    assert cmd_sessions(parse("--session", "missing")) == 1
++    assert cmd_sessions(parse("--session", "one", "--since", "2026-01-01")) == 1
++    assert capsys.readouterr().out == ""
++
++
++def test_real_store_retains_rewind_rows_and_marks_native_copies(tmp_path, monkeypatch, capsys):
++    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
++    with SessionDB(db_path=tmp_path / "state.db") as db:
++        db.create_session("parent", "cli")
++        db.append_message("parent", "user", "copied", message_uid="shared-uid")
++        db.create_session("child", "cli", parent_session_id="parent", model_config={"_branched_from": "parent"})
++        db.append_message("child", "user", "copied", message_uid="shared-uid")
++        mid = db.append_message("child", "assistant", "abandoned")
++        db._conn.execute("UPDATE messages SET active=0 WHERE id=?", (mid,))
++        db._conn.commit()
++    assert cmd_sessions(parse("--session", "child")) == 0
++    result = rows(capsys.readouterr().out)
++    assert result[0]["parent"] == {"session": "hermes:parent", "kind": "fork"}
++    assert result[1]["copiedFrom"] == {"session": "hermes:parent"}
++    assert result[2]["content"][0]["text"] == "abandoned"
++
++
++def test_since_filters_sessions_and_rejects_other_filters(tmp_path, monkeypatch, capsys):
++    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
++    with SessionDB(db_path=tmp_path / "state.db") as db:
++        db.create_session("old", "cli")
++        db.create_session("new", "cli")
++        db._conn.execute("UPDATE sessions SET started_at=0, last_activity_at=0 WHERE id='old'")
++        db._conn.commit()
++    directory = tmp_path / "exports"
++    assert cmd_sessions(parse("--output", str(directory), "--since", "2026-01-01T00:00:00Z")) == 0
++    assert len(list(directory.glob("*.jsonl"))) == 1
++    assert cmd_sessions(parse("--session", "new", "--model", "example")) == 1
++    assert capsys.readouterr().out == ""
+
+base-commit: c7c7e0fa92f40c8f526e4a52c0966c128245ffd3

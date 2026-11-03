@@ -1,0 +1,10 @@
+{"type":"metadata","protocol_version":"1.5","created_at":1700000000000}
+{"type":"turn.prompt","input":[{"type":"text","text":"question"}],"origin":{"kind":"user"}}
+{"type":"context.append_message","message":{"role":"user","content":[{"type":"text","text":"question"}],"origin":{"kind":"user"}}}
+{"type":"llm.request","model":"requested","provider":"synthetic","turnStep":"1.1","kind":"loop"}
+{"type":"context.append_loop_event","time":1700000001000,"event":{"type":"content.part","turnId":"1","step":1,"stepUuid":"step","part":{"type":"text","text":"a "}}}
+{"type":"context.append_loop_event","time":1700000002000,"event":{"type":"content.part","turnId":"1","step":1,"stepUuid":"step","part":{"type":"text","text":"b"}}}
+{"type":"context.append_loop_event","event":{"type":"tool.call","uuid":"call-row","turnId":"1","step":1,"toolCallId":"call-1","name":"ReadFile","args":{"path":"hello.txt"}}}
+{"type":"context.append_loop_event","time":1700000003000,"event":{"type":"step.end","uuid":"step","turnId":"1","step":1,"usage":{"inputOther":10,"inputCacheRead":2,"inputCacheCreation":3,"output":0},"rawFinishReason":"tool_calls"}}
+{"type":"context.append_loop_event","event":{"type":"tool.result","toolCallId":"call-1","result":{"output":"raw output","isError":false}}}
+{"type":"permission.record_approval_result","toolCallId":"call-1","result":{"decision":"approved","scope":"session"}}

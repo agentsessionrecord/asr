@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "agent": "shelley",
+  "base": "e8dd9cc6817248188d2be2912680e8555ef72f13",
+  "head": "d7d2f835bc5643bccd8306d8c6bce9a14bb59aa6",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "d7d2f835bc5643bccd8306d8c6bce9a14bb59aa6",
+      "sha256": "cbcc1dfcf23e27fff5d820b8020bf9a116aa349e2c95f000a6da2fdc68e2aea6"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "contracts.mjs",
+      "shelley"
+    ]
+  ],
+  "provenance": {
+    "agent": "shelley",
+    "base": "e8dd9cc6817248188d2be2912680e8555ef72f13",
+    "commit": "d7d2f835bc5643bccd8306d8c6bce9a14bb59aa6",
+    "patch": "patches/0001-native-agent-session-export.patch",
+    "files": {
+      ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
+      "patches/0001-native-agent-session-export.patch": "cbcc1dfcf23e27fff5d820b8020bf9a116aa349e2c95f000a6da2fdc68e2aea6",
+      "PROPOSAL.md": "0cb6a981fdff9defb2554b48b730a891b01d196792fbef58134a2ef93d9b9aae",
+      "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+      "evidence.json": "a849cd277c5c2d8ee80092923f6bc852d1d7d8b1f4496ed12d877a1f68042612",
+      "samples/native/source.sql": "faea127cf38f88f092e267b627a6b757b141dea673250ac613acc859e85e57e0",
+      "samples/asr/live.jsonl": "0837109f263926b6725cb87c080a6824c7cd1366d528b5f1ff97a44ab8575301",
+      "reproduce.py": "e41b39839e10f994c3f8abc10f2a3a5b584afd8920b596d72f9c87fd9a985932",
+      "samples/asr/session.jsonl": "df3a4de800aa16ae219173525ece79d9049beec542d22ab281d5a8227cd4e28d"
+    }
+  },
+  "files": {
+    ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
+    "PROPOSAL.md": "0cb6a981fdff9defb2554b48b730a891b01d196792fbef58134a2ef93d9b9aae",
+    "README.md": "e61fd8652f3f8095b4cef7c645a0fa10fbbee3e1906786d79b7736a95027e424",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "contracts.mjs": "5c01b8aa3b167c9ace70eb09ea39b2b37343381ed63ecec3d1f68d640efc268d",
+    "evidence.json": "a849cd277c5c2d8ee80092923f6bc852d1d7d8b1f4496ed12d877a1f68042612",
+    "patches/0001-native-agent-session-export.patch": "cbcc1dfcf23e27fff5d820b8020bf9a116aa349e2c95f000a6da2fdc68e2aea6",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "reproduce.py": "e41b39839e10f994c3f8abc10f2a3a5b584afd8920b596d72f9c87fd9a985932",
+    "samples/asr/live.jsonl": "0837109f263926b6725cb87c080a6824c7cd1366d528b5f1ff97a44ab8575301",
+    "samples/asr/session.jsonl": "df3a4de800aa16ae219173525ece79d9049beec542d22ab281d5a8227cd4e28d",
+    "samples/native/source.sql": "faea127cf38f88f092e267b627a6b757b141dea673250ac613acc859e85e57e0"
+  }
+}

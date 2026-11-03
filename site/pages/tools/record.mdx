@@ -1,0 +1,112 @@
+---
+title: "Record new work"
+description: "Capture supported agent hooks, gateway traffic and Agent Client Protocol exchanges."
+---
+
+Choose a recorder for the boundary you can observe. Agent plugins see native
+callbacks. Gateway recorders see model traffic. ACP capture sees editor-to-agent
+messages. Their capture limits differ.
+
+Most hook plugins omit content by default. Where supported, `ASR_CONTENT=full`
+retains available text after known-secret filtering. Set a private
+`ASR_OUTPUT_DIR` and read the selected README before enabling capture.
+Gateway traffic includes prompts and model-facing output. Filtering cannot
+identify every secret.
+
+## Agent plugins
+
+Test status comes from the [repository registry](https://github.com/agentsessionrecord/asr/blob/main/registry.json).
+`passed` names a tested path. `partial` means only part of the host path ran.
+`not-live-tested` means no qualifying host or service run is recorded.
+`not-applicable` applies to offline tools and shared libraries.
+Read each README for the version, test scope and remaining limits.
+
+The OpenCode package serves OpenCode, Kilo Code and MiMoCode. The Kimi recorder
+supports separate Python 1.52 and 2.x contracts. Its live run covers 2.4.1.
+Cline's run covers normal CLI act mode and the SDK local host. VS Code and CLI
+yolo mode are untested. Mux requires managed installation, MCP enabling and
+trusted workspace hooks. The Codex recorder's host run predates its latest
+storage fixes. Those fixes have synthetic regression coverage.
+
+| Tool README | Live-test status |
+| --- | --- |
+| [Amp plugin recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/amp/README.md) | `not-live-tested` |
+| [Antigravity hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/antigravity/README.md) | `not-live-tested` |
+| [AstrBot hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/astrbot/README.md) | `partial` |
+| [Auggie CLI hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/auggie/README.md) | `not-live-tested` |
+| [Claude Code hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/claude-code/README.md) | `passed` |
+| [Cline hook and live audit recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/cline/README.md) | `partial` |
+| [CodeBuddy hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/codebuddy/README.md) | `not-live-tested` |
+| [Codex hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/codex/README.md) | `partial` |
+| [Copilot CLI hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/copilot-cli/README.md) | `not-live-tested` |
+| [Crush hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/crush/README.md) | `partial` |
+| [Cursor hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/cursor/README.md) | `not-live-tested` |
+| [Deep Agents Code hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/deepagents/README.md) | `partial` |
+| [DeepSeek harness hook bridge recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/deepseek-harness/README.md) | `partial` |
+| [Devin CLI hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/devin/README.md) | `not-live-tested` |
+| [Factory Droid hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/droid/README.md) | `not-live-tested` |
+| [Firebender hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/firebender/README.md) | `not-live-tested` |
+| [Gemini CLI hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/gemini-cli/README.md) | `partial` |
+| [Goose hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/goose/README.md) | `partial` |
+| [Grok Build hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/grok-build/README.md) | `not-live-tested` |
+| [Hermes hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/hermes/README.md) | `partial` |
+| [Junie CLI hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/junie/README.md) | `not-live-tested` |
+| [Kilo Code live recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/opencode/README.md) | `partial` |
+| [Kimi Code command hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/kimi-code/README.md) | `partial` |
+| [Kiro hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/kiro/README.md) | `not-live-tested` |
+| [Lingma hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/lingma/README.md) | `not-live-tested` |
+| [MiMoCode live recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/opencode/README.md) | `partial` |
+| [Mistral Vibe hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/mistral-vibe/README.md) | `partial` |
+| [Mux and Xum MCP hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/mux/README.md) | `partial` |
+| [OpenCode live recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/opencode/README.md) | `partial` |
+| [OpenHands SDK hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/openhands/README.md) | `partial` |
+| [Pi extension recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/pi/README.md) | `partial` |
+| [Qoder hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/qoder/README.md) | `not-live-tested` |
+| [Qwen Code hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/qwen-code/README.md) | `partial` |
+| [Tabnine CLI hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/tabnine/README.md) | `not-live-tested` |
+
+Hook payloads can omit final arguments, final output, approval choices or
+session lifetime. The READMEs state which facts are available. A turn stop does
+not establish session end. Calls without a native join key remain unpaired.
+Capture can stop at storage limits or lose callbacks. Loss markers describe
+observed failures and do not establish complete delivery.
+
+## Gateway and ACP recorders
+
+| Tool README | Live-test status |
+| --- | --- |
+| [ACP stdio recorder](https://github.com/agentsessionrecord/asr/blob/main/recorders/acp/README.md) | `partial` |
+| [Cloudflare AI Gateway Logpush recorder](https://github.com/agentsessionrecord/asr/blob/main/recorders/cloudflare/README.md) | `not-live-tested` |
+| [Envoy external processor recorder](https://github.com/agentsessionrecord/asr/blob/main/recorders/envoy/README.md) | `not-live-tested` |
+| [Helicone SDK logging recorder](https://github.com/agentsessionrecord/asr/blob/main/recorders/helicone/README.md) | `not-live-tested` |
+| [LiteLLM gateway recorder](https://github.com/agentsessionrecord/asr/blob/main/recorders/litellm/README.md) | `partial` |
+| [Portkey logging hook recorder](https://github.com/agentsessionrecord/asr/blob/main/recorders/portkey/README.md) | `not-live-tested` |
+
+LiteLLM's local host run predates its latest capture fixes. Those fixes were
+checked with synthetic regressions. Envoy, Portkey and Helicone have local
+protocol tests, without a full gateway run. Cloudflare uses offline encrypted
+Logpush input. Its hosted gateway was not deployed or exercised.
+A gateway cannot see tool effects that are never sent through model traffic.
+Trace IDs alone do not establish an agent's session identity.
+
+## Writer libraries and shared recorder cores
+
+Install a writer when adding ASR to your own producer. Writers serialize facts
+that the caller supplies. Generated types provide structure. Neither can
+recover absent native history. Shared cores are installed through an adapter.
+
+| Tool README | Live-test status |
+| --- | --- |
+| [ASR Go types](https://github.com/agentsessionrecord/asr/blob/main/go/asr/README.md) | `not-applicable` |
+| [ASR Python types and writer](https://github.com/agentsessionrecord/asr/blob/main/python/agent_session_record/README.md) | `not-applicable` |
+| [ASR TypeScript types](https://github.com/agentsessionrecord/asr/blob/main/packages/types/README.md) | `not-applicable` |
+| [ASR TypeScript writer](https://github.com/agentsessionrecord/asr/blob/main/packages/writer/README.md) | `not-applicable` |
+| [Gemini and Qwen JSON hook core](https://github.com/agentsessionrecord/asr/blob/main/plugins/gemini-qwen-core/README.md) | `not-applicable` |
+| [Python hook recorder support](https://github.com/agentsessionrecord/asr/blob/main/plugins/python-core/README.md) | `partial` |
+| [Rust ASR core](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-core/README.md) | `not-applicable` |
+| [Shared JSON hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/hooks-core/README.md) | `not-applicable` |
+| [Shared recorder for remaining agent APIs](https://github.com/agentsessionrecord/asr/blob/main/plugins/remaining-core/README.md) | `partial` |
+
+Writer `not-applicable` statuses cover offline libraries. Local examples and
+generated sessions have validation coverage. The Python core's host runs predate
+its incremental storage revision. Current storage behavior has synthetic regression coverage.

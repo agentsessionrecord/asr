@@ -1,0 +1,50 @@
+---
+title: "Agent Session Record"
+description: "An open format for searching agent sessions and tracing code to the work that produced it."
+---
+
+Agent Session Record (ASR) is an open format for recording what an AI agent did in a session. It keeps prompts, replies, tool calls, file edits and commits in one shape across agents.
+
+Use it to find the session behind a line of code, search past work, or see what happened before a test failed. The current format is the **0.1 draft**.
+
+## What you can ask
+
+- Which session wrote this line, from which prompt, with which model?
+- Which sessions made this commit or pull request?
+- Which sessions read or changed this file?
+- What failed, what happened next, and what did the model calls cost?
+
+A reader that checks the [quick tour](/get-started/quick-tour) against its repository can give this answer:
+
+```text
+The changed return statement in parser.py
+Edited by session com.example.coder:parser-42
+Prompt: Make an empty limit mean zero. Run the parser tests and commit the fix.
+Model: code-model-1
+Committed by the same session as a1b2c3d
+```
+
+A record can be incomplete. Missing fields mean unknown. A converter reports known losses, and a reader shows gaps instead of filling them in.
+
+## A record of the work
+
+One session is one JSON Lines file. These are the tour's first three records: the session header, the prompt and one model call, called an inference. The tour uses a fictional agent and repository.
+
+```jsonl
+{"type":"session","id":"session","formatVersion":"0.1","agent":{"name":"com.example.coder","version":"1.0"},"sessionId":"parser-42","producer":{"name":"example-export","version":"1.0","method":"native"},"cwd":"/work/parser","repos":[{"path":"/work/parser","remote":"https://github.com/example/parser","branch":"fix-empty-limit"}],"missing":["reasoning"]}
+{"type":"message","id":"prompt","turnId":"turn-1","role":"user","author":"human","origin":"prompt","content":[{"type":"text","text":"Make an empty limit mean zero. Run the parser tests and commit the fix."}]}
+{"type":"inference","id":"model-edit","turnId":"turn-1","model":{"provider":"example","id":"code-model-1"},"usage":{"inputTokens":820,"outputTokens":64}}
+```
+
+The [tour](/get-started/quick-tour) continues with the edit, tests and commit that support the answer.
+
+## Start with the logs you have
+
+Converters read an agent's native logs after a session. Agents can also provide an export command or write ASR beside their own log. A recorder can capture the traffic on an [ACP connection](/guides/acp).
+
+<CardGroup cols={2}>
+  <Card title="Quick tour" icon="route" href="/get-started/quick-tour">Follow a prompt through an edit, tests and a commit.</Card>
+  <Card title="For agent developers" icon="code" href="/get-started/agent-developers">Export the facts your agent already records.</Card>
+  <Card title="For tool builders" icon="wrench" href="/get-started/tool-builders">Build search, blame and cost views.</Card>
+  <Card title="Specification" icon="book" href="/spec/overview">Read the core format and its rules.</Card>
+</CardGroup>

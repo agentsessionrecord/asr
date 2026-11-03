@@ -1,0 +1,726 @@
+From 2f432a05f4260a0357259dc025722a656b55e3bb Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:28 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ .changeset/native-agent-session.md            |   5 +
+ packages/opencode/src/index.ts                |   2 +
+ .../opencode/src/kilocode/agent-session.ts    | 421 ++++++++++++++++++
+ .../src/kilocode/cli/cmd/agent-session.ts     |  35 ++
+ packages/opencode/src/kilocode/cli/setup.ts   |   5 +-
+ .../test/kilocode/agent-session.test.ts       | 112 +++++
+ .../fixtures/agent-session/native.json        |  68 +++
+ 7 files changed, 647 insertions(+), 1 deletion(-)
+ create mode 100644 .changeset/native-agent-session.md
+ create mode 100644 packages/opencode/src/kilocode/agent-session.ts
+ create mode 100644 packages/opencode/src/kilocode/cli/cmd/agent-session.ts
+ create mode 100644 packages/opencode/test/kilocode/agent-session.test.ts
+ create mode 100644 packages/opencode/test/kilocode/fixtures/agent-session/native.json
+
+diff --git a/.changeset/native-agent-session.md b/.changeset/native-agent-session.md
+new file mode 100644
+index 0000000..d786fed
+--- /dev/null
++++ b/.changeset/native-agent-session.md
+@@ -0,0 +1,5 @@
++---
++"@kilocode/cli": minor
++---
++
++Support exporting sessions as Agent Session Record JSONL.
+diff --git a/packages/opencode/src/index.ts b/packages/opencode/src/index.ts
+index 6fc98fe..10fe583 100644
+--- a/packages/opencode/src/index.ts
++++ b/packages/opencode/src/index.ts
+@@ -1,3 +1,4 @@
++import { AgentSessionCommand } from "./kilocode/cli/cmd/agent-session" // kilocode_change
+ import yargs from "yargs"
+ import { hideBin } from "yargs/helpers"
+ // kilocode_change - upstream account console intentionally omitted; KiloCli registers `kilo console` for local settings
+@@ -119,6 +120,7 @@ let cli = yargs(args) // kilocode_change
+   .command(GithubCommand)
+   .command(PrCommand)
+   .command(SessionCommand)
++  .command(AgentSessionCommand) // kilocode_change
+   .command(PluginCommand)
+   .command(DbCommand)
+ 
+diff --git a/packages/opencode/src/kilocode/agent-session.ts b/packages/opencode/src/kilocode/agent-session.ts
+new file mode 100644
+index 0000000..fba9c88
+--- /dev/null
++++ b/packages/opencode/src/kilocode/agent-session.ts
+@@ -0,0 +1,421 @@
++import { SessionV1 } from "@opencode-ai/schema/v1/session"
++import { PermissionV1 } from "@opencode-ai/schema/v1/permission"
++import { Schema } from "effect"
++import { Database } from "bun:sqlite"
++import { createHash } from "node:crypto"
++import fs from "node:fs/promises"
++import os from "node:os"
++import path from "node:path"
++
++type Row = { id: string; seq: number; type: string; data: string }
++type Record = { type: string; id: string; [key: string]: unknown }
++const digest = (id: string) => createHash("sha256").update(id).digest("hex")
++const stamp = (ms: number) => new Date(ms).toISOString()
++
++function clean(value: unknown, secrets: string[]): unknown {
++  if (typeof value === "string")
++    return secrets
++      .reduce((text, secret) => text.replaceAll(secret, "[redacted]"), value)
++      .replace(/\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g, "[redacted]")
++      .replace(/\bBearer\s+[^\s"']+/gi, "Bearer [redacted]")
++      .replace(/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, "[redacted]")
++      .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/g, "$1[redacted]@")
++  if (Array.isArray(value)) return value.map((item) => clean(item, secrets))
++  if (value && typeof value === "object")
++    return Object.fromEntries(
++      Object.entries(value).map(([key, item]) => [
++        key,
++        /^(?:password|authorization|(?:api|access|refresh|auth|secret)[_-]?(?:key|token))$/i.test(key)
++          ? "[redacted]"
++          : clean(item, secrets),
++      ]),
++    )
++  return value
++}
++
++function parse(text: string): unknown {
++  return JSON.parse(text, (_key: string, value: unknown, context?: { source: string }) =>
++    typeof value === "number" && Number.isInteger(value) && !Number.isSafeInteger(value) ? context!.source : value,
++  )
++}
++
++export function records(session: string, rows: readonly Row[], version: string, secrets: string[] = []) {
++  const created = rows.find((row) => row.type.replace(/\.\d+$/, "") === "session.created")
++  if (!created) throw new Error("Session creation history is unavailable")
++  const first = Schema.decodeUnknownSync(SessionV1.Event.Created.data)(parse(created.data)).info
++  if (first.id !== session) throw new Error("Session identity does not match its history")
++  if (rows.some((row) => row.type.startsWith("session.next.")))
++    throw new Error("V2 session history is not supported by this exporter")
++  const missing = new Set([
++    "approvals",
++    "agent_settings",
++    "tools",
++    "file_changes",
++    "commits",
++    "subagents",
++    "copies",
++    "provider_state",
++    "inference_settings",
++    "cost_provenance",
++    "usage",
++    "media",
++    "content_revisions",
++  ])
++  const output: Record[] = [
++    {
++      type: "session",
++      id: "header",
++      formatVersion: "0.1",
++      agent: { name: "kilo", version: first.version },
++      sessionId: session,
++      producer: { name: "kilo", version, method: "native", source: "kilo-sync-events" },
++      startedAt: stamp(first.time.created),
++      cwd: first.directory,
++      ...(first.parentID ? { _meta: { "ai.kilo": { parentSessionId: first.parentID } } } : {}),
++      missing: [],
++    },
++  ]
++  const messages = new Map<string, typeof SessionV1.Info.Type>()
++  const emitted = new Set<string>()
++  const calls = new Map<string, unknown>()
++  const results = new Set<string>()
++  const steps = new Map<string, string>()
++  const settings = new Map<string, string>()
++  const add = (row: Row, value: { type: string; [key: string]: unknown }, suffix = "") =>
++    output.push({ id: suffix ? `derived-${digest(row.id + suffix)}` : row.id, ...value })
++  const info = (row: Row, values: { mode?: string | null; approval?: unknown }, ts?: number) => {
++    const changed = Object.fromEntries(
++      Object.entries(values).filter(
++        ([key, value]) => value !== undefined && settings.get(key) !== JSON.stringify(value),
++      ),
++    )
++    if (!Object.keys(changed).length) return
++    for (const [key, value] of Object.entries(changed)) settings.set(key, JSON.stringify(value))
++    add(
++      row,
++      { type: "session_info", ...(ts === undefined ? {} : { ts: stamp(ts) }), agentSettings: changed },
++      "settings",
++    )
++  }
++  info(created, { mode: first.agent, approval: first.permission }, first.time.created)
++  for (const row of rows) {
++    const type = row.type.replace(/\.\d+$/, "")
++    try {
++      const raw = parse(row.data)
++      // Preserve exact core counts before decoding the native numeric schema.
++      const exact = raw as {
++        part?: {
++          type?: string
++          tokens?: {
++            input: number | string
++            output: number | string
++            reasoning: number | string
++            cache: { read: number | string; write: number | string }
++          }
++          cost?: number | string
++        }
++      }
++      const counts = exact.part?.type === "step-finish" ? exact.part.tokens : undefined
++      const unsafe =
++        counts &&
++        [counts.input, counts.output, counts.reasoning, counts.cache.read, counts.cache.write].some(
++          (value) => typeof value === "string",
++        )
++      const decoded =
++        exact.part?.type === "step-finish"
++          ? {
++              ...exact,
++              part: {
++                ...exact.part,
++                ...(unsafe ? { tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } } } : {}),
++                ...(typeof exact.part.cost === "string" ? { cost: 0 } : {}),
++              },
++            }
++          : raw
++      if (type === "session.created") continue
++      if (type === "session.updated") {
++        const data = Schema.decodeUnknownSync(
++          Schema.Struct({
++            info: Schema.Struct({
++              agent: Schema.optional(Schema.NullOr(Schema.String)),
++              permission: Schema.optional(Schema.NullOr(PermissionV1.Ruleset)),
++            }),
++          }),
++        )(raw)
++        info(row, { mode: data.info.agent, approval: data.info.permission })
++        continue
++      }
++      if (type === "message.updated") {
++        const message = Schema.decodeUnknownSync(SessionV1.Event.MessageUpdated.data)(raw).info
++        messages.set(message.id, message)
++        info(row, { mode: message.agent }, message.time.created)
++        if (message.role === "user" && message.system !== undefined && !emitted.has(message.id)) {
++          add(row, {
++            type: "message",
++            ts: stamp(message.time.created),
++            role: "system",
++            author: "harness",
++            origin: "instructions",
++            content: [{ type: "text", text: message.system }],
++          })
++          emitted.add(message.id)
++        }
++        continue
++      }
++      if (type === "message.removed" || type === "message.part.removed") continue
++      if (type !== "message.part.updated") {
++        add(row, { type: "gap", reason: "not_recorded", detail: "Native event has no ASR mapping" })
++        missing.add("native_events")
++        continue
++      }
++      const data = Schema.decodeUnknownSync(SessionV1.Event.PartUpdated.data)(decoded)
++      const part = data.part
++      const message = messages.get(part.messageID)
++      const ts = stamp(data.time)
++      const inferenceId = steps.get(part.messageID)
++      const link = inferenceId ? { inferenceId } : {}
++      if (part.type === "step-start") {
++        steps.set(part.messageID, part.id)
++        continue
++      }
++      if (part.type === "text" || part.type === "reasoning") {
++        if (emitted.has(part.id)) continue
++        if (message?.role === "assistant" && part.time?.end === undefined) continue
++        if (!message) {
++          missing.add("message_context")
++          continue
++        }
++        emitted.add(part.id)
++        add(row, {
++          type: "message",
++          ts,
++          role: message.role,
++          ...link,
++          ...(message.role === "assistant"
++            ? { author: "model", ...(message.summary ? { origin: "compaction" } : {}) }
++            : {}),
++          ...(part.type === "text" && part.synthetic ? { author: "harness", origin: "injected" } : {}),
++          content: [
++            part.type === "reasoning"
++              ? asrReasoning(part.text, false)
++              : { type: "text", text: part.text },
++          ],
++        })
++        continue
++      }
++      if (part.type === "tool") {
++        const state = part.state
++        if (state.status === "pending") continue
++        if (!calls.has(part.id)) {
++          calls.set(part.id, state.input)
++          add(
++            row,
++            {
++              type: "tool_call",
++              ts,
++              callId: part.callID,
++              name: part.tool,
++              input: state.input,
++              ...(message?.role === "assistant" ? { requestedBy: "model" } : {}),
++              ...link,
++            },
++            "call",
++          )
++        }
++        if ((state.status !== "completed" && state.status !== "error") || emitted.has(part.id)) continue
++        emitted.add(part.id)
++        const linked = !results.has(part.callID)
++        results.add(part.callID)
++        if (!linked) missing.add("ambiguous_calls")
++        const metadata = state.metadata
++        const approval = metadata?.approval as
++          | { source?: string; rule?: { action?: string }; outsideWorkspace?: boolean }
++          | undefined
++        if (approval?.rule?.action === "allow" || approval?.rule?.action === "deny")
++          add(
++            row,
++            {
++              type: "approval",
++              ...(linked ? { callId: part.callID } : { subject: part.tool }),
++              decision: approval.rule.action === "allow" ? "approved" : "denied",
++              by: "policy",
++              native: approval,
++            },
++            "approval",
++          )
++        const changed = JSON.stringify(calls.get(part.id)) !== JSON.stringify(state.input)
++        const compacted = state.status === "completed" && state.time.compacted !== undefined
++        add(row, {
++          type: "tool_result",
++          ts,
++          ...(linked ? { callId: part.callID } : {}),
++          status: state.status === "completed" ? "completed" : "failed",
++          ...(changed ? { input: state.input } : {}),
++          ...(state.status === "completed"
++            ? { content: [{ type: "text", text: state.output }] }
++            : { error: { message: state.error } }),
++          ...(compacted || metadata?.truncated === true ? { truncated: true } : {}),
++          ...(typeof metadata?.exit === "number" && Number.isSafeInteger(metadata.exit)
++            ? { exec: { exitCode: metadata.exit } }
++            : {}),
++          ...(state.time.end >= state.time.start ? { durationMs: state.time.end - state.time.start } : {}),
++        })
++        if (compacted || metadata?.truncated === true) missing.add("tool_output")
++        continue
++      }
++      if (part.type === "step-finish") {
++        if (emitted.has(part.id)) continue
++        emitted.add(part.id)
++        const tokens = part.tokens
++        const usage = {
++          inputTokens: tokens.input + tokens.cache.read + tokens.cache.write,
++          outputTokens: tokens.output + tokens.reasoning,
++          cacheReadTokens: tokens.cache.read,
++          cacheWriteTokens: tokens.cache.write,
++          reasoningTokens: tokens.reasoning,
++        }
++        const model =
++          part.model ??
++          (message?.role === "assistant" ? { providerID: message.providerID, modelID: message.modelID } : undefined)
++        if (!model) missing.add("model")
++        const safe = !unsafe && Object.values(usage).every((count) => Number.isSafeInteger(count) && count >= 0)
++        output.push({
++          type: "inference",
++          id: inferenceId ?? part.id,
++          ts,
++          ...(model ? { model: { provider: model.providerID, requested: model.modelID } } : {}),
++          ...(safe ? { usage } : {}),
++          ...(typeof exact.part?.cost === "string" ? {} : { cost: { amount: part.cost, currency: "USD" } }),
++          stopReason: part.reason,
++          ...(!safe || part.generationID || typeof exact.part?.cost === "string"
++            ? {
++                _meta: {
++                  "ai.kilo": {
++                    ...(part.generationID ? { responseId: part.generationID } : {}),
++                    ...(!safe
++                      ? {
++                          tokens: counts,
++                          inputTokens: String(
++                            BigInt(counts!.input) + BigInt(counts!.cache.read) + BigInt(counts!.cache.write),
++                          ),
++                          outputTokens: String(BigInt(counts!.output) + BigInt(counts!.reasoning)),
++                        }
++                      : {}),
++                    ...(typeof exact.part?.cost === "string" ? { cost: exact.part.cost } : {}),
++                  },
++                },
++              }
++            : {}),
++        })
++        steps.delete(part.messageID)
++        continue
++      }
++      if (part.type === "file") {
++        missing.add("media")
++        continue
++      }
++    } catch {
++      add(row, { type: "gap", reason: "unparseable", count: 1, detail: "Native event could not be decoded" })
++      missing.add("corrupt_events")
++    }
++  }
++  if (steps.size) {
++    const unfinished = new Set(steps.values())
++    for (const record of output) if (unfinished.has(record.inferenceId as string)) delete record.inferenceId
++  }
++  if (new Set(output.map((record) => record.id)).size !== output.length) throw new Error("Duplicate native record IDs")
++  const safe = output.map((record) => {
++    const value = clean(record, secrets) as Record
++    if (JSON.stringify(value) !== JSON.stringify(record)) {
++      value.truncated = true
++      missing.add("secrets")
++    }
++    return value
++  })
++  safe[0]!.missing = [...missing].sort()
++  return safe
++}
++
++export async function write(input: {
++  database: string
++  sessions: string[]
++  output?: string
++  since?: string
++  discovery?: boolean
++  version: string
++}) {
++  if (!input.sessions.length && !input.output)
++    throw new Error("Select exactly one --session for stdout, or supply --output")
++  if (input.sessions.length > 1 && !input.output) throw new Error("Multiple sessions require --output")
++  const since = input.since === undefined ? undefined : Date.parse(input.since)
++  if (since !== undefined && (!/^\d{4}-\d\d-\d\dT.*(?:Z|[+-]\d\d:\d\d)$/.test(input.since!) || !Number.isFinite(since)))
++    throw new Error("--since must be an RFC 3339 timestamp")
++  using db = new Database(input.database, { readonly: true, strict: true, safeIntegers: true })
++  db.exec("BEGIN")
++  try {
++    const all = input.sessions.length
++      ? [...new Set(input.sessions)]
++      : db
++          .query<{ id: string }, []>("SELECT id FROM session ORDER BY id")
++          .all()
++          .map((row) => row.id)
++    const secrets = Object.entries(process.env).flatMap(([key, value]) =>
++      /(?:TOKEN|SECRET|PASSWORD|API_KEY)/i.test(key) && value && value.length >= 8 ? [value] : [],
++    )
++    const streams = all.flatMap((session) => {
++      const found = db
++        .query<{ time_updated: bigint }, [string]>("SELECT time_updated FROM session WHERE id = ?")
++        .get(session)
++      if (!found) throw new Error("Selected session is unavailable")
++      if (since !== undefined && found.time_updated < BigInt(since)) return []
++      const rows = db
++        .query<Row, [string]>("SELECT id, type, data, seq FROM event WHERE aggregate_id = ? ORDER BY seq")
++        .all(session)
++      return [
++        {
++          session,
++          text:
++            records(session, rows, input.version, secrets)
++              .map((record) => JSON.stringify(record))
++              .join("\n") + "\n",
++        },
++      ]
++    })
++    if (!input.output && streams.length !== 1) throw new Error("Selection does not contain exactly one session")
++    if (input.output) {
++      await fs.mkdir(input.output, { mode: 0o700 })
++      for (const stream of streams)
++        await fs.writeFile(path.join(input.output, digest(stream.session) + ".jsonl"), stream.text, {
++          mode: 0o600,
++          flag: "wx",
++        })
++    }
++    if (input.discovery) {
++      const root =
++        process.platform === "win32"
++          ? (process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"))
++          : (process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), ".config"))
++      const directory = path.join(root, "agent-sessions", "sources")
++      await fs.mkdir(directory, { recursive: true, mode: 0o700 })
++      await fs.writeFile(
++        path.join(directory, "kilo.json"),
++        JSON.stringify({
++          agent: "kilo",
++          exportCommand: ["kilo", "sessions", "export", "--format", "agent-session"],
++          formatVersions: ["0.1"],
++          supportsDeletionHook: false,
++        }) + "\n",
++        { mode: 0o600, flag: "wx" },
++      )
++    }
++    if (!input.output) process.stdout.write(streams[0]!.text)
++  } finally {
++    db.exec("ROLLBACK")
++  }
++}
++
++function asrReasoning(text: unknown, summary = false): { type: string; visibility?: string; text?: string; summary?: string[] } {
++  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
++  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
++  return { type: "reasoning", text };
++}
+diff --git a/packages/opencode/src/kilocode/cli/cmd/agent-session.ts b/packages/opencode/src/kilocode/cli/cmd/agent-session.ts
+new file mode 100644
+index 0000000..0dac76d
+--- /dev/null
++++ b/packages/opencode/src/kilocode/cli/cmd/agent-session.ts
+@@ -0,0 +1,35 @@
++import { cmd } from "@/cli/cmd/cmd"
++
++export const AgentSessionCommand = cmd({
++  command: "sessions",
++  describe: "export Agent Session Records",
++  builder: (yargs) =>
++    yargs
++      .command({
++        command: "export",
++        describe: "export recorded session events as Agent Session Record JSONL",
++        builder: (yargs) =>
++          yargs
++            .option("format", { type: "string", choices: ["agent-session"], default: "agent-session" })
++            .option("session", { type: "string", array: true, default: [] })
++            .option("since", { type: "string" })
++            .option("output", { type: "string" })
++            .option("database", { type: "string" })
++            .option("write-discovery", { type: "boolean", default: false }),
++        handler: async (args) => {
++          const { write } = await import("@/kilocode/agent-session")
++          const { InstallationVersion } = await import("@opencode-ai/core/installation/version")
++          const { Database } = await import("@opencode-ai/core/database/database")
++          await write({
++            database: args.database ?? Database.path(),
++            sessions: args.session,
++            since: args.since,
++            output: args.output,
++            discovery: args.writeDiscovery,
++            version: InstallationVersion,
++          })
++        },
++      })
++      .demandCommand(),
++  handler() {},
++})
+diff --git a/packages/opencode/src/kilocode/cli/setup.ts b/packages/opencode/src/kilocode/cli/setup.ts
+index ef87cc0..cb1c68c 100644
+--- a/packages/opencode/src/kilocode/cli/setup.ts
++++ b/packages/opencode/src/kilocode/cli/setup.ts
+@@ -70,7 +70,10 @@ export namespace KiloCli {
+   // Runs from the upstream `.middleware`, before any command handler. Env tagging is additive so
+   // it never has to modify upstream's own env assignments.
+   export async function bootstrap(opts: { [key: string]: unknown }): Promise<void> {
+-    info = opts.help === true || opts.version === true
++    info =
++      opts.help === true ||
++      opts.version === true ||
++      (Array.isArray(opts._) && opts._[0] === "sessions" && opts._[1] === "export")
+     if (info) return
+     narrow = workerTui(opts)
+ 
+diff --git a/packages/opencode/test/kilocode/agent-session.test.ts b/packages/opencode/test/kilocode/agent-session.test.ts
+new file mode 100644
+index 0000000..e7de3f7
+--- /dev/null
++++ b/packages/opencode/test/kilocode/agent-session.test.ts
+@@ -0,0 +1,112 @@
++import { expect, test } from "bun:test"
++import { records, write } from "../../src/kilocode/agent-session"
++import { Database } from "bun:sqlite"
++import fs from "node:fs/promises"
++import os from "node:os"
++import path from "node:path"
++
++const rows = await Bun.file(path.join(import.meta.dir, "fixtures/agent-session/native.json")).json()
++
++test("preserves interleaving, snapshot approvals and effective rewritten input", () => {
++  const result = records("ses_synthetic", rows, "test")
++  expect(result.map((record) => record.type)).toEqual([
++    "session",
++    "session_info",
++    "session_info",
++    "message",
++    "tool_call",
++    "message",
++    "approval",
++    "tool_result",
++    "message",
++    "inference",
++    "session_info",
++  ])
++  expect(result.find((record) => record.type === "tool_result")?.input).toEqual({ path: "/work/demo/rewritten.txt" })
++  expect(result.find((record) => record.type === "approval")?.ts).toBeUndefined()
++  expect(result.find((record) => record.type === "approval")?.by).toBe("policy")
++  expect(result.find((record) => record.type === "inference")?.usage).toEqual({
++    inputTokens: 14,
++    outputTokens: 6,
++    reasoningTokens: 2,
++    cacheReadTokens: 3,
++    cacheWriteTokens: 1,
++  })
++  expect(result.at(-1)?.agentSettings).toEqual({ mode: null, approval: null })
++  expect(records("ses_synthetic", rows, "test")).toEqual(result)
++})
++
++test("keeps exact native integers, excludes secrets and declares corrupt rows", () => {
++  const input = structuredClone(rows)
++  input[5].data = input[5].data.replace(
++    '"path": "/work/demo/input.txt"',
++    '"count": 9007199254740993, "password": "synthetic-secret"',
++  )
++  input.push({ id: "evt_corrupt", seq: 20, type: "message.updated.1", data: "{" })
++  const result = records("ses_synthetic", input, "test")
++  expect(result.find((record) => record.type === "tool_call")?.input).toEqual({
++    count: "9007199254740993",
++    password: "[redacted]",
++  })
++  expect(result.at(-1)?.type).toBe("gap")
++  expect(result[0]?.missing).toContain("secrets")
++})
++
++test("never invents approval decisions from successful tools", () => {
++  const input = structuredClone(rows)
++  const data = JSON.parse(input[7].data)
++  delete data.part.state.metadata.approval
++  input[7].data = JSON.stringify(data)
++  expect(records("ses_synthetic", input, "test").some((record) => record.type === "approval")).toBe(false)
++})
++
++test("rejects unavailable and unsupported history", () => {
++  expect(() => records("ses_missing", [], "test")).toThrow("creation history")
++  expect(() =>
++    records(
++      "ses_synthetic",
++      [...rows, { id: "evt_v2", seq: 20, type: "session.next.step.started.1", data: "{}" }],
++      "test",
++    ),
++  ).toThrow("V2")
++})
++
++test("reads a consistent SQLite source without changing it and writes private files", async () => {
++  const root = await fs.mkdtemp(path.join(os.tmpdir(), "asr-export-"))
++  try {
++    const file = path.join(root, "native.db")
++    {
++      using db = new Database(file)
++      db.exec(
++        "CREATE TABLE session (id TEXT, time_updated INTEGER); CREATE TABLE event (id TEXT, seq INTEGER, type TEXT, aggregate_id TEXT, data TEXT)",
++      )
++      db.query("INSERT INTO session VALUES (?, ?)").run("ses_synthetic", 1767225600010)
++      for (const row of rows)
++        db.query("INSERT INTO event VALUES (?, ?, ?, ?, ?)").run(row.id, row.seq, row.type, "ses_synthetic", row.data)
++    }
++    const before = await fs.readFile(file)
++    const output = path.join(root, "output")
++    await write({ database: file, sessions: ["ses_synthetic"], output, version: "test" })
++    expect(await fs.readFile(file)).toEqual(before)
++    const files = await fs.readdir(output)
++    expect(files[0]).toMatch(/^[a-f0-9]{64}\.jsonl$/)
++    if (process.platform !== "win32") expect((await fs.stat(path.join(output, files[0]!))).mode & 0o777).toBe(0o600)
++    await expect(
++      write({ database: file, sessions: ["ses_missing"], output: path.join(root, "absent"), version: "test" }),
++    ).rejects.toThrow("unavailable")
++    await expect(write({ database: file, sessions: ["a", "b"], version: "test" })).rejects.toThrow("Multiple")
++  } finally {
++    await fs.rm(root, { recursive: true, force: true })
++  }
++})
++
++test("retains exact unsafe core counts outside numeric usage", () => {
++  const input = structuredClone(rows)
++  const finish = input.find((row: { data: string }) => row.data.includes('"step-finish"'))!
++  finish.data = finish.data.replace('"input": 10', '"input": 9007199254740993')
++  const inference = records("ses_synthetic", input, "test").find((record) => record.type === "inference")!
++  expect(inference.usage).toBeUndefined()
++  expect(inference._meta).toMatchObject({
++    "ai.kilo": { tokens: { input: "9007199254740993" }, inputTokens: "9007199254740997" },
++  })
++})
+diff --git a/packages/opencode/test/kilocode/fixtures/agent-session/native.json b/packages/opencode/test/kilocode/fixtures/agent-session/native.json
+new file mode 100644
+index 0000000..6db527f
+--- /dev/null
++++ b/packages/opencode/test/kilocode/fixtures/agent-session/native.json
+@@ -0,0 +1,68 @@
++[
++  {
++    "id": "evt_synthetic_0",
++    "type": "session.created.1",
++    "seq": 0,
++    "data": "{\"sessionID\": \"ses_synthetic\", \"info\": {\"id\": \"ses_synthetic\", \"slug\": \"demo\", \"projectID\": \"global\", \"directory\": \"/work/demo\", \"title\": \"Synthetic session\", \"version\": \"7.8.25\", \"time\": {\"created\": 1767225600000, \"updated\": 1767225600000}, \"permission\": []}}"
++  },
++  {
++    "id": "evt_synthetic_1",
++    "type": "message.updated.1",
++    "seq": 1,
++    "data": "{\"sessionID\": \"ses_synthetic\", \"info\": {\"id\": \"msg_prompt\", \"sessionID\": \"ses_synthetic\", \"role\": \"user\", \"agent\": \"code\", \"model\": {\"providerID\": \"example\", \"modelID\": \"requested-model\"}, \"time\": {\"created\": 1767225600001}}}"
++  },
++  {
++    "id": "evt_synthetic_2",
++    "type": "message.part.updated.1",
++    "seq": 2,
++    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_prompt\", \"messageID\": \"msg_prompt\", \"type\": \"text\", \"text\": \"Read the synthetic fixture.\"}, \"time\": 1767225600002}"
++  },
++  {
++    "id": "evt_synthetic_3",
++    "type": "message.updated.1",
++    "seq": 3,
++    "data": "{\"sessionID\": \"ses_synthetic\", \"info\": {\"id\": \"msg_reply\", \"sessionID\": \"ses_synthetic\", \"role\": \"assistant\", \"agent\": \"code\", \"mode\": \"code\", \"modelID\": \"requested-model\", \"providerID\": \"example\", \"parentID\": \"msg_prompt\", \"path\": {\"cwd\": \"/work/demo\", \"root\": \"/work/demo\"}, \"cost\": 0, \"tokens\": {\"input\": 0, \"output\": 0, \"reasoning\": 0, \"cache\": {\"read\": 0, \"write\": 0}}, \"time\": {\"created\": 1767225600003}}}"
++  },
++  {
++    "id": "evt_synthetic_4",
++    "type": "message.part.updated.1",
++    "seq": 4,
++    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_start\", \"messageID\": \"msg_reply\", \"type\": \"step-start\"}, \"time\": 1767225600004}"
++  },
++  {
++    "id": "evt_synthetic_5",
++    "type": "message.part.updated.1",
++    "seq": 5,
++    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_tool\", \"messageID\": \"msg_reply\", \"type\": \"tool\", \"callID\": \"read-1\", \"tool\": \"read\", \"state\": {\"status\": \"running\", \"input\": {\"path\": \"/work/demo/input.txt\"}, \"time\": {\"start\": 1767225600005}}}, \"time\": 1767225600005}"
++  },
++  {
++    "id": "evt_synthetic_6",
++    "type": "message.part.updated.1",
++    "seq": 6,
++    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_note\", \"messageID\": \"msg_prompt\", \"type\": \"text\", \"text\": \"A recorded notice.\"}, \"time\": 1767225600000}"
++  },
++  {
++    "id": "evt_synthetic_7",
++    "type": "message.part.updated.1",
++    "seq": 7,
++    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_tool\", \"messageID\": \"msg_reply\", \"type\": \"tool\", \"callID\": \"read-1\", \"tool\": \"read\", \"state\": {\"status\": \"completed\", \"input\": {\"path\": \"/work/demo/rewritten.txt\"}, \"output\": \"synthetic\\n\", \"title\": \"Read\", \"metadata\": {\"approval\": {\"source\": \"project\", \"rule\": {\"permission\": \"read\", \"pattern\": \"*\", \"action\": \"allow\"}}}, \"time\": {\"start\": 1767225600005, \"end\": 1767225600007}}}, \"time\": 1767225600007}"
++  },
++  {
++    "id": "evt_synthetic_8",
++    "type": "message.part.updated.1",
++    "seq": 8,
++    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_reply\", \"messageID\": \"msg_reply\", \"type\": \"text\", \"text\": \"The fixture contains synthetic text.\", \"time\": {\"start\": 1767225600008, \"end\": 1767225600008}}, \"time\": 1767225600008}"
++  },
++  {
++    "id": "evt_synthetic_9",
++    "type": "message.part.updated.1",
++    "seq": 9,
++    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_finish\", \"messageID\": \"msg_reply\", \"type\": \"step-finish\", \"reason\": \"stop\", \"cost\": 0, \"tokens\": {\"input\": 10, \"output\": 4, \"reasoning\": 2, \"cache\": {\"read\": 3, \"write\": 1}}}, \"time\": 1767225600009}"
++  },
++  {
++    "id": "evt_synthetic_10",
++    "type": "session.updated.1",
++    "seq": 10,
++    "data": "{\"sessionID\": \"ses_synthetic\", \"info\": {\"agent\": null, \"permission\": null}}"
++  }
++]
+
+base-commit: 0a9faeff69fff8712da184ee5188bb7985c6f057

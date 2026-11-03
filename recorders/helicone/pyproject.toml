@@ -1,0 +1,16 @@
+[project]
+name = "asr-helicone"
+version = "0.1.0"
+description = "ASR capture through the helicone extension boundary"
+requires-python = ">=3.11"
+dependencies = ["asr-gateway-core==0.1.0"]
+
+[project.scripts]
+asr-helicone = "asr_helicone:main"
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+asr-gateway-core = { workspace = true }

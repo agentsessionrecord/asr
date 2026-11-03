@@ -1,0 +1,6 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"audit-7","producer":{"name":"example-export","version":"1.0","method":"native"}}
+{"type":"session_info","id":"settings","agentSettings":{"approval":{"granular":{"shell":true}},"sandbox":{"writable_roots":["/work/app"],"network_access":false}}}
+{"type":"session_info","id":"change","agentSettings":{"approval":"","sandbox":{}}}
+{"type":"session_info","id":"rules","agentSettings":{"approval":[{"tool":"shell","effect":"ask"}],"sandbox":true}}
+{"type":"session_info","id":"values","agentSettings":{"approval":null,"sandbox":false}}
+{"type":"session_info","id":"numeric","agentSettings":{"approval":0,"sandbox":1}}

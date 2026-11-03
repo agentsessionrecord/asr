@@ -1,0 +1,17 @@
+[project]
+name = "asr-workspace"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8.3,<10"]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["python/*", "recorders/litellm", "importers/telemetry-approvals", "plugins/codex", "plugins/python-core", "plugins/hermes", "plugins/astrbot", "plugins/deepagents", "plugins/openhands", "plugins/mistral-vibe", "exporters/tables", "exporters/evals", "exporters/langfuse", "exporters/braintrust", "exporters/phoenix", "recorders/acp", "recorders/envoy", "recorders/portkey", "recorders/helicone", "recorders/cloudflare", "importers/vendor-core", "importers/anthropic-compliance", "importers/openai-codex-logs", "importers/copilot", "importers/entire"]
+
+[tool.pytest.ini_options]
+testpaths = ["python"]

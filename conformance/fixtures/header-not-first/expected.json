@@ -1,0 +1,16 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-002",
+    "code": "missing-header",
+    "line": 1,
+    "pointer": "/type"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-002",
+    "code": "extra-header",
+    "line": 2,
+    "pointer": "/type"
+  }
+]

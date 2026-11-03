@@ -1,0 +1,21 @@
+{
+  "cliVersion": "0.12.2",
+  "scenario": "released CLI, scripted synthetic Claude Code hooks, local Git commit",
+  "modelRequests": 0,
+  "accounts": 0,
+  "sessions": 1,
+  "records": {
+    "session": 1,
+    "message": 2,
+    "inference": 1
+  },
+  "validation": {
+    "valid": true,
+    "errors": 0,
+    "warnings": 0,
+    "records": 4
+  },
+  "branch": "refs/heads/entire/checkpoints/v1",
+  "telemetry": false,
+  "pushSessions": false
+}

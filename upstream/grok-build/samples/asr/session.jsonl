@@ -1,0 +1,4 @@
+{"agent":{"name":"grok-build"},"formatVersion":"0.1","id":"header","missing":["messages","tool_calls","tool_output","usage","model","reasoning","file_changes","commits","subagents","copies","tools","agent_settings","approvals","provider_state","history","workspace_events","duration"],"producer":{"method":"native","name":"grok-event-asr","source":"grok-events-1.0","version":"1"},"sessionId":"synthetic-grok","type":"session"}
+{"agentSettings":{"approval":{"yolo_mode":false}},"id":"event-0","ts":"2026-11-01T18:05:28.591Z","type":"session_info"}
+{"decision":"denied","id":"event-1","subject":"read","ts":"2026-11-01T18:05:28.591Z","type":"approval"}
+{"callId":"call-1","durationMs":0,"id":"event-2","status":"denied","ts":"2026-11-01T18:05:28.591Z","type":"tool_result"}

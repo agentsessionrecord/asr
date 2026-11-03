@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; worker-src blob:; connect-src 'none'; img-src 'none'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>ASR session viewer</title>
+  <style>/* ASR_STYLE */</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="mark" aria-hidden="true">a</span><div><strong>Agent Session Record</strong><small>LOCAL SESSION VIEWER</small></div></div>
+    <div class="pickers"><label class="button">Open files<input id="files" type="file" accept=".jsonl" multiple></label><label class="button secondary">Open folder<input id="folder" type="file" webkitdirectory multiple></label><button id="cancel" hidden>Cancel loading</button></div>
+  </header>
+  <main>
+    <aside aria-label="Opened files"><div class="eyebrow">WORKSPACE</div><h2>Sessions <span id="file-count">0</span></h2><nav id="sessions" aria-label="Session files"></nav><p class="local-note">Files stay on this device.<br>Recorded links and commands are displayed as text.</p></aside>
+    <section class="workspace">
+      <div id="welcome"><div class="eyebrow">A RECORD OF THE WORK</div><h1>Follow a session,<br>one event at a time.</h1><p>Drop an ASR file or a folder of related sessions here.<br>Read the messages, decisions and changes in their recorded order.</p><p class="hint">UTF-8 JSON Lines · format 0.1 · works offline</p></div>
+      <div id="status" role="status" aria-live="polite">Ready to open local files.</div>
+      <section id="facts" aria-label="Session facts" hidden></section>
+      <div id="toolbar" hidden><div><span class="eyebrow">TIMELINE</span><span id="record-count"></span></div><div class="jump"><label for="line">Record</label><input id="line" type="number" min="1" value="1"><button id="go">Go</button></div></div>
+      <div id="timeline" tabindex="0" aria-label="Session timeline"><div id="spacer"><div id="rows"></div></div></div>
+    </section>
+  </main>
+  <dialog id="detail"><div class="dialog-top"><h2 id="detail-title">Record</h2><button id="close-detail">Close</button></div><div id="detail-body"></div><details><summary>Original record bytes</summary><p>Pages show up to 64 KiB. A page boundary can split a UTF-8 character.</p><div id="raw-controls"></div><pre id="raw"></pre></details></dialog>
+  <script>/* ASR_SCRIPT */</script>
+</body>
+</html>

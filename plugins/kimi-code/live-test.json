@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-01",
+  "nodeVersion": "24.22.2",
+  "credentialDelivery": "private provider settings file after route verification",
+  "fixtureKind": "counts-only live evidence",
+  "rawCapturesCommitted": false,
+  "versions": {
+    "kimi-code": "2.4.1"
+  },
+  "streams": [
+    {
+      "records": 5,
+      "hooks": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "TurnStarted"
+      ],
+      "toolCalls": 0,
+      "toolResults": 0,
+      "messages": 1,
+      "gaps": 0,
+      "validator": {
+        "errors": 0,
+        "warnings": {
+          "warning:unknown-extension": 1,
+          "warning:unknown-type": 3
+        }
+      }
+    },
+    {
+      "records": 10,
+      "hooks": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "TurnStarted",
+        "PreToolUse",
+        "PostToolUse",
+        "Stop"
+      ],
+      "toolCalls": 1,
+      "toolResults": 1,
+      "messages": 1,
+      "gaps": 0,
+      "validator": {
+        "errors": 0,
+        "warnings": {
+          "warning:unknown-extension": 1,
+          "warning:unknown-type": 6
+        }
+      }
+    }
+  ],
+  "totals": {
+    "streams": 2,
+    "records": 15,
+    "errors": 0
+  },
+  "coverage": {
+    "configuredHookEvents": 20,
+    "configurationCheck": "kimi doctor accepted all entries",
+    "liveSessionEnd": false,
+    "livePermissions": false,
+    "legacyRuntimeLiveTested": false
+  },
+  "providerProtocol": "openai-compatible"
+}

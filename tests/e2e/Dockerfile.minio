@@ -1,0 +1,5 @@
+FROM golang:1.24.6-bookworm AS build
+RUN CGO_ENABLED=0 GOBIN=/opt/minio go install github.com/minio/minio@0d7408fc9969caf07de6a8c3a84f9fbb10a6739e
+FROM alpine:3.20
+COPY --from=build /opt/minio/minio /usr/local/bin/minio
+ENTRYPOINT ["minio"]

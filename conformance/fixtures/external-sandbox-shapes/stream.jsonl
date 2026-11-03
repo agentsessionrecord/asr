@@ -1,0 +1,3 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"audit-7","producer":{"name":"example-export","version":"1.0","method":"native"}}
+{"type":"session_info","id":"settings","agentSettings":{"externalSandbox":false}}
+{"type":"session_info","id":"fields","agentSettings":{"externalSandbox":{"kind":[],"source":null}}}

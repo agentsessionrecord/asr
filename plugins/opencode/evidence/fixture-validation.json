@@ -1,0 +1,9 @@
+{
+  "streams": 3,
+  "records": 33,
+  "errors": 0,
+  "diagnostics": {
+    "warning:unknown-extension": 3,
+    "warning:unknown-type": 18
+  }
+}

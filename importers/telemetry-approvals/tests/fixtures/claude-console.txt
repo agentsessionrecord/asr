@@ -1,0 +1,27 @@
+{
+  resource: { attributes: { 'service.name': 'claude-code', 'service.version': '2.1.305' } },
+  instrumentationScope: { name: 'com.anthropic.claude_code', version: undefined },
+  timestamp: 1793448000000000000,
+  traceId: undefined,
+  body: 'claude_code.tool_decision',
+  attributes: {
+    'event.name': 'tool_decision',
+    'event.timestamp': '2026-10-31T12:00:00Z',
+    'session.id': 'synthetic-session',
+    tool_use_id: 'c1',
+    decision: 'reject',
+    source: 'hook'
+  }
+}
+{
+  resource: { attributes: { 'service.version': '2.1.305' } },
+  body: 'claude_code.tool_decision',
+  attributes: {
+    'event.name': 'tool_decision',
+    'session.id': 'synthetic-session',
+    tool_use_id: 'c1',
+    decision: 'accept',
+    source: 'config',
+    classifier_verdict: 'allow'
+  }
+}

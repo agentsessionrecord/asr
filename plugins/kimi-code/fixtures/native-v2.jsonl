@@ -1,0 +1,24 @@
+{"session_id":"synthetic-v2-session","cwd":"/work/synthetic","client_type":"kimi_code_cli","hook_event_name":"SessionStart","source":"startup"}
+{"session_id":"synthetic-v2-session","hook_event_name":"UserPromptSubmit","prompt":[{"type":"text","text":"first\n"},{"type":"image_url","image_url":{"url":"https://example.invalid/synthetic.png"}},{"type":"text","text":"last雪"}]}
+{"session_id":"synthetic-v2-session","hook_event_name":"UserPromptQueued","prompt_id":"synthetic-prompt","queue_length":1,"prompt":[{"type":"text","text":"queued"}]}
+{"session_id":"synthetic-v2-session","hook_event_name":"TurnStarted","turn_id":1,"origin_kind":"user","prompt":[{"type":"text","text":"first\nlast雪"}]}
+{"session_id":"synthetic-v2-session","hook_event_name":"PreToolUse","tool_call_id":"call-1","tool_name":"Bash","tool_input":{"command":"printf requested"}}
+{"session_id":"synthetic-v2-session","hook_event_name":"PermissionRequest","tool_call_id":"call-1","tool_name":"Bash","action":"execute"}
+{"session_id":"synthetic-v2-session","hook_event_name":"PermissionResult","tool_call_id":"call-1","tool_name":"Bash","decision":"approved","scope":"session"}
+{"session_id":"synthetic-v2-session","hook_event_name":"PostToolUse","tool_call_id":"call-1","tool_name":"Bash","tool_input":{"command":"printf effective"},"tool_output":"effective\n"}
+{"session_id":"synthetic-v2-session","hook_event_name":"PreToolUse","tool_call_id":"call-2","tool_name":"Bash","tool_input":{"command":"false"}}
+{"session_id":"synthetic-v2-session","hook_event_name":"PostToolUseFailure","tool_call_id":"call-2","tool_name":"Bash","tool_input":{"command":"false"},"error":{"name":"ToolError","message":"synthetic failure","code":"E_SYNTHETIC"}}
+{"session_id":"synthetic-v2-session","hook_event_name":"PermissionResult","tool_call_id":"denied-call","tool_name":"Bash","decision":"rejected"}
+{"session_id":"synthetic-v2-session","hook_event_name":"PermissionResult","tool_call_id":"cancelled-call","tool_name":"Bash","decision":"cancelled"}
+{"session_id":"synthetic-v2-session","hook_event_name":"PermissionResult","tool_call_id":"error-call","tool_name":"Bash","decision":"error","error":"synthetic permission failure"}
+{"session_id":"synthetic-v2-session","hook_event_name":"TaskStarted","task_id":"synthetic-task","description":"synthetic process","detached":false}
+{"session_id":"synthetic-v2-session","hook_event_name":"SessionHeartbeat","uptime_ms":60000}
+{"session_id":"synthetic-v2-session","hook_event_name":"SubagentStart","agent_id":"synthetic-child"}
+{"session_id":"synthetic-v2-session","hook_event_name":"SubagentStop","agent_id":"synthetic-child"}
+{"session_id":"synthetic-v2-session","hook_event_name":"PreCompact","trigger":"manual"}
+{"session_id":"synthetic-v2-session","hook_event_name":"PostCompact","trigger":"manual"}
+{"session_id":"synthetic-v2-session","hook_event_name":"Notification"}
+{"session_id":"synthetic-v2-session","hook_event_name":"Interrupt","turn_id":1,"reason":"cancelled"}
+{"session_id":"synthetic-v2-session","hook_event_name":"StopFailure","error_type":"SyntheticError","error_message":"synthetic failure"}
+{"session_id":"synthetic-v2-session","hook_event_name":"Stop"}
+{"session_id":"synthetic-v2-session","hook_event_name":"SessionEnd","reason":"exit"}

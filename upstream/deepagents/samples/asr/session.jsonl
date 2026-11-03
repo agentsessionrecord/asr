@@ -1,0 +1,6 @@
+{"type": "session", "id": "asr:-1:header", "formatVersion": "0.1", "agent": {"name": "deepagents"}, "sessionId": "synthetic-deepagents", "producer": {"name": "deepagents-code", "version": "0.2.2", "method": "native", "source": "langgraph-message-writes"}, "missing": ["agent_settings", "approvals", "commits", "copies", "exit_codes", "file_changes", "history", "inference_settings", "instructions", "media", "message_author", "model", "provider_state", "reasoning", "subagents", "timestamps", "tools", "usage"]}
+{"id": "prompt", "content": [{"type": "text", "text": "Echo ready.\n"}], "type": "message", "role": "user"}
+{"id": "request", "content": [{"type": "text", "text": ""}], "type": "message", "role": "assistant"}
+{"type": "tool_call", "id": "asr:1:call:0", "callId": "call-1", "name": "echo", "input": {"text": "ready"}, "requestedBy": "model"}
+{"id": "result", "content": [{"type": "text", "text": "ready"}], "type": "tool_result", "callId": "call-1", "status": "completed"}
+{"id": "reply", "content": [{"type": "text", "text": "Ready."}], "type": "message", "role": "assistant"}

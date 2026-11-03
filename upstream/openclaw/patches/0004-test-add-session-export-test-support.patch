@@ -1,0 +1,674 @@
+From 82c674b445fd1d220fdd79a34cb781a081b050cc Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 16:26:17 -0500
+Subject: [PATCH 4/8] test: add synthetic session export fixtures
+
+---
+ .../agent-session-export.test-support.ts      | 658 ++++++++++++++++++
+ 1 file changed, 658 insertions(+)
+ create mode 100644 src/sessions/agent-session-export.test-support.ts
+
+diff --git a/src/sessions/agent-session-export.test-support.ts b/src/sessions/agent-session-export.test-support.ts
+new file mode 100644
+index 00000000000..6e4b6b90eb5
+--- /dev/null
++++ b/src/sessions/agent-session-export.test-support.ts
+@@ -0,0 +1,658 @@
++import { upsertSessionEntryCore } from "../config/sessions/session-accessor.js";
++import { replaceTranscriptEvents } from "../config/sessions/session-accessor.sqlite-transcript-write.test-support.js";
++import { recordDefaultProactiveJobInDatabase } from "../cron/proactive-job-receipt.kernel.js";
++import { executeSqliteQuerySync, getNodeSqliteKysely } from "../infra/kysely-sync.js";
++import type { DB as AgentDB } from "../state/openclaw-agent-db.generated.js";
++import { runOpenClawAgentWriteTransaction } from "../state/openclaw-agent-db.js";
++import { resolveOpenClawAgentSqlitePath } from "../state/openclaw-agent-db.paths.js";
++import type { DB as StateDB } from "../state/openclaw-state-db.generated.js";
++import { runOpenClawStateWriteTransaction } from "../state/openclaw-state-db.js";
++import type { JsonObject } from "./agent-session-export.types.js";
++
++export const syntheticTime = Date.parse("2026-10-26T12:00:00.000Z");
++export const syntheticKey = "agent:main:slack:group:asr-example";
++export const syntheticId = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
++const time = "2026-10-26T12:00:00.000Z";
++const text = (value: string) => [{ type: "text", text: value }];
++export function syntheticMessage(
++  id: string,
++  parentId: string | null,
++  message: JsonObject,
++): JsonObject {
++  return {
++    type: "message",
++    id,
++    parentId,
++    timestamp: time,
++    message: { timestamp: syntheticTime, ...message },
++  };
++}
++function assistant(content: unknown, runId = "run-main", extra: JsonObject = {}): JsonObject {
++  return {
++    role: "assistant",
++    content,
++    provider: "openai",
++    api: "openai-responses",
++    model: "fixture-model",
++    responseId: `response-${runId}`,
++    stopReason: "stop",
++    __openclaw: { runId },
++    usage: {
++      input: 12,
++      output: 4,
++      cacheRead: 8,
++      cacheWrite: 2,
++      cacheWrite1h: 2,
++      cacheWrite5m: 0,
++      totalTokens: 26,
++      cost: {
++        total: 0.0001,
++        input: 0.00004,
++        output: 0.00006,
++        cacheRead: 0,
++        cacheWrite: 0,
++        totalOrigin: "provider-billed",
++      },
++    },
++    ...extra,
++  };
++}
++export function syntheticEvents(sessionId: string): JsonObject[] {
++  return [
++    {
++      type: "session",
++      id: sessionId,
++      version: 4,
++      timestamp: time,
++      cwd: "/workspace/personal-assistant",
++    },
++    syntheticMessage("u1", null, {
++      role: "user",
++      content: "Please remember our meeting preference.",
++      provenance: { kind: "external_user" },
++      __openclaw: {
++        runId: "run-main",
++        senderId: "U-DANA",
++        senderName: "Dana",
++        senderIdentity: {
++          type: "observation",
++          pluginId: "slack",
++          accountId: "work",
++          senderKind: "human",
++          id: "U-DANA",
++        },
++        modelPromptProjection: {
++          version: 1,
++          text: "Dana: Please remember our meeting preference.",
++        },
++        transport: {
++          channel: "slack",
++          conversationRef: "conversation-group",
++          messageId: "123.45",
++          replyToId: "123.40",
++        },
++      },
++    }),
++    syntheticMessage(
++      "a1",
++      "u1",
++      assistant(
++        [
++          {
++            type: "text",
++            text: "I will save that.",
++            textSignature: { id: "item-1", phase: "commentary" },
++          },
++          {
++            type: "toolCall",
++            id: "write-memory",
++            name: "write",
++            arguments: { path: "MEMORY.md", content: "Meetings after lunch." },
++          },
++          {
++            type: "toolCall",
++            id: "outer-code",
++            name: "exec",
++            arguments: { code: "await tools.calendar_list({})" },
++          },
++          {
++            type: "toolCall",
++            id: "wide-integer",
++            name: "read",
++            arguments: '{"number":9007199254740993,"nullable":null,"safe":100.0}',
++          },
++        ],
++        "run-main",
++        { stopReason: "toolUse" },
++      ),
++    ),
++    syntheticMessage("nested", "a1", {
++      role: "custom",
++      customType: "openclaw.nested-tool.v1",
++      display: true,
++      excludeFromContext: true,
++      details: {
++        runId: "run-main",
++        parentToolCallId: "outer-code",
++        toolCallId: "nested-calendar",
++        toolName: "calendar__list",
++        input: {},
++        startedAt: syntheticTime,
++        timestamp: syntheticTime + 10,
++        isError: false,
++        result: {
++          content: text("One meeting"),
++          details: { mcpServer: "calendar", mcpTool: "list" },
++        },
++      },
++    }),
++    syntheticMessage("t1", "a1", {
++      role: "toolResult",
++      toolCallId: "write-memory",
++      toolName: "write",
++      isError: false,
++      content: text("Saved"),
++      details: { changed: true, created: false },
++      __openclaw: { runId: "run-main" },
++    }),
++    syntheticMessage("t2", "t1", {
++      role: "toolResult",
++      toolCallId: "outer-code",
++      toolName: "exec",
++      isError: false,
++      content: text("Done"),
++      details: {
++        status: "completed",
++        exitCode: 0,
++        approvalId: "approval-1",
++        approvalReviews: [
++          {
++            id: "review-1",
++            label: "Auto reviewer",
++            status: "approved",
++            rationale: "Read-only calendar lookup",
++            riskLevel: "low",
++          },
++        ],
++      },
++      __openclaw: { runId: "run-main" },
++    }),
++    syntheticMessage(
++      "a2",
++      "t2",
++      assistant(
++        [
++          ...text("Saved your preference."),
++          {
++            type: "image",
++            mimeType: "image/png",
++            data: Buffer.alloc(65537, 7).toString("base64"),
++          },
++        ],
++        "run-main",
++        { responseId: "response-final" },
++      ),
++    ),
++    syntheticMessage("mirror", "a2", {
++      role: "assistant",
++      content: text("Saved your preference."),
++      provider: "openclaw",
++      model: "delivery-mirror",
++      openclawDeliveryMirror: { kind: "channel-final", sourceMessageId: "a2" },
++    }),
++    syntheticMessage("cron-u", "mirror", {
++      role: "user",
++      synthetic: true,
++      content: "Check the calendar.",
++      provenance: {
++        kind: "internal_system",
++        sourceTool: "cron_execution",
++        jobId: "calendar-job",
++        runId: "firing-1",
++      },
++      __openclaw: { runId: "run-cron" },
++    }),
++    syntheticMessage("quiet", "cron-u", assistant(text("NO_REPLY"), "run-cron")),
++    {
++      type: "compaction",
++      id: "compact",
++      parentId: "quiet",
++      timestamp: time,
++      summary: "The user prefers afternoon meetings.",
++      firstKeptEntryId: "cron-u",
++      tokensBefore: 100,
++      tokensAfter: 30,
++    },
++    syntheticMessage("recovery", "compact", {
++      role: "user",
++      synthetic: true,
++      content: "Resume interrupted work.",
++      provenance: { kind: "internal_system", sourceTool: "main_session_restart_recovery" },
++      __openclaw: { runId: "run-recovery" },
++    }),
++    syntheticMessage("peer", "recovery", {
++      role: "user",
++      content: "Calendar task complete",
++      provenance: { kind: "inter_session", originSessionId: "peer-window" },
++      __openclaw: { runId: "run-peer" },
++    }),
++    syntheticMessage("heartbeat", "peer", {
++      role: "user",
++      synthetic: true,
++      content: "Check for anything urgent.",
++      provenance: {
++        kind: "internal_system",
++        sourceTool: "cron",
++        jobId: "heartbeat-job",
++        runId: "heartbeat-fire",
++      },
++      __openclaw: { runId: "run-heartbeat" },
++    }),
++    syntheticMessage(
++      "auto-call",
++      "heartbeat",
++      assistant(
++        [{ type: "toolCall", id: "auto-exec", name: "exec", arguments: { command: "date" } }],
++        "run-auto",
++        { stopReason: "toolUse" },
++      ),
++    ),
++    syntheticMessage("auto-result", "auto-call", {
++      role: "toolResult",
++      toolCallId: "auto-exec",
++      toolName: "exec",
++      isError: true,
++      content: text("Synthetic command terminated"),
++      details: {
++        status: "failed",
++        exitCode: null,
++        exitSignal: 15,
++        approvalReviewOutcome: "approved",
++        approvalReviews: [
++          {
++            id: "guardian:auto-exec",
++            label: "Guardian",
++            status: "approved",
++            riskLevel: "low",
++            rationale: "Read-only command",
++          },
++        ],
++      },
++      __openclaw: { runId: "run-auto" },
++    }),
++    syntheticMessage(
++      "secret-call",
++      "auto-result",
++      assistant(
++        [
++          {
++            type: "toolCall",
++            id: "secret-1",
++            name: "secrets",
++            arguments: { label: "Fixture credential", value: "ASR_SECRET_MUST_NOT_ESCAPE" },
++          },
++        ],
++        "run-secret",
++        { stopReason: "toolUse" },
++      ),
++    ),
++    syntheticMessage("secret-result", "secret-call", {
++      role: "toolResult",
++      toolCallId: "secret-1",
++      isError: false,
++      content: text("ASR_SECRET_MUST_NOT_ESCAPE"),
++      details: { status: "answered", value: "ASR_SECRET_MUST_NOT_ESCAPE" },
++    }),
++  ];
++}
++
++/** Transcript setup uses the same entry and replacement writers as native tests.
++ * Side tables use the owning transaction APIs with explicit synthetic schema rows;
++ * no Gateway, model, channel credentials or real user data are needed.
++ */
++export async function createAgentSessionExportFixture(
++  env: NodeJS.ProcessEnv,
++  options: { windows?: number; messages?: number } = {},
++) {
++  const count = options.windows ?? 2;
++  for (let n = 1; n <= count; n++) {
++    const sessionId = syntheticId(n);
++    const scope = { agentId: "main", env, sessionKey: syntheticKey, sessionId };
++    await upsertSessionEntryCore(scope, {
++      sessionId,
++      updatedAt: syntheticTime + n,
++      label: "ASR synthetic group",
++      permissionMode: "workspace",
++      ...(!options.messages
++        ? {
++            goal: {
++              schemaVersion: 1 as const,
++              id: "fixture-goal",
++              objective: "Remember scheduling preferences",
++              status: "active" as const,
++              createdAt: syntheticTime,
++              updatedAt: syntheticTime,
++              tokenStart: 0,
++              tokensUsed: 12,
++              tokenBudget: 1000,
++              continuationTurns: 1,
++            },
++          }
++        : {}),
++    });
++    const events = options.messages
++      ? [
++          {
++            type: "session",
++            id: sessionId,
++            version: 4,
++            timestamp: time,
++            cwd: "/workspace/personal-assistant",
++          },
++          ...Array.from({ length: options.messages }, (_, i) =>
++            syntheticMessage(
++              `message-${i}`,
++              i ? `message-${i - 1}` : null,
++              i % 2
++                ? assistant(text(`Synthetic response ${i}`), `run-${i}`)
++                : { role: "user", synthetic: true, content: `Synthetic input ${i}` },
++            ),
++          ),
++        ]
++      : syntheticEvents(sessionId);
++    if (!options.messages && n === 2) {
++      events.push({ type: "leaf", id: "rewind", targetId: "a2", timestamp: time });
++      events.push(
++        syntheticMessage(
++          "a2-edit",
++          "t2",
++          assistant(text("Saved the revised preference."), "run-main", {
++            responseId: "response-final",
++          }),
++        ),
++      );
++      events.at(-1)!.supersedesEntryId = "a2";
++      events.push({
++        type: "branch_summary",
++        id: "branch-summary",
++        parentId: "a2-edit",
++        fromId: "peer",
++        timestamp: time,
++        summary: "A scheduled check was quiet.",
++      });
++    }
++    await replaceTranscriptEvents(scope, events);
++    runOpenClawAgentWriteTransaction(
++      (database) => {
++        const q = getNodeSqliteKysely<AgentDB>(database.db);
++        executeSqliteQuerySync(
++          database.db,
++          q
++            .updateTable("session_windows")
++            .set({
++              reason: n === 1 ? "initial" : "rewind",
++              previous_session_id: n === 1 ? null : syntheticId(n - 1),
++              started_at: syntheticTime,
++              channel: "slack",
++              chat_type: "group",
++            })
++            .where("session_id", "=", sessionId),
++        );
++      },
++      { agentId: "main", env },
++    );
++  }
++  if (!options.messages) {
++    for (const [n, harness, hook] of [
++      [1001, "codex", undefined],
++      [1002, "openclaw", "gmail"],
++      [1003, "openclaw", "webhook"],
++      [1004, "claude-cli", undefined],
++    ] as const) {
++      const sessionId = syntheticId(n);
++      const scope = { agentId: "main", env, sessionKey: `agent:main:fixture:${n}`, sessionId };
++      await upsertSessionEntryCore(scope, {
++        sessionId,
++        updatedAt: syntheticTime + n,
++        ...(harness === "claude-cli" ? { claudeCliSessionId: "claude-example" } : {}),
++      });
++      await replaceTranscriptEvents(scope, [
++        { type: "session", id: sessionId, version: 4, timestamp: time },
++        syntheticMessage("fixture-user", null, {
++          role: "user",
++          synthetic: hook !== undefined,
++          content: "Synthetic activation",
++          __openclaw: {
++            runId: `run-${n}`,
++            ...(harness === "codex" ? { mirrorIdentity: "upstream-user" } : {}),
++          },
++        }),
++        syntheticMessage(
++          "fixture-answer",
++          "fixture-user",
++          assistant(text("Synthetic answer"), `run-${n}`, {
++            __openclaw: {
++              runId: `run-${n}`,
++              ...(harness === "codex" ? { mirrorIdentity: "upstream-answer" } : {}),
++            },
++          }),
++        ),
++      ]);
++      runOpenClawAgentWriteTransaction(
++        (database) => {
++          const q = getNodeSqliteKysely<AgentDB>(database.db);
++          executeSqliteQuerySync(
++            database.db,
++            q
++              .updateTable("session_windows")
++              .set({ agent_harness_id: harness, hook_external_content_source: hook ?? null })
++              .where("session_id", "=", sessionId),
++          );
++        },
++        { agentId: "main", env },
++      );
++    }
++    runOpenClawAgentWriteTransaction(
++      (database) => {
++        const q = getNodeSqliteKysely<AgentDB>(database.db);
++        executeSqliteQuerySync(
++          database.db,
++          q.insertInto("conversations").values({
++            conversation_id: "conversation-group",
++            channel: "slack",
++            account_id: "work",
++            kind: "group",
++            peer_id: "C-EXAMPLE",
++            delivery_target: "C-EXAMPLE",
++            created_at: syntheticTime,
++            updated_at: syntheticTime,
++          }),
++        );
++        for (let n = 1; n <= count; n++) {
++          executeSqliteQuerySync(
++            database.db,
++            q.insertInto("session_conversations").values({
++              session_id: syntheticId(n),
++              conversation_id: "conversation-group",
++              role: "primary",
++              first_seen_at: syntheticTime,
++              last_seen_at: syntheticTime,
++            }),
++          );
++        }
++        executeSqliteQuerySync(
++          database.db,
++          q.insertInto("session_reactions").values({
++            session_key: syntheticKey,
++            session_id: syntheticId(1),
++            message_id: "a2",
++            emoji: "👍",
++            identity_id: "profile-dana",
++            identity_label: "Dana",
++            created_at: syntheticTime,
++          }),
++        );
++        for (const [operation, status, queue] of [
++          ["delivery-1", "sent", "queue-1"],
++          ["unassigned", "suppressed", null],
++        ] as const) {
++          executeSqliteQuerySync(
++            database.db,
++            q.insertInto("conversation_deliveries").values({
++              operation_id: operation,
++              operation_kind: "send",
++              conversation_id: "conversation-group",
++              source_session_key: syntheticKey,
++              message_hash: "synthetic-hash",
++              status,
++              queue_id: queue,
++              platform_message_id: status === "sent" ? "123.46" : null,
++              created_at: syntheticTime,
++              updated_at: syntheticTime,
++            }),
++          );
++        }
++      },
++      { agentId: "main", env },
++    );
++    runOpenClawStateWriteTransaction(
++      (database) => {
++        const q = getNodeSqliteKysely<StateDB>(database.db);
++        recordDefaultProactiveJobInDatabase(
++          database.db,
++          "default",
++          "main",
++          "heartbeat-job",
++          syntheticTime - 1000,
++          "complete",
++          true,
++        );
++        for (const [index, runId] of ["run-main", "run-cron"].entries()) {
++          executeSqliteQuerySync(
++            database.db,
++            q.insertInto("audit_events").values({
++              event_id: `audit-${index}`,
++              source_id: `audit-source-${index}`,
++              source_sequence: index,
++              occurred_at: syntheticTime - index * 1000,
++              kind: "agent_run",
++              action: "agent.run.started",
++              status: "ok",
++              actor_type: "agent",
++              actor_id: "main",
++              agent_id: "main",
++              session_key: syntheticKey,
++              session_id: syntheticId(1),
++              run_id: runId,
++            }),
++          );
++        }
++        executeSqliteQuerySync(
++          database.db,
++          q.insertInto("plugin_state_entries").values({
++            plugin_id: "codex",
++            namespace: "app-server-thread-bindings",
++            entry_key: `session:main:${syntheticId(1001)}`,
++            value_json: JSON.stringify({
++              version: 1,
++              state: "active",
++              binding: { threadId: "codex-example" },
++            }),
++            created_at: syntheticTime,
++          }),
++        );
++        executeSqliteQuerySync(
++          database.db,
++          q.insertInto("operator_approvals").values({
++            cursor_id: 1,
++            approval_id: "approval-1",
++            resolution_ref: "S".repeat(43),
++            kind: "exec",
++            status: "allowed",
++            presentation_json: JSON.stringify({ command: "calendar lookup" }),
++            reviewer_device_ids_json: "[]",
++            audience_session_keys_json: "[]",
++            runtime_epoch: "synthetic-private-epoch",
++            source_agent_id: "main",
++            source_session_id: syntheticId(1),
++            source_session_key: syntheticKey,
++            source_run_id: "run-main",
++            source_tool_call_id: "outer-code",
++            created_at_ms: syntheticTime,
++            expires_at_ms: syntheticTime + 10000,
++            updated_at_ms: syntheticTime + 2,
++            resolved_at_ms: syntheticTime + 1,
++            decision: "allow-once",
++            terminal_reason: "user",
++            resolver_kind: "device",
++            resolver_id: "device-example",
++            consumed_at_ms: syntheticTime + 2,
++            consumed_by: "outer-code",
++          }),
++        );
++        executeSqliteQuerySync(
++          database.db,
++          q.insertInto("skill_workshop_changes").values({
++            cursor_id: 1,
++            change_id: "skill-1",
++            agent_id: "main",
++            skill_name: "calendar-notes",
++            action: "create",
++            actor: "agent",
++            summary: "Remember scheduling preferences",
++            session_key: syntheticKey,
++            run_id: "run-main",
++            created_at_ms: syntheticTime,
++          }),
++        );
++        executeSqliteQuerySync(
++          database.db,
++          q.insertInto("delivery_queue_entries").values({
++            queue_name: "outbound",
++            id: "queue-1",
++            status: "pending",
++            session_key: syntheticKey,
++            channel: "slack",
++            target: "C-EXAMPLE",
++            entry_json: JSON.stringify({ sessionGeneration: { sessionId: syntheticId(1) } }),
++            enqueued_at: syntheticTime,
++            updated_at: syntheticTime,
++          }),
++        );
++        executeSqliteQuerySync(
++          database.db,
++          q.insertInto("cron_jobs").values({
++            store_key: "default",
++            job_id: "calendar-job",
++            name: "Calendar check",
++            enabled: 1,
++            agent_id: "main",
++            payload_kind: "agentTurn",
++            job_json: JSON.stringify({
++              schedule: { kind: "cron", expr: "0 9 * * *", tz: "UTC" },
++            }),
++            updated_at: syntheticTime,
++          }),
++        );
++        executeSqliteQuerySync(
++          database.db,
++          q.insertInto("cron_run_receipts").values({
++            cursor_id: 1,
++            receipt_id: "receipt-1",
++            store_key: "default",
++            job_id: "calendar-job",
++            config_revision: "synthetic-revision",
++            agent_id: "main",
++            request_run_id: "run-cron",
++            status: "ok",
++            owner_pid: 1,
++            started_at_ms: syntheticTime,
++            finished_at_ms: syntheticTime + 1,
++          }),
++        );
++      },
++      { env },
++    );
++  }
++  return { agentId: "main", env, path: resolveOpenClawAgentSqlitePath({ agentId: "main", env }) };
++}

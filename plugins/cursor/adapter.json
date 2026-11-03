@@ -1,0 +1,69 @@
+{
+  "agent": "cursor",
+  "events": {
+    "sessionStart": "SessionStart",
+    "sessionEnd": "SessionEnd",
+    "preToolUse": "PreToolUse",
+    "postToolUse": "PostToolUse",
+    "postToolUseFailure": "PostToolUseFailure",
+    "subagentStart": "SubagentStart",
+    "subagentStop": "SubagentStop",
+    "beforeSubmitPrompt": "UserPromptSubmit",
+    "afterAgentResponse": "AssistantMessage",
+    "preCompact": "PreCompact",
+    "stop": "Stop"
+  },
+  "fields": [
+    "tool_use_id",
+    "tool_name",
+    "tool_input",
+    "cwd",
+    "prompt",
+    "message",
+    "is_interrupt",
+    "source",
+    "reason",
+    "model",
+    "failure_type",
+    "notification_type",
+    "subagent_id",
+    "tool_call_id",
+    "task",
+    "composer_mode"
+  ],
+  "rename": {
+    "conversation_id": "session_id",
+    "generation_id": "prompt_id",
+    "cursor_version": "agent_version",
+    "duration": "duration_ms",
+    "tool_output": "tool_response",
+    "error_message": "error",
+    "text": "message",
+    "parent_conversation_id": "parent_session_id",
+    "composer_mode": "agent_type"
+  },
+  "new_session_sources": [],
+  "kinds": {
+    "Shell": "execute",
+    "Read": "read",
+    "Write": "edit",
+    "Grep": "search",
+    "Delete": "delete",
+    "Task": "other"
+  },
+  "shell_tools": [
+    "Shell"
+  ],
+  "agent_tools": [
+    "Task"
+  ],
+  "secret_tools": [
+    "AskUserQuestion"
+  ],
+  "asks_sometimes": [],
+  "child_ids": false,
+  "missing": [
+    "session_lifecycle",
+    "history_before_capture"
+  ]
+}

@@ -1,0 +1,4 @@
+{"sessionId":"complete-tabnine","startTime":"2026-07-21T12:00:00Z","directories":["/workspace/fixture"]}
+{"id":"tabnine-message","timestamp":"2026-07-21T12:00:01Z","type":"user","content":"Tabnine snowman ☃\nquoted \"body\" and escaped \\\\ path"}
+{"id":"answer","type":"tabnine","content":"partial"}
+{"id":"answer","type":"tabnine","content":"final","tokens":{"input":2,"output":0},"toolCalls":[{"id":"call-1","name":"run_shell_command","args":{"command":"true"},"result":{"display":"only"},"status":"success"}]}

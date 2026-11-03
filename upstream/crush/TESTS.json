@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "2 focused exporter tests and matching session-setup tests",
+    "Go vet for the exporter",
+    "Go formatting",
+    "Synthetic fixture created through the real SQLite services"
+  ],
+  "sampleRecords": 5,
+  "sampleErrors": 0,
+  "sampleWarnings": [],
+  "liveTestStatus": "partial"
+}

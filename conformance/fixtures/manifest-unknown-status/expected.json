@@ -1,0 +1,8 @@
+[
+  {
+    "severity": "warning",
+    "code": "manifest-unknown-status",
+    "line": 1,
+    "pointer": "/entries/0/status"
+  }
+]

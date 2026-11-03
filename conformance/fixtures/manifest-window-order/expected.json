@@ -1,0 +1,8 @@
+[
+  {
+    "severity": "warning",
+    "code": "manifest-window-order",
+    "line": 1,
+    "pointer": "/window/end"
+  }
+]

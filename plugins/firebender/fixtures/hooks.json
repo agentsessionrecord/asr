@@ -1,0 +1,208 @@
+[
+  {
+    "event": "sessionStart",
+    "payload": {
+      "hook_event_name": "sessionStart",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-turn",
+      "model": "synthetic-model",
+      "firebender_version": "0.15.20",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "composer_mode": "write",
+      "is_background_agent": false
+    }
+  },
+  {
+    "event": "preToolUse",
+    "payload": {
+      "hook_event_name": "preToolUse",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-turn",
+      "model": "synthetic-model",
+      "firebender_version": "0.15.20",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "tool_name": "Shell",
+      "tool_input": {
+        "command": "printf requested"
+      },
+      "tool_use_id": "synthetic-call"
+    }
+  },
+  {
+    "event": "beforeShellExecution",
+    "payload": {
+      "hook_event_name": "beforeShellExecution",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-turn",
+      "model": "synthetic-model",
+      "firebender_version": "0.15.20",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "command": "printf effective",
+      "cwd": "/work/synthetic",
+      "timeout": 30
+    }
+  },
+  {
+    "event": "postToolUse",
+    "payload": {
+      "hook_event_name": "postToolUse",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-turn",
+      "model": "synthetic-model",
+      "firebender_version": "0.15.20",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "tool_name": "Shell",
+      "tool_input": {
+        "command": "printf effective"
+      },
+      "tool_output": "effective\n",
+      "tool_use_id": "synthetic-call",
+      "duration": 0
+    }
+  },
+  {
+    "event": "afterShellExecution",
+    "payload": {
+      "hook_event_name": "afterShellExecution",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-turn",
+      "model": "synthetic-model",
+      "firebender_version": "0.15.20",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "command": "printf effective",
+      "output": "effective\n",
+      "duration": 0
+    }
+  },
+  {
+    "event": "afterMCPExecution",
+    "payload": {
+      "hook_event_name": "afterMCPExecution",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-turn",
+      "model": "synthetic-model",
+      "firebender_version": "0.15.20",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "tool_name": "synthetic_mcp",
+      "tool_input": "{}",
+      "result_json": "{\"ok\":true}",
+      "duration": 0
+    }
+  },
+  {
+    "event": "afterFileEdit",
+    "payload": {
+      "hook_event_name": "afterFileEdit",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-turn",
+      "model": "synthetic-model",
+      "firebender_version": "0.15.20",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "file_path": "/work/synthetic/example.txt",
+      "edits": [
+        {
+          "old_string": "old",
+          "new_string": "new"
+        }
+      ]
+    }
+  },
+  {
+    "event": "subagentStart",
+    "payload": {
+      "hook_event_name": "subagentStart",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-turn",
+      "model": "synthetic-model",
+      "firebender_version": "0.15.20",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "agent_id": "synthetic-child",
+      "agent_type": "Explore",
+      "cwd": "/work/synthetic"
+    }
+  },
+  {
+    "event": "subagentStop",
+    "payload": {
+      "hook_event_name": "subagentStop",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-turn",
+      "model": "synthetic-model",
+      "firebender_version": "0.15.20",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "agent_id": "synthetic-child",
+      "agent_type": "Explore",
+      "status": "completed",
+      "last_assistant_message": "Synthetic child reply."
+    }
+  },
+  {
+    "event": "preCompact",
+    "payload": {
+      "hook_event_name": "preCompact",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-turn",
+      "model": "synthetic-model",
+      "firebender_version": "0.15.20",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "trigger": "auto",
+      "context_usage_percent": 85,
+      "context_tokens": 120000,
+      "context_window_size": 128000,
+      "message_count": 45,
+      "messages_to_compact": 30,
+      "is_first_compaction": true
+    }
+  },
+  {
+    "event": "stop",
+    "payload": {
+      "hook_event_name": "stop",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-turn",
+      "model": "synthetic-model",
+      "firebender_version": "0.15.20",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "status": "completed",
+      "loop_count": 0
+    }
+  },
+  {
+    "event": "sessionEnd",
+    "payload": {
+      "hook_event_name": "sessionEnd",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-turn",
+      "model": "synthetic-model",
+      "firebender_version": "0.15.20",
+      "workspace_roots": [
+        "/work/synthetic"
+      ],
+      "reason": "user_close",
+      "duration_ms": 5432,
+      "final_status": "completed"
+    }
+  }
+]

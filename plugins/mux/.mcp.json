@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "asr-recorder": {
+      "command": "node",
+      "args": [
+        "${PLUGIN_ROOT}/server.mjs"
+      ],
+      "env_vars": [
+        "ASR_OUTPUT_DIR",
+        "ASR_CONTENT"
+      ]
+    }
+  }
+}

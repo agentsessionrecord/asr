@@ -1,0 +1,65 @@
+{
+  "sessionId": "synthetic-openhands",
+  "events": [
+    {
+      "id": "prompt",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "kind": "MessageEvent",
+      "source": "user",
+      "llm_message": {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Reply ready.\n"
+          }
+        ]
+      },
+      "activated_skills": [],
+      "extended_content": []
+    },
+    {
+      "id": "finish-call",
+      "timestamp": "2026-10-31T12:00:01Z",
+      "kind": "ActionEvent",
+      "source": "agent",
+      "action": {
+        "kind": "FinishAction",
+        "message": "Ready."
+      },
+      "tool_name": "finish",
+      "tool_call_id": "call-1",
+      "tool_call": {
+        "id": "call-1",
+        "type": "function",
+        "function": {
+          "name": "finish",
+          "arguments": "{\"message\":\"Ready.\"}"
+        }
+      },
+      "thought": [],
+      "thinking_blocks": [],
+      "llm_response_id": "synthetic-response",
+      "security_risk": "LOW"
+    },
+    {
+      "id": "finish-result",
+      "timestamp": "2026-10-31T12:00:02Z",
+      "kind": "ObservationEvent",
+      "source": "environment",
+      "tool_name": "finish",
+      "tool_call_id": "call-1",
+      "action_id": "finish-call",
+      "observation": {
+        "kind": "FinishObservation",
+        "content": [
+          {
+            "type": "text",
+            "text": "Ready."
+          }
+        ],
+        "is_error": false
+      }
+    }
+  ]
+}

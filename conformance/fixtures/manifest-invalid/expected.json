@@ -1,0 +1,14 @@
+[
+  {
+    "severity": "error",
+    "code": "schema.anyOf",
+    "line": 1,
+    "pointer": "/previousManifest"
+  },
+  {
+    "severity": "error",
+    "code": "schema.required",
+    "line": 1,
+    "pointer": "/entries/0"
+  }
+]

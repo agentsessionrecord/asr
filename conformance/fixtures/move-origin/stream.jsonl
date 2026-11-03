@@ -1,0 +1,2 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"run-1","producer":{"name":"example-export","version":"1","method":"native"}}
+{"type":"file_change","id":"change","path":"src/app.py","op":"move","status":"applied"}

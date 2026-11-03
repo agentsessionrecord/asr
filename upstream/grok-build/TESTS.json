@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "19 focused crate tests",
+    "Cargo format",
+    "Clippy for the affected library and tests with warnings denied",
+    "Native EventWriter synthetic fixture"
+  ],
+  "sampleRecords": 4,
+  "sampleErrors": 0,
+  "sampleWarnings": [
+    "unpaired-result"
+  ],
+  "liveTestStatus": "not-live-tested"
+}

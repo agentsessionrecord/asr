@@ -1,0 +1,2 @@
+# Patch context uses a single space for unchanged empty lines.
+*.patch whitespace=-blank-at-eol

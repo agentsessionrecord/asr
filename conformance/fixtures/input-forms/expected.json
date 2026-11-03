@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-023",
+    "code": "schema.not",
+    "line": 2,
+    "pointer": ""
+  }
+]

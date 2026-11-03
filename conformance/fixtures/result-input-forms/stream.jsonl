@@ -1,0 +1,3 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"live-7","producer":{"name":"example-recorder","version":"1.0","method":"recorder","source":"example-hooks"}}
+{"type":"tool_call","id":"c","callId":"c","name":"read"}
+{"type":"tool_result","id":"r","callId":"c","status":"completed","input":null,"inputText":"null"}

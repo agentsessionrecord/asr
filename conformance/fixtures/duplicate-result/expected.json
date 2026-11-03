@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-026",
+    "code": "duplicate-result",
+    "line": 4,
+    "pointer": "/callId"
+  }
+]

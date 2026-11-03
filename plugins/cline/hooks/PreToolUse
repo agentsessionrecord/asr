@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+hook_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 0
+node "$hook_dir/../../remaining-core/command.mjs" cline 2>/dev/null || true

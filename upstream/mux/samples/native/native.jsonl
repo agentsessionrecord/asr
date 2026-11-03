@@ -1,0 +1,3 @@
+{"id": "u", "role": "user", "parts": [{"type": "text", "text": "Exact\r\n"}]}
+{"id": "a", "role": "assistant", "parts": [{"type": "reasoning", "text": "Check the fixture."}, {"type": "dynamic-tool", "toolCallId": "call-1", "toolName": "read", "input": {"path": "fixture.txt"}, "state": "input-available"}]}
+{"id": "a", "role": "assistant", "parts": [{"type": "reasoning", "text": "Check the fixture."}, {"type": "dynamic-tool", "toolCallId": "call-1", "toolName": "read", "input": {"path": "fixture.txt"}, "state": "output-available", "output": {"content": "Synthetic fixture.\n"}}], "metadata": {"providerMetadata": {"signature": "SYNTHETIC-OPAQUE"}, "usage": {"inputTokens": 99}}}

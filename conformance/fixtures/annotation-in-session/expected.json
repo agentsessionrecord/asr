@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-061",
+    "code": "annotation-in-session",
+    "line": 2,
+    "pointer": "/type"
+  }
+]

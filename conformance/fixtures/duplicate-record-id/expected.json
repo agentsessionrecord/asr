@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-007",
+    "code": "duplicate-id",
+    "line": 3,
+    "pointer": "/id"
+  }
+]

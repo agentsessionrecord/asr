@@ -1,0 +1,6 @@
+name: asr_recorder
+display_name: Agent Session Record
+desc: Passive local session capture
+version: v0.1.0
+author: Agent Session Record
+repo: https://github.com/agentsessionrecord/asr

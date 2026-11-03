@@ -1,0 +1,4 @@
+{"type":"session","id":"asr:-1:header","formatVersion":"0.1","agent":{"name":"openhands"},"sessionId":"synthetic-openhands","producer":{"name":"openhands-agent-canvas","version":"1.34.0","method":"native","source":"agent-server-events"},"missing":["agent_settings","approvals","commits","copies","event_order","exit_codes","file_changes","inference_settings","instructions","media","message_author","model","provider_state","reasoning","subagents","tools","usage"]}
+{"id":"prompt","ts":"2026-10-31T12:00:00Z","type":"message","role":"user","content":[{"type":"text","text":"Reply ready.\n"}]}
+{"id":"finish-call","ts":"2026-10-31T12:00:01Z","type":"tool_call","callId":"call-1","name":"finish","input":{"kind":"FinishAction","message":"Ready."},"requestedBy":"model"}
+{"id":"finish-result","ts":"2026-10-31T12:00:02Z","type":"tool_result","callId":"call-1","status":"completed","content":[{"type":"text","text":"Ready."}]}

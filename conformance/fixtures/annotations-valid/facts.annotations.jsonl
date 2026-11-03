@@ -1,0 +1,7 @@
+{"type":"annotation","id":"a1","session":"com.example.agent:run-1","kind":"title","at":"2026-10-27T09:00:00Z","source":{"name":"indexer"},"data":{"title":"Parser fix"}}
+{"type":"annotation","id":"a2","session":"com.example.agent:run-1","kind":"summary","at":"2026-10-27T09:00:00Z","source":{"name":"indexer"},"data":{"text":"Done","model":"example-model"}}
+{"type":"annotation","id":"a3","session":"com.example.agent:run-1","kind":"outcome","at":"2026-10-27T09:00:00Z","source":{"name":"indexer"},"data":{"status":"merged","pr":{"url":"https://example.com/pr/1","mergeCommit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}
+{"type":"annotation","id":"a4","session":"com.example.agent:run-1","kind":"test","at":"2026-10-27T09:00:00Z","source":{"name":"indexer"},"data":{"status":"passed","commit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}
+{"type":"annotation","id":"a5","session":"com.example.agent:run-1","kind":"vcs","at":"2026-10-27T09:00:00Z","source":{"name":"indexer"},"data":{"action":"rebase","status":"completed","evidence":"observed","rewrites":[{"from":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","to":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}]}}
+{"type":"annotation","id":"a6","session":"com.example.agent:run-1","kind":"title","at":"2026-10-27T09:00:00Z","source":{"name":"indexer"},"data":{"title":"Parser fix"},"supersedes":"a1"}
+{"type":"annotation","id":"a7","session":"com.example.agent:run-1","kind":"future","at":"2026-10-27T09:00:00Z","source":{"name":"indexer"},"data":[null,0,false]}

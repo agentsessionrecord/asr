@@ -1,0 +1,38 @@
+[
+  {
+    "session_id": "synthetic-session",
+    "hook": "on_llm_request",
+    "prompt": "Run the synthetic tool."
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook": "on_using_llm_tool",
+    "tool_name": "synthetic_echo",
+    "tool_args": {
+      "text": "ready"
+    }
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook": "on_llm_tool_respond",
+    "tool_name": "synthetic_echo",
+    "tool_args": {
+      "text": "ready",
+      "ignored": "unfiltered"
+    },
+    "tool_result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "ready\n"
+        }
+      ],
+      "isError": false
+    }
+  },
+  {
+    "session_id": "synthetic-session",
+    "hook": "on_agent_done",
+    "completion_text": "The synthetic tool returned ready."
+  }
+]

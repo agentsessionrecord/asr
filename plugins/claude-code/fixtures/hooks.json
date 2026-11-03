@@ -1,0 +1,122 @@
+[
+  {
+    "event": "SessionStart",
+    "payload": {
+      "hook_event_name": "SessionStart",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "source": "startup",
+      "permission_mode": "default"
+    }
+  },
+  {
+    "event": "UserPromptSubmit",
+    "payload": {
+      "hook_event_name": "UserPromptSubmit",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "prompt": "Print the synthetic marker."
+    }
+  },
+  {
+    "event": "PreToolUse",
+    "payload": {
+      "hook_event_name": "PreToolUse",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_use_id": "synthetic-call",
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "printf requested"
+      }
+    }
+  },
+  {
+    "event": "PermissionRequest",
+    "payload": {
+      "hook_event_name": "PermissionRequest",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "printf requested"
+      }
+    }
+  },
+  {
+    "event": "PostToolUse",
+    "payload": {
+      "hook_event_name": "PostToolUse",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_use_id": "synthetic-call",
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "printf effective"
+      },
+      "tool_response": {
+        "stdout": "effective",
+        "stderr": ""
+      },
+      "duration_ms": 0
+    }
+  },
+  {
+    "event": "Notification",
+    "payload": {
+      "hook_event_name": "Notification",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "message": "Synthetic intervening notice.",
+      "notification_type": "idle_prompt"
+    }
+  },
+  {
+    "event": "PostToolBatch",
+    "payload": {
+      "hook_event_name": "PostToolBatch",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "tool_calls": [
+        {
+          "tool_use_id": "synthetic-call",
+          "tool_name": "Bash",
+          "tool_input": {
+            "command": "printf requested"
+          },
+          "tool_response": "effective\n"
+        }
+      ]
+    }
+  },
+  {
+    "event": "MessageDisplay",
+    "payload": {
+      "hook_event_name": "MessageDisplay",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "message_id": "synthetic-message",
+      "index": 0,
+      "final": true,
+      "delta": "Done.\n"
+    }
+  },
+  {
+    "event": "Stop",
+    "payload": {
+      "hook_event_name": "Stop",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "last_assistant_message": "Done.\n"
+    }
+  },
+  {
+    "event": "SessionEnd",
+    "payload": {
+      "hook_event_name": "SessionEnd",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "reason": "other"
+    }
+  }
+]

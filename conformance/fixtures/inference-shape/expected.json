@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-035",
+    "code": "schema.anyOf",
+    "line": 2,
+    "pointer": "/model"
+  }
+]

@@ -1,0 +1,4 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"child-1","producer":{"name":"example-export","version":"1.0","method":"native"},"parent":{"session":"com.example.agent:parent-1","kind":"subagent","callId":"spawn-1","role":"reviewer","copiedThrough":"inherited"}}
+{"type":"message","id":"inherited","role":"user","content":[{"type":"text","text":"Review the empty-input check."}],"author":"human","origin":"prompt"}
+{"type":"inference","id":"child-model","model":{"requested":"review-model"},"usage":{"inputTokens":80,"outputTokens":12}}
+{"type":"message","id":"reply","inferenceId":"child-model","role":"assistant","author":"model","phase":"final","content":[{"type":"text","text":"The check handles empty input."}]}

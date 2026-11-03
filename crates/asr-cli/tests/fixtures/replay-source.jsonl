@@ -1,0 +1,6 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"synthetic","producer":{"name":"fixture","version":"1","method":"native"}}
+{"type":"session_info","id":"settings","tools":[{"name":"shell","inputSchema":{"type":"object"}}],"agentSettings":{"modelSettings":{"temperature":0.9}}}
+{"type":"message","id":"instructions","role":"system","origin":"instructions","content":[{"type":"text","text":"original system"}]}
+{"type":"message","id":"prompt","role":"user","author":"human","content":[{"type":"text","text":"synthetic prompt"}]}
+{"type":"message","id":"original-output","role":"assistant","inferenceId":"selected","content":[{"type":"text","text":"do not send this output"}]}
+{"type":"inference","id":"selected","model":{"requested":"synthetic-model"},"settings":{"temperature":0,"maxOutputTokens":100},"usage":{"inputTokens":5,"outputTokens":1}}

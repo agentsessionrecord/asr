@@ -1,0 +1,6 @@
+{
+  "method": "POST",
+  "path": "/services/collector/event",
+  "content_type": "application/json",
+  "body": "{\"time\":1793361600,\"source\":\"asr\",\"sourcetype\":\"ocsf:asr\",\"event\":{\"category_uid\":0,\"class_uid\":0,\"activity_id\":99,\"type_uid\":99,\"severity_id\":0,\"status_id\":0,\"metadata\":{\"version\":\"1.4.0\",\"uid\":\"7033e8e06d21c4f3ec5bbc4545486582f023c14318403aed9bb330e97d8440d8\",\"event_code\":\"asr.session\",\"product\":{\"name\":\"ASR SIEM exporter\",\"vendor_name\":\"Agent Session Record\",\"version\":\"0.1.0\"}},\"unmapped\":{\"asr\":{\"session\":\"com.example.agent:synthetic:audit%3A7\",\"record\":\"com.example.agent:synthetic:audit%3A7#header\",\"record_type\":\"session\",\"position\":0,\"credited\":true,\"missing\":[\"approvals\",\"copies\"],\"content_included\":false,\"time_source\":\"record\",\"ts\":\"2026-10-30T12:00:00Z\"}},\"time\":1793361600000}}\n"
+}

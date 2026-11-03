@@ -1,0 +1,34 @@
+{
+  "conversation_id": "synthetic-astrbot",
+  "platform_id": "synthetic",
+  "user_id": "synthetic-user",
+  "content": [
+    {
+      "role": "user",
+      "content": "Echo ready.\n"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-1",
+          "type": "function",
+          "function": {
+            "name": "echo",
+            "arguments": "{\"text\":\"ready\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call-1",
+      "content": "ready"
+    },
+    {
+      "role": "assistant",
+      "content": "Ready."
+    }
+  ]
+}

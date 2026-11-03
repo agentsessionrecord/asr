@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentsessionrecord.org/schema/registry.schema.json",
+  "title": "ASR tool registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "entries"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "kind", "path", "language", "status", "location", "liveTestStatus"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "name": { "type": "string", "minLength": 1 },
+        "kind": {
+          "enum": ["tool", "library", "converter", "plugin", "recorder", "importer", "exporter", "app", "patch", "sample"]
+        },
+        "path": {
+          "description": "Current path in this repository, or intended path when elsewhere or planned.",
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))[A-Za-z0-9_./@-]+$"
+        },
+        "language": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["planned", "in-progress", "built", "prototype", "elsewhere"] },
+        "location": {
+          "description": "Repository path, or a public HTTPS URL for an external implementation.",
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "liveTestStatus": { "enum": ["passed", "partial", "not-live-tested", "not-applicable"] },
+        "liveTestNotes": { "type": "string", "minLength": 1 },
+        "notes": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "elsewhere" } } },
+          "then": {
+            "required": ["revision", "notes"],
+            "properties": {
+              "revision": true,
+              "notes": true,
+              "location": { "type": "string", "pattern": "^https://" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "liveTestStatus": { "enum": ["passed", "partial"] } } },
+          "then": {
+            "required": ["liveTestNotes"],
+            "properties": { "liveTestNotes": true }
+          }
+        }
+      ]
+    }
+  }
+}

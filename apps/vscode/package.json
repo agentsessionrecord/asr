@@ -1,0 +1,93 @@
+{
+  "name": "asr-editor",
+  "displayName": "ASR Sessions",
+  "description": "Find recorded session evidence behind a Git line and read it locally.",
+  "publisher": "agentsessionrecord",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "private": true,
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "asr.showLine",
+        "title": "ASR: Show Sessions Behind This Line"
+      },
+      {
+        "command": "asr.openSession",
+        "title": "ASR: Open Session in Viewer"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "asr.showLine",
+          "group": "navigation@100",
+          "when": "resourceScheme == file && isWorkspaceTrusted"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "ASR Sessions",
+      "properties": {
+        "asr.executable": {
+          "type": "string",
+          "default": "asr",
+          "scope": "machine",
+          "description": "Installed asr executable with the blame command. No shell arguments."
+        },
+        "asr.sessions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "scope": "machine",
+          "description": "Absolute local ASR session files or directories. Symlinks are skipped."
+        },
+        "asr.annotations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "scope": "machine",
+          "description": "Absolute annotation files passed explicitly to asr blame."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test:unit": "node --test test/*.test.mjs",
+    "test:harness": "node test/run.cjs",
+    "ci": "pnpm run typecheck && pnpm run build && pnpm run test:unit && pnpm run test:harness",
+    "package:local": "pnpm run build && pnpm dlx @vscode/vsce@3.7.1 package --no-dependencies --baseContentUrl https://github.com/agentsessionrecord/asr/blob/main/apps/vscode --baseImagesUrl https://github.com/agentsessionrecord/asr/raw/main/apps/vscode --skip-license --out ../../target/asr-editor-0.1.0.vsix"
+  },
+  "devDependencies": {
+    "@types/vscode": "1.109.0",
+    "@vscode/test-electron": "2.5.2",
+    "esbuild": "0.25.12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agentsessionrecord/asr.git",
+    "directory": "apps/vscode"
+  }
+}

@@ -1,0 +1,5 @@
+{"type":"session_meta","sessionId":"complete-qoder","uuid":"qoder-meta","timestamp":"2026-07-21T12:00:00Z","cwd":"/workspace/fixture"}
+{"type":"user","sessionId":"complete-qoder","uuid":"qoder-message","timestamp":"2026-07-21T12:00:01Z","message":{"role":"user","content":"Qoder snowman ☃\nquoted \"body\" and escaped \\\\ path"}}
+{"type":"assistant","sessionId":"complete-qoder","uuid":"call-row","message":{"content":[{"type":"tool_use","id":"call-1","name":"Read","input":{"path":"hello.txt"}}]}}
+{"type":"user","sessionId":"complete-qoder","uuid":"result-row","message":{"content":[{"type":"tool_result","tool_use_id":"call-1","is_error":false,"content":"model text"}]},"toolUseResult":{"content":"display text","exitCode":2}}
+{"type":"future","sessionId":"complete-qoder","uuid":"unknown","details":{"number":9007199254740993}}

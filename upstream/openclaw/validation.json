@@ -1,0 +1,36 @@
+{
+  "validatorRevision": "e0b3efabcd84f97cc0df06b86f80233016991d52",
+  "captures": [
+    {
+      "kind": "synthetic-sample",
+      "files": 1,
+      "records": 9,
+      "errors": 0,
+      "warnings": 0,
+      "codes": {}
+    },
+    {
+      "kind": "isolated-compatible endpoint-session",
+      "files": 1,
+      "records": 9,
+      "errors": 0,
+      "warnings": 0,
+      "codes": {}
+    }
+  ],
+  "focusedTests": {
+    "passed": 7,
+    "referenceValidatorEnabled": true
+  },
+  "checksPassed": [
+    "targeted-typecheck",
+    "targeted-lint",
+    "targeted-format",
+    "sample-reproduction-byte-equality",
+    "package-integrity-and-contracts",
+    "exact-upstream-base-apply"
+  ],
+  "liveScope": "Existing built CLI inference and current source SQLite export owner. Full CLI exporter not rebuilt.",
+  "currentCodeLiveTest": "unverified",
+  "evidenceScope": "Prior revision. Counts do not certify the current implementation."
+}

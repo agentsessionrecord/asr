@@ -1,0 +1,10 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"zed"},"sessionId":"synthetic-zed","producer":{"name":"zed-agent-session","version":"0.1.0","method":"native","source":"zed-db-thread-0.3.0"},"missing":["timestamps","usage","model","approvals","agent_settings","tools","file_changes","commits","subagents","copies","images","provider_state","tool_result_order","history","partial_tool_calls"]}
+{"type":"message","id":"prompt","role":"user","content":[{"type":"text","text":"Read the synthetic item.\n"}]}
+{"type":"message","id":"asr-0","role":"assistant","author":"model","content":[{"type":"reasoning","summary":["Check the item.\n"],"visibility":"summary"}]}
+{"type":"tool_call","id":"asr-1","callId":"call-1","name":"read","requestedBy":"model","input":{"number":"9007199254740993"}}
+{"type":"tool_result","id":"asr-2","callId":"call-1","status":"completed","content":[{"type":"text","text":"item\n"}]}
+{"type":"message","id":"asr-3","role":"user","author":"harness","origin":"compaction","content":[{"type":"text","text":"Read one item.\n"}]}
+{"type":"gap","id":"asr-4","reason":"not_retained","detail":"Earlier context was replaced by this compaction summary."}
+{"type":"message","id":"asr-5","role":"user","author":"harness","origin":"command","content":[{"type":"text","text":"Continue where you left off"}]}
+{"type":"message","id":"asr-6","role":"assistant","author":"model","content":[{"type":"reasoning","visibility":"encrypted"}]}
+{"type":"message","id":"asr-7","role":"assistant","author":"model","content":[{"type":"text","text":"Finished.\n"}]}

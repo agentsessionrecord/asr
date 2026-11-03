@@ -1,0 +1,62 @@
+{
+  "fields": [
+    "session_id",
+    "cwd",
+    "tool_name",
+    "tool_input",
+    "tool_response",
+    "source",
+    "reason",
+    "prompt",
+    "notification_type",
+    "message",
+    "timestamp"
+  ],
+  "kinds": {
+    "write_file": "edit",
+    "run_shell_command": "execute"
+  },
+  "secret_tools": [
+    "ask_user"
+  ],
+  "shell_tools": [
+    "run_shell_command"
+  ],
+  "agent_tools": [],
+  "new_session_sources": [
+    "startup",
+    "clear"
+  ],
+  "post_status": "unknown",
+  "agent": "tabnine",
+  "events": {
+    "SessionStart": "SessionStart",
+    "BeforeTool": "PreToolUse",
+    "AfterTool": "PostToolUse",
+    "BeforeAgent": "UserPromptSubmit",
+    "AfterAgent": "AssistantMessage",
+    "BeforeModel": "BeforeModel",
+    "AfterModel": "AfterModel",
+    "BeforeToolSelection": "BeforeToolSelection",
+    "Notification": "Notification",
+    "PreCompress": "PreCompact",
+    "SessionEnd": "SessionEnd"
+  },
+  "rename": {
+    "prompt_response": "message"
+  },
+  "model_facing": true,
+  "observations": [
+    "tool_name",
+    "original_request_name",
+    "stop_hook_active",
+    "trigger"
+  ],
+  "missing": [
+    "call_ids",
+    "effective_tool_input",
+    "model_stream_content",
+    "hook_replaced_output",
+    "session_end_delivery"
+  ]
+}

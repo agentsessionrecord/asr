@@ -1,0 +1,4 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"audit-7","producer":{"name":"example-export","version":"1.0","method":"native"}}
+{"type":"session_info","id":"settings","agentSettings":{"externalSandbox":{"kind":"container","source":"environment","native":{"id":"box-7"}}}}
+{"type":"session_info","id":"clear","agentSettings":{"externalSandbox":{}}}
+{"type":"session_info","id":"future","agentSettings":{"externalSandbox":{"kind":"_future","source":"future","native":false}}}

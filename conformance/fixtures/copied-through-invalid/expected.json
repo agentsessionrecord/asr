@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-041",
+    "code": "copied-through",
+    "line": 1,
+    "pointer": "/parent/copiedThrough"
+  }
+]

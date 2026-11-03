@@ -1,0 +1,4 @@
+{"id":"header","agent":{"name":"claude-code","version":"2.1.305"},"sessionId":"synthetic-session","producer":{"name":"synthetic-fixture","version":"1","method":"native"},"missing":["approvals","usage"],"type":"session","formatVersion":"0.1"}
+{"type":"tool_call","id":"call","callId":"c1","name":"shell"}
+{"type":"message","id":"notice","role":"user","author":"harness","content":[]}
+{"type":"tool_result","id":"result","callId":"c1","status":"unknown"}

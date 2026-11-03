@@ -1,0 +1,5 @@
+{"type":"session_start","sessionId":"complete-droid","timestamp":"2026-07-21T12:00:00Z","cwd":"/workspace/fixture"}
+{"type":"message","id":"droid-message","timestamp":"2026-07-21T12:00:01Z","role":"user","content":"Droid snowman ☃\nquoted \"body\" and escaped \\\\ path"}
+{"type":"message","id":"assistant-row","message":{"role":"assistant","content":[{"type":"tool_use","id":"call-1","name":"Execute","input":{"command":"true"}}]}}
+{"type":"message","id":"result-row","role":"user","content":[{"type":"tool_result","tool_use_id":"call-1","is_error":false,"content":"done"}]}
+{"type":"compaction_state","id":"compact","summary":"A synthetic summary."}

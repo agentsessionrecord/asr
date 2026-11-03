@@ -1,0 +1,16 @@
+packages:
+  - tools/validator
+  - site
+  - whitepaper
+  - packages/*
+  - apps/*
+  - plugins/gemini-qwen-core
+  - plugins/opencode
+
+# These optional CLI hooks are unused by the documentation builds.
+allowBuilds:
+  '@scarf/scarf': false
+  esbuild: false
+  keytar: false
+  sharp: false
+  workerd: false

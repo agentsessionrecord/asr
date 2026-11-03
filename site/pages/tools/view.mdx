@@ -1,0 +1,41 @@
+---
+title: "View sessions and line evidence"
+description: "Read an offline ASR timeline or find evidence behind a Git line."
+---
+
+Build the static viewer and open `apps/viewer/dist/index.html` directly in a
+current browser. Choose local files or a folder. The page needs no server and
+makes no remote requests. The viewer README gives the build command.
+
+The CLI has no `asr view` command. Editor plugins use the installed `asr blame`
+command and bundle the same offline viewer. GitHub and GitLab integrations
+produce review summaries from configured local stores.
+
+| Tool README | Live-test status |
+| --- | --- |
+| [ASR GitHub pull request app](https://github.com/agentsessionrecord/asr/blob/main/apps/github/README.md) | `not-live-tested` |
+| [ASR JetBrains sessions](https://github.com/agentsessionrecord/asr/blob/main/apps/jetbrains/README.md) | `partial` |
+| [ASR local web viewer](https://github.com/agentsessionrecord/asr/blob/main/apps/viewer/README.md) | `partial` |
+| [ASR VS Code sessions](https://github.com/agentsessionrecord/asr/blob/main/apps/vscode/README.md) | `partial` |
+| [GitLab merge request session summary](https://github.com/agentsessionrecord/asr/blob/main/apps/gitlab/README.md) | `not-live-tested` |
+
+## What the views show
+
+The timeline follows file order and shows recorded messages, tools, decisions,
+model calls, changes, settings and gaps. Links resolve only against available
+files. Copies keep their markers and receive no duplicate work or cost credit.
+The editor and review views keep edit evidence separate from commit evidence.
+They show citations, recorded prompts, labeled model evidence and unresolved links.
+
+Commands and URLs in records remain text. The viewer does not execute commands,
+load recorded resources, validate files or infer source completeness. It has no
+native log converter. Oversized lines remain available through raw byte paging.
+
+## Test evidence
+
+The viewer passed offline Chromium tests with every sample and example stream,
+hostile content and a 220 MiB synthetic file. VS Code 1.109.0 passed extension
+host checks. JetBrains used the IntelliJ IDEA Community 2025.1.4 platform harness.
+Its JCEF dialog rendering remains untested. GitHub and GitLab use local HTTP
+mocks and synthetic repositories. Hosted service behavior is not live-tested.
+Read each README for its storage limits, trust settings and checks.

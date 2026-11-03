@@ -1,0 +1,16 @@
+[project]
+name = "asr-cloudflare"
+version = "0.1.0"
+description = "ASR capture through the cloudflare extension boundary"
+requires-python = ">=3.11"
+dependencies = ["asr-gateway-core==0.1.0"]
+
+[project.scripts]
+asr-cloudflare = "asr_cloudflare:main"
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+asr-gateway-core = { workspace = true }

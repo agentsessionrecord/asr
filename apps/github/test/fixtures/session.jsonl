@@ -1,0 +1,13 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"run:7","producer":{"name":"synthetic-export","version":"1.0","method":"native"},"cwd":"/work/project","repos":[{"path":"/work/project","remote":"https://github.com/example/project"}],"missing":["reasoning"]}
+{"type":"message","id":"prompt","turnId":"turn","role":"user","author":"human","origin":"prompt","content":[{"type":"text","text":"Replace the old line and commit the change."}]}
+{"type":"inference","id":"inference","model":{"id":"synthetic-served","requested":"synthetic-requested"}}
+{"type":"tool_call","id":"edit-call","callId":"edit","turnId":"turn","inferenceId":"inference","name":"replace_text","kind":"edit","requestedBy":"model","input":{"oldText":"old\n","newText":"new\n"}}
+{"type":"tool_result","id":"edit-result","callId":"edit","status":"completed"}
+{"type":"file_change","id":"change","path":"file.txt","op":"modify","status":"applied","callId":"edit","edits":[{"oldText":"old\n","newText":"new\n"}]}
+{"type":"tool_call","id":"commit-call","callId":"commit","name":"shell","kind":"execute"}
+{"type":"approval","id":"approval-user","callId":"commit","decision":"approved","by":"user","scope":"once"}
+{"type":"approval","id":"approval-policy","callId":"commit","decision":"approved","by":"policy","scope":"session"}
+{"type":"tool_result","id":"commit-result","callId":"commit","status":"completed"}
+{"type":"vcs","id":"commit","action":"commit","status":"completed","evidence":"observed","repo":"/work/project","commit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+{"type":"gap","id":"gap","reason":"not_retained","detail":"Synthetic missing history."}
+{"type":"session_info","id":"loss-update","missing":["approvals"]}

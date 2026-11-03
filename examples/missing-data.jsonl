@@ -1,0 +1,4 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"partial-1","producer":{"name":"example-export","version":"1.0","method":"native"},"missing":["tool_output","usage","timestamps"]}
+{"type":"message","id":"summary","role":"user","content":[{"type":"text","text":"Work so far: inspected the parser."}],"author":"harness","origin":"compaction","truncated":true}
+{"type":"gap","id":"gap","reason":"not_retained","detail":"Earlier messages and tool output were discarded during compaction."}
+{"type":"message","id":"prompt","role":"user","content":[{"type":"text","text":"Continue with the empty-input case."}],"author":"human","origin":"prompt"}

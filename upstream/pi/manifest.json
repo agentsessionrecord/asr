@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "agent": "pi",
+  "base": "a14cdf90f0a76532f3e20bc3c01872837cef24ba",
+  "head": "e39eebeb213f17f715d8d56492b5c628c58aadb8",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "e39eebeb213f17f715d8d56492b5c628c58aadb8",
+      "sha256": "b827a71d0cad5598762b9547654b0eacbc0853b70af420bee41878aa8aa469bf"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "../kimi-code/contracts.mjs",
+      "pi"
+    ]
+  ],
+  "provenance": {
+    "repository": "https://github.com/badlogic/pi-mono",
+    "base": "a14cdf90f0a76532f3e20bc3c01872837cef24ba",
+    "head": "e39eebeb213f17f715d8d56492b5c628c58aadb8",
+    "branch": "codex/fix2-repo",
+    "files": {
+      "patches/0001-native-agent-session-export.patch": "b827a71d0cad5598762b9547654b0eacbc0853b70af420bee41878aa8aa469bf",
+      "live-test.json": "8b689ba33f3bf306fe33f917204268317e42035fc4a9ab55dc0f0e7b6116a92c",
+      "samples/native/native.jsonl": "adfee8893449898bbf96ce87fd39f0df5aa165f104fd1cc63d0dd001aa9eacdd",
+      "samples/asr/session.jsonl": "2209390b40a3c14cb77c6785479b9512e1375f7db7ca49fabee9635e4be446a8",
+      "PROPOSAL.md": "253b411c2fa8b97cd6fd1e1f9755f4e311f93542f7542991c82bd9f9f6b97361",
+      "TESTS.json": "882f2e55f99aa64dcc65f2e7050da09494d874e33645ebe21d2f9a8366908590",
+      ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944"
+    }
+  },
+  "files": {
+    ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
+    "PROPOSAL.md": "253b411c2fa8b97cd6fd1e1f9755f4e311f93542f7542991c82bd9f9f6b97361",
+    "README.md": "7295ec57ccd0f0b67d490ee52d0fa392053257505bfa9d3bfbc52a63c381e59e",
+    "TESTS.json": "882f2e55f99aa64dcc65f2e7050da09494d874e33645ebe21d2f9a8366908590",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "live-test.json": "8b689ba33f3bf306fe33f917204268317e42035fc4a9ab55dc0f0e7b6116a92c",
+    "patches/0001-native-agent-session-export.patch": "b827a71d0cad5598762b9547654b0eacbc0853b70af420bee41878aa8aa469bf",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "2209390b40a3c14cb77c6785479b9512e1375f7db7ca49fabee9635e4be446a8",
+    "samples/native/native.jsonl": "adfee8893449898bbf96ce87fd39f0df5aa165f104fd1cc63d0dd001aa9eacdd"
+  }
+}

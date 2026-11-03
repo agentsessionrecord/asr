@@ -1,0 +1,530 @@
+From 83eb2ace1e89fce4ecef4654b7b0a127252f56a9 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:27 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ libs/code/deepagents_code/main.py             |  15 +
+ libs/code/deepagents_code/session_export.py   | 321 ++++++++++++++++++
+ libs/code/deepagents_code/ui.py               |   3 +
+ .../tests/unit_tests/test_session_export.py   | 134 ++++++++
+ 4 files changed, 473 insertions(+)
+ create mode 100644 libs/code/deepagents_code/session_export.py
+ create mode 100644 libs/code/tests/unit_tests/test_session_export.py
+
+diff --git a/libs/code/deepagents_code/main.py b/libs/code/deepagents_code/main.py
+index 83e996f..9f37550 100644
+--- a/libs/code/deepagents_code/main.py
++++ b/libs/code/deepagents_code/main.py
+@@ -2497,6 +2497,13 @@ def parse_args() -> argparse.Namespace:
+         default=None,
+         help="Show timestamps as relative time (default: from config)",
+     )
++    threads_export = threads_sub.add_parser(
++        "export", help="Export Agent Session Record JSONL"
++    )
++    threads_export.add_argument("--format", choices=["agent-session"], required=True)
++    threads_export.add_argument("--session", action="append", default=[])
++    threads_export.add_argument("--output", type=Path)
++
+     threads_delete = threads_sub.add_parser(
+         "delete",
+         help="Delete a thread",
+@@ -6531,6 +6538,14 @@ def cli_main() -> None:
+                         output_format=output_format,
+                     )
+                 )
++            elif args.threads_command == "export":
++                from deepagents_code.session_export import export_threads
++
++                try:
++                    export_threads(args.session, args.output)
++                except (OSError, ValueError) as error:
++                    print(f"Export failed: {error}", file=sys.stderr)  # noqa: T201
++                    sys.exit(1)
+             elif args.threads_command == "delete":
+                 asyncio.run(
+                     delete_thread_command(
+diff --git a/libs/code/deepagents_code/session_export.py b/libs/code/deepagents_code/session_export.py
+new file mode 100644
+index 0000000..ffd5323
+--- /dev/null
++++ b/libs/code/deepagents_code/session_export.py
+@@ -0,0 +1,321 @@
++"""Offline Agent Session Record export of native message writes."""
++
++from __future__ import annotations
++
++import hashlib
++import json
++import re
++import sqlite3
++import sys
++from contextlib import closing
++from typing import TYPE_CHECKING
++
++if TYPE_CHECKING:
++    from collections.abc import Sequence
++    from pathlib import Path
++
++    from langchain_core.messages import BaseMessage
++
++_MAX_RECORD_ID = 256
++_SECRET = re.compile(
++    r"(?i)(?:bearer\s+\S+|sk-[\w-]{12,}|(?:api[_-]?key|password|token)[\"']?\s*[:=]\s*[\"']?[^\s,}]+)"
++)
++
++
++def _asr_reasoning(text: str, summary: bool = False) -> dict[str, object]:
++    if not text:
++        return {"type": "reasoning", "visibility": "omitted"}
++    if summary:
++        return {"type": "reasoning", "visibility": "summary", "summary": [text]}
++    return {"type": "reasoning", "text": text}
++
++
++def _safe(value: object) -> object:
++    """Exclude credential fields and preserve large native integers as strings.
++
++    Returns:
++        Sanitized JSON value.
++    """
++    if isinstance(value, dict):
++        return {
++            key: "[REDACTED]"
++            if re.search(r"(?i)secret|password|token|api.?key|authorization", str(key))
++            else _safe(item)
++            for key, item in value.items()
++        }
++    if isinstance(value, list):
++        return [_safe(item) for item in value]
++    if isinstance(value, str):
++        return _SECRET.sub("[REDACTED]", value)
++    if isinstance(value, int) and abs(value) > 2**53 - 1:
++        return str(value)
++    return value
++
++
++def _parts(content: str | list[str | dict]) -> tuple[list[dict], bool]:
++    """Keep exact text while excluding opaque provider state and remote media.
++
++    Returns:
++        Content parts and whether unsupported content was dropped.
++    """
++    blocks = [content] if isinstance(content, str) else content
++    parts = []
++    lost = False
++    for block in blocks:
++        if isinstance(block, str):
++            parts.append({"type": "text", "text": block})
++        elif block.get("type") == "text" and isinstance(block.get("text"), str):
++            parts.append({"type": "text", "text": block["text"]})
++        elif block.get("type") == "reasoning":
++            text = block.get("reasoning")
++            parts.append(_asr_reasoning(text if isinstance(text, str) else "", False))
++        elif block.get("type") == "thinking":
++            text = block.get("thinking")
++            parts.append(_asr_reasoning(text if isinstance(text, str) else "", True))
++        else:
++            lost = True
++    return parts, lost
++
++
++def messages_to_asr(session_id: str, messages: Sequence[BaseMessage | None]) -> str:
++    """Export completed native messages, retaining removed and abandoned work.
++
++    Args:
++        session_id: Native thread identity.
++        messages: Message writes in native order, with `None` for corrupt writes.
++
++    Returns:
++        One LF-terminated JSONL stream.
++
++    Raises:
++        ValueError: Session identity is empty.
++    """
++    from langchain_core.messages import AIMessage, RemoveMessage, ToolMessage
++
++    if not session_id:
++        msg = "Session identity is empty"
++        raise ValueError(msg)
++    # Updates occupy their last observation. Earlier revisions are not extra work.
++    last = {
++        message.id: index
++        for index, message in enumerate(messages)
++        if message is not None and not isinstance(message, RemoveMessage) and message.id
++    }
++    reserved = {
++        message.id for message in messages if message is not None and message.id
++    }
++    used: set[str] = set()
++
++    def identity(index: int, kind: str, native: str | None = None) -> str:
++        candidate = (
++            native
++            if native
++            and len(native) <= _MAX_RECORD_ID
++            and not re.search(r"[\x00-\x1f\x7f]", native)
++            else f"asr:{index}:{kind}"
++        )
++        while candidate in used or (candidate != native and candidate in reserved):
++            candidate = "asr:" + hashlib.sha256(candidate.encode()).hexdigest()
++        used.add(candidate)
++        return candidate
++
++    missing = {
++        "usage",
++        "model",
++        "timestamps",
++        "approvals",
++        "agent_settings",
++        "tools",
++        "file_changes",
++        "commits",
++        "subagents",
++        "copies",
++        "instructions",
++        "reasoning",
++        "message_author",
++        "history",
++        "inference_settings",
++        "media",
++        "provider_state",
++        "exit_codes",
++    }
++    records: list[dict] = [
++        {
++            "type": "session",
++            "id": identity(-1, "header"),
++            "formatVersion": "0.1",
++            "agent": {"name": "deepagents"},
++            "sessionId": session_id,
++            "producer": {
++                "name": "deepagents-code",
++                "version": "0.2.2",
++                "method": "native",
++                "source": "langgraph-message-writes",
++            },
++        }
++    ]
++    results = {
++        message.tool_call_id: index
++        for index, message in enumerate(messages)
++        if isinstance(message, ToolMessage)
++    }
++    for index, message in enumerate(messages):
++        if isinstance(message, RemoveMessage):
++            continue
++        if message is None:
++            records.append(
++                {
++                    "type": "gap",
++                    "id": identity(index, "gap"),
++                    "reason": "unparseable",
++                }
++            )
++            continue
++        if message.id and last[message.id] != index:
++            continue
++        content, lost = _parts(message.content)
++        record: dict = {
++            "id": identity(index, "message", message.id),
++            "content": content,
++        }
++        if lost:
++            record["truncated"] = True
++            missing.add("content")
++        if isinstance(message, ToolMessage):
++            if results[message.tool_call_id] != index:
++                continue
++            record.update(
++                type="tool_result",
++                callId=message.tool_call_id,
++                status="failed" if message.status == "error" else "completed",
++            )
++        else:
++            role = {"human": "user", "ai": "assistant", "system": "system"}.get(
++                message.type
++            )
++            if role is None:
++                records.append(
++                    {
++                        "type": "gap",
++                        "id": identity(index, "unsupported"),
++                        "reason": "not_recorded",
++                    }
++                )
++                missing.add("message_types")
++                continue
++            record.update(type="message", role=role)
++            if role == "system":
++                record["origin"] = "instructions"
++            records.append(record)
++            if isinstance(message, AIMessage):
++                for call_index, call in enumerate(message.tool_calls):
++                    call_id = call["id"]
++                    if call_id is None:
++                        call_id = f"asr-call:{index}:{call_index}"
++                        missing.add("tool_call_ids")
++                    records.append(
++                        {
++                            "type": "tool_call",
++                            "id": identity(index, f"call:{call_index}"),
++                            "callId": call_id,
++                            "name": call["name"],
++                            "input": call["args"],
++                            "requestedBy": "model",
++                        }
++                    )
++                if message.invalid_tool_calls:
++                    missing.add("tool_calls")
++                    records.append(
++                        {
++                            "type": "gap",
++                            "id": identity(index, "invalid-calls"),
++                            "reason": "unparseable",
++                        }
++                    )
++            continue
++        records.append(record)
++    # Sanitize only content and arguments. Native identities never become text.
++    for record in records:
++        for field in ("content", "input"):
++            if field in record:
++                safe = _safe(record[field])
++                if safe != record[field]:
++                    record[field] = safe
++                    if "[REDACTED]" in json.dumps(safe):
++                        record["truncated"] = True
++                        missing.add("secrets")
++    records[0]["missing"] = sorted(missing)
++    return "".join(
++        json.dumps(record, ensure_ascii=False, allow_nan=False) + "\n"
++        for record in records
++    )
++
++
++def export_threads(session_ids: list[str], output: Path | None) -> None:
++    """Read a consistent, read-only snapshot and export selected threads.
++
++    Args:
++        session_ids: Native thread IDs. An empty list selects all threads.
++        output: Destination directory, or stdout for exactly one explicit ID.
++
++    Raises:
++        ValueError: Selection is ambiguous or a thread is unavailable.
++    """
++    from langchain_core.messages import BaseMessage
++    from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
++
++    from deepagents_code.sessions import get_db_path
++
++    if output is None and len(session_ids) != 1:
++        msg = "Select exactly one --session or use --output"
++        raise ValueError(msg)
++    with closing(
++        sqlite3.connect(get_db_path().resolve().as_uri() + "?mode=ro", uri=True)
++    ) as connection:
++        connection.execute("BEGIN")
++        selected = list(dict.fromkeys(session_ids)) or [
++            row[0]
++            for row in connection.execute(
++                "SELECT DISTINCT thread_id FROM checkpoints ORDER BY thread_id"
++            )
++        ]
++        streams = []
++        serde = JsonPlusSerializer(pickle_fallback=False)
++        for session_id in selected:
++            if not connection.execute(
++                "SELECT 1 FROM checkpoints WHERE thread_id = ? LIMIT 1", (session_id,)
++            ).fetchone():
++                msg = "Requested thread is unavailable"
++                raise ValueError(msg)
++            rows = connection.execute(
++                "SELECT type, value FROM writes WHERE thread_id = ? "
++                "AND checkpoint_ns = '' AND channel = 'messages' "
++                "ORDER BY checkpoint_id, task_id, idx",
++                (session_id,),
++            )
++            messages = []
++            for kind, blob in rows:
++                try:
++                    delta = serde.loads_typed((kind, blob))
++                    items = delta if isinstance(delta, list) else [delta]
++                    messages.extend(
++                        item if isinstance(item, BaseMessage) else None
++                        for item in items
++                    )
++                except Exception:  # noqa: BLE001  # A corrupt native write becomes a positional gap.
++                    messages.append(None)
++            if not messages:
++                msg = "Thread has no exportable message writes"
++                raise ValueError(msg)
++            streams.append((session_id, messages_to_asr(session_id, messages)))
++    for session_id, stream in streams:
++        if output is None:
++            sys.stdout.write(stream)
++        else:
++            output.mkdir(parents=True, exist_ok=True, mode=0o700)
++            destination = output / (
++                hashlib.sha256(session_id.encode()).hexdigest() + ".jsonl"
++            )
++            with destination.open("x", encoding="utf-8") as handle:
++                destination.chmod(0o600)
++                handle.write(stream)
+diff --git a/libs/code/deepagents_code/ui.py b/libs/code/deepagents_code/ui.py
+index 9108ac2..97724de 100644
+--- a/libs/code/deepagents_code/ui.py
++++ b/libs/code/deepagents_code/ui.py
+@@ -1019,6 +1019,9 @@ def show_threads_help() -> None:
+     console.print("[bold]Commands:[/bold]", style=theme.PRIMARY)
+     console.print("  list|ls           List all threads")
+     console.print("  delete <ID>       Delete a thread")
++    console.print(
++        "  export --format agent-session --session <ID> [--output <directory>]"
++    )
+     console.print()
+     _print_option_section()
+     console.print()
+diff --git a/libs/code/tests/unit_tests/test_session_export.py b/libs/code/tests/unit_tests/test_session_export.py
+new file mode 100644
+index 0000000..73a5047
+--- /dev/null
++++ b/libs/code/tests/unit_tests/test_session_export.py
+@@ -0,0 +1,134 @@
++"""Native export behavior, independent of model services."""
++
++import json
++import sqlite3
++from contextlib import closing
++from typing import TYPE_CHECKING
++
++if TYPE_CHECKING:
++    from pathlib import Path
++
++import pytest
++from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage, ToolMessage
++from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
++
++from deepagents_code.session_export import export_threads, messages_to_asr
++
++
++def test_order_updates_and_unknown_authorship() -> None:
++    messages = [
++        HumanMessage(" exact\n", id="header"),
++        AIMessage("partial", id="reply"),
++        HumanMessage("notice", id="notice"),
++        AIMessage("final", id="reply"),
++    ]
++    records = [
++        json.loads(line)
++        for line in messages_to_asr("synthetic-thread", messages).splitlines()
++    ]
++    assert [record["id"] for record in records[1:]] == ["header", "notice", "reply"]
++    assert records[1]["content"][0]["text"] == " exact\n"
++    assert "author" not in records[1]
++    assert "endedAt" not in records[0]
++
++
++def test_calls_results_removals_and_corruption() -> None:
++    messages = [
++        AIMessage(
++            "", tool_calls=[{"id": "call", "name": "echo", "args": {"n": 2**60}}]
++        ),
++        ToolMessage("old", tool_call_id="call"),
++        HumanMessage("between"),
++        ToolMessage("done", tool_call_id="call", status="error"),
++        HumanMessage("retained", id="gone"),
++        RemoveMessage(id="gone"),
++        None,
++    ]
++    records = [
++        json.loads(line)
++        for line in messages_to_asr("synthetic-thread", messages).splitlines()
++    ]
++    call = next(record for record in records if record["type"] == "tool_call")
++    assert call["input"]["n"] == str(2**60)
++    results = [record for record in records if record["type"] == "tool_result"]
++    assert len(results) == 1
++    assert results[0]["status"] == "failed"
++    assert (
++        next(record for record in records if record["id"] == "gone")["content"][0][
++            "text"
++        ]
++        == "retained"
++    )
++    assert [record["reason"] for record in records if record["type"] == "gap"] == [
++        "unparseable",
++    ]
++
++
++def test_excludes_secrets_and_provider_state() -> None:
++    message = AIMessage(
++        content=[
++            {"type": "text", "text": "password=synthetic-secret"},
++            {"type": "thinking", "thinking": "inspect", "signature": "opaque"},
++            {"type": "redacted_thinking", "data": "opaque"},
++        ]
++    )
++    stream = messages_to_asr("synthetic-thread", [message])
++    assert "synthetic-secret" not in stream
++    assert "opaque" not in stream
++    records = [json.loads(line) for line in stream.splitlines()]
++    assert records[1]["truncated"] is True
++    assert "secrets" in records[0]["missing"]
++    assert stream == messages_to_asr("synthetic-thread", [message])
++
++
++def test_derives_absent_call_identity() -> None:
++    message = AIMessage(
++        "", tool_calls=[{"id": None, "name": "echo", "args": {"text": "ready"}}]
++    )
++    records = [
++        json.loads(line)
++        for line in messages_to_asr("synthetic-thread", [message]).splitlines()
++    ]
++    assert isinstance(records[2]["callId"], str)
++    assert "tool_call_ids" in records[0]["missing"]
++
++
++def test_readonly_database_and_safe_output(
++    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
++) -> None:
++    from deepagents_code import sessions
++
++    database = tmp_path / "sessions.db"
++    with closing(sqlite3.connect(database)) as connection:
++        connection.execute("CREATE TABLE checkpoints(thread_id TEXT)")
++        connection.execute(
++            "CREATE TABLE writes(thread_id TEXT, checkpoint_ns TEXT, "
++            "checkpoint_id TEXT, task_id TEXT, idx INTEGER, channel TEXT, "
++            "type TEXT, value BLOB)"
++        )
++        connection.execute("INSERT INTO checkpoints VALUES (?)", ("../../synthetic",))
++        kind, blob = JsonPlusSerializer().dumps_typed(
++            [HumanMessage("hello", id="prompt")]
++        )
++        connection.execute(
++            "INSERT INTO writes VALUES (?, '', '1', 't', 0, 'messages', ?, ?)",
++            ("../../synthetic", kind, blob),
++        )
++        connection.commit()
++    monkeypatch.setattr(sessions, "get_db_path", lambda: database)
++    before = database.read_bytes()
++    export_threads(["../../synthetic"], None)
++    assert (
++        json.loads(capsys.readouterr().out.splitlines()[0])["sessionId"]
++        == "../../synthetic"
++    )
++    output = tmp_path / "out"
++    export_threads(["../../synthetic"], output)
++    assert len(list(output.glob("*.jsonl"))) == 1
++    assert database.read_bytes() == before
++    with pytest.raises(FileExistsError):
++        export_threads(["../../synthetic"], output)
++    with pytest.raises(ValueError, match="unavailable"):
++        export_threads(["absent"], None)
++    with pytest.raises(ValueError, match="exactly one"):
++        export_threads([], None)
+
+base-commit: e9f0d8855cff6d7e79d87afc15c2defc62214a71

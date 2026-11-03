@@ -1,0 +1,20 @@
+{
+  "checks": [
+    "cargo test -p agent agent_session --lib",
+    "./script/clippy -p agent",
+    "cargo fmt -p agent",
+    "native DbThread example and packaged fixture reproduction"
+  ],
+  "focusedTestsPassed": 3,
+  "newExporterTests": 2,
+  "fixtureReproduction": "passed",
+  "samples": {
+    "samples/asr/session.jsonl": {
+      "records": 10,
+      "errors": 0,
+      "warnings": 0
+    }
+  },
+  "liveTestStatus": "not-live-tested",
+  "liveTestNotes": "No live GUI session was available in the headless environment. Native agent tests and a saved-thread snapshot export passed."
+}

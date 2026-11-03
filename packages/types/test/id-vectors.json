@@ -1,0 +1,29 @@
+[
+  {
+    "args": [
+      "scope",
+      "message",
+      0,
+      0
+    ],
+    "id": "asr-b6df9418900d69fed85fac7fc2d020572be88b326c716339a9dbd02525fb86ba"
+  },
+  {
+    "args": [
+      "[\"com.example.agent\",null,\"synthetic\"]",
+      "session_info",
+      7,
+      0
+    ],
+    "id": "asr-7542d57f0a8392f90bf945a0e023896416bae87fb520d4f4a5b9c1bed3f533d3"
+  },
+  {
+    "args": [
+      "λ😀",
+      "approval",
+      4,
+      1
+    ],
+    "id": "asr-403e2ef7761a4cdf0e982a3b48f690166db4fc9d0f8db3f0012754206f7b340c"
+  }
+]

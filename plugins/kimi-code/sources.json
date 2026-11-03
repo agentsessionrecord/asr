@@ -1,0 +1,29 @@
+{
+  "sourceRevision": "9ab1286b8fe4e6bcd116949a27ce5e0ac3389c82",
+  "fixtureKind": "synthetic",
+  "contracts": [
+    {
+      "version": "1.52.0",
+      "repository": "https://github.com/MoonshotAI/kimi-cli",
+      "revision": "9ab1286b8fe4e6bcd116949a27ce5e0ac3389c82",
+      "paths": [
+        "src/kimi_cli/hooks/events.py",
+        "src/kimi_cli/hooks/config.py",
+        "src/kimi_cli/hooks/engine.py",
+        "src/kimi_cli/soul/toolset.py"
+      ],
+      "liveTested": false
+    },
+    {
+      "version": "2.4.1",
+      "repository": "https://github.com/MoonshotAI/kimi-code",
+      "revision": "a2afdbc7d1fa0737d45d5780cc6c2bd38e477b55",
+      "paths": [
+        "docs/en/customization/hooks.md",
+        "packages/agent-core-v2/src/features/externalHooks",
+        "packages/agent-core-v2/src/agent/toolApproval/toolApprovalService.ts"
+      ],
+      "liveTested": true
+    }
+  ]
+}

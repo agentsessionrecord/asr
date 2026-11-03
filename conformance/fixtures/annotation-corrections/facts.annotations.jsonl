@@ -1,0 +1,2 @@
+{"type":"annotation","id":"a1","session":"com.example.agent:run-1","kind":"title","at":"2026-10-27T09:00:00Z","source":{"name":"indexer"},"data":{"title":"Parser fix"},"supersedes":"a2"}
+{"type":"annotation","id":"a2","session":"com.example.agent:run-1","kind":"title","at":"2026-10-27T09:00:00Z","source":{"name":"indexer"},"data":{"title":"Parser fix"},"supersedes":"a2"}

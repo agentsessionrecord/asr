@@ -1,0 +1,181 @@
+{
+  "synthetic": true,
+  "modelRequests": 0,
+  "pipeline": [
+    "convert",
+    "validate",
+    "git-commit",
+    "blame"
+  ],
+  "sessions": 1,
+  "validationErrors": 0,
+  "validationWarnings": 2,
+  "validationCodes": {
+    "warning:unknown-extension": 1,
+    "warning:unknown-type": 1
+  },
+  "matchedLines": 1,
+  "commitCredits": 0,
+  "sourceErrors": 0,
+  "proof": false,
+  "readerSha256": "d7a5fd08477f5e11bec7357005acbfe68a62f8ce639ed29c72f5da1dbef8aaac",
+  "claude": {
+    "synthetic": true,
+    "modelRequests": 0,
+    "sessions": 1,
+    "matchedLines": 6,
+    "unchangedContextUnknown": true,
+    "validationErrors": 0,
+    "validationWarnings": 1,
+    "validationCodes": {
+      "warning:unknown-extension": 1
+    }
+  },
+  "privateReplayHarness": {
+    "model_requests": 0,
+    "correct_lines": 2,
+    "unknown_lines": 2,
+    "wrong_lines": 0,
+    "missed_agent_lines": 0,
+    "source_files_read": 1,
+    "edit_results_without_original": 1,
+    "sample_sessions": 1,
+    "sample_edits": 1,
+    "sample_without_original": 1,
+    "edits_without_trailing_newline": 1,
+    "multiline_edits": 1,
+    "converted_sessions": 1,
+    "validation_errors": 0,
+    "validation_warnings": 1,
+    "queried_lines": 4,
+    "person_lines": 2,
+    "scratch_removed": true
+  },
+  "parentReplayRegressions": {
+    "synthetic": true,
+    "modelRequests": 0,
+    "testCases": 39,
+    "loggedAssertionCounts": {
+      "correct": 41,
+      "unknown": 254,
+      "unresolved": 1,
+      "wrong": 0,
+      "queried": 296,
+      "byAgent": {
+        "claude-code": {
+          "correct": 33,
+          "unknown": 219,
+          "wrong": 0,
+          "queried": 252
+        },
+        "codex": {
+          "correct": 7,
+          "unknown": 35,
+          "wrong": 0,
+          "queried": 42
+        }
+      }
+    },
+    "countScope": "Logged line assertions only. Additional custom assertions and validations are silent. All 39 tests passed, including the retained third and fourth recheck cases.",
+    "validation": {
+      "loggedRuns": 126,
+      "errors": 0,
+      "warnings": 162,
+      "warning:missing-tool-name": 14,
+      "warning:unknown-extension": 133,
+      "warning:unknown-type": 15
+    },
+    "identicalPersonRetyping": "Independent identical text remains an information limit. Regression expectations allow unknown and never treat text evidence as proof of authorship."
+  },
+  "boundedPrivateReplay": {
+    "modelRequests": 0,
+    "sessions": 9,
+    "edits": 51,
+    "editsWithOriginalFile": 11,
+    "editsWithoutOriginalFile": 40,
+    "editsWithoutTrailingNewline": 48,
+    "multilineEdits": 25,
+    "correct": 79,
+    "unknown": 79,
+    "wrong": 0,
+    "missedAgentLines": 0,
+    "laterPersonLines": 79,
+    "queried": 158,
+    "validationErrors": 0,
+    "validationWarnings": 9,
+    "warning:unknown-extension": 9,
+    "scratchRemoved": true,
+    "bounds": {
+      "maxFiles": 1000,
+      "maxSessions": 12,
+      "maxEdits": 55
+    },
+    "scope": "Recorded replacements, native timestamps and native structured patches replayed in controlled scratch files. Missing full file states use recorded hunk context at its recorded positions. Scratch commit dates bracket the sampled edits. Later person changes are synthetic. This does not measure historical repository authorship.",
+    "correctRate": 0.5,
+    "unknownRate": 0.5
+  },
+  "performance": {
+    "matchingSessions": 5000,
+    "seconds": 1.98664782,
+    "gitProcesses": 9,
+    "status": "unresolved"
+  },
+  "hookBlame": {
+    "synthetic": true,
+    "modelRequests": 0,
+    "correct": 0,
+    "unknown": 14,
+    "wrong": 0,
+    "validationErrors": 0,
+    "validationWarnings": 19,
+    "warning:unknown-extension": 2,
+    "warning:unknown-type": 17,
+    "deterministicReceiptClock": true
+  },
+  "clockToleranceSeconds": 2,
+  "checks": {
+    "rustTests": 224,
+    "workspaceTestsInFullRun": 222,
+    "finalCliTests": 93,
+    "nativeReplayTests": 39,
+    "toolTests": 40,
+    "ciScriptTests": 84,
+    "clippyWarnings": 0,
+    "fixtureValidationErrors": 0,
+    "fixtureValidationWarnings": 0
+  },
+  "generatedHistories": {
+    "synthetic": true,
+    "modelRequests": 0,
+    "minimumHistories": 2000,
+    "timeBudgetSeconds": 900,
+    "commandTimeoutSeconds": 20,
+    "amend": 476,
+    "cherry-pick": 526,
+    "claude-bare": 968,
+    "claude-context": 1012,
+    "claude-original": 926,
+    "codex": 962,
+    "correct": 82,
+    "correct_rate": 0.009087886512246481,
+    "elapsed_seconds": 239.2,
+    "histories": 2000,
+    "none": 482,
+    "person_edits": 1921,
+    "postcommit_roundtrips": 636,
+    "queried_lines": 9023,
+    "rebase": 516,
+    "scratch_removed": true,
+    "seed": 600601,
+    "skewed_histories": 1931,
+    "subagent_edits": 1909,
+    "undo_edits": 1204,
+    "unknown": 8941,
+    "unknown_rate": 0.9909121134877535,
+    "validation_errors": 0,
+    "validation_warnings": 0,
+    "whole-line": 957,
+    "write": 1039,
+    "wrong": 0
+  }
+}

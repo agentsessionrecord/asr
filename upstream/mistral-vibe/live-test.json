@@ -1,0 +1,16 @@
+{
+  "sessionStarted": true,
+  "turnStatus": "completed",
+  "records": 3,
+  "types": {
+    "message": 2,
+    "session": 1
+  },
+  "validation": {
+    "exit": 0,
+    "errors": 0,
+    "codes": []
+  },
+  "currentCodeLiveTest": "unverified",
+  "evidenceScope": "Prior revision. Counts do not certify the current implementation."
+}

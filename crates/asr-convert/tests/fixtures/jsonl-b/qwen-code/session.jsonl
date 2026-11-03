@@ -1,0 +1,4 @@
+{"uuid":"qwen-message","sessionId":"complete-qwen","timestamp":"2026-07-21T12:00:00Z","type":"user","cwd":"/workspace/fixture","message":{"role":"user","content":[{"type":"text","text":"Qwen snowman ☃\nquoted \"body\" and escaped \\\\ path"}]}}
+{"type":"assistant","sessionId":"complete-qwen","uuid":"assistant-row","message":{"role":"model","parts":[{"text":"answer"},{"functionCall":{"id":"call-1","name":"read_file","args":{"path":"hello.txt"}}}]}}
+{"type":"tool_result","sessionId":"complete-qwen","uuid":"result-row","message":{"parts":[{"functionResponse":{"id":"call-1","name":"read_file","response":{"text":"raw"}}}]},"toolCallResult":{"callId":"call-1","status":"success"}}
+{"type":"system","subtype":"custom_title","uuid":"title","sessionId":"complete-qwen","systemPayload":{"customTitle":"Synthetic title"}}

@@ -1,0 +1,5 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent","version":"1.0"},"sessionId":"child:7","producer":{"name":"asr-otel-fixture","version":"0.1","method":"recorder","source":"synthetic"},"startedAt":"2026-01-01T00:00:05Z","endedAt":"2026-01-01T00:00:06Z","parent":{"session":"com.example.agent:test%20space:session%3A7","kind":"subagent","callId":"delegate-1","copiedThrough":"copied-message"}}
+{"type":"inference","id":"copied-inference","ts":"2026-01-01T00:00:02Z","model":{"requested":"example-alias"},"durationMs":500,"usage":{"inputTokens":1200,"outputTokens":120}}
+{"type":"message","id":"copied-message","role":"user","author":"human","content":[{"type":"text","text":"SYNTHETIC_PRIVATE_INHERITED"}]}
+{"type":"inference","id":"child-response","ts":"2026-01-01T00:00:05.1Z","model":{"requested":"review-alias"},"durationMs":100,"usage":{"inputTokens":40,"outputTokens":0}}
+{"type":"inference","id":"individual-copy","copiedFrom":{"session":"com.example.agent:test%20space:session%3A7","record":"response:7"},"model":{"requested":"example-alias"},"durationMs":500,"usage":{"inputTokens":1200,"outputTokens":120}}

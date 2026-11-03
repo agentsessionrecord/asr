@@ -1,0 +1,152 @@
+---
+title: "Convert native logs"
+description: "Convert saved transcripts, documents and databases into private ASR streams."
+---
+
+Use `asr convert` for supported local agent history. It writes one ASR stream
+per recorded native session. Use `asr agents` to list selectable names.
+
+```sh
+asr convert --agent codex ./native-history --out ./private-asr
+asr validate --summary ./private-asr
+```
+
+Install the [CLI](/tools). Conversion reads local evidence in source order.
+It does not start an agent, run recorded commands or follow recorded URLs.
+Output can replace an earlier export of the same session after conversion
+succeeds. Keep the files private.
+
+## Default native log locations
+
+These paths come from the CLI's [native discovery code](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-collect/src/discovery.rs).
+`asr convert` reads the input path you supply. These roots help you find it.
+Pass a native file or a directory beneath the appropriate root.
+The collector searches these roots when no explicit source is configured.
+
+`~` means your home directory. `./` means the current working directory.
+`$XDG_DATA_HOME` defaults to `~/.local/share`, `$XDG_CONFIG_HOME` to `~/.config`,
+and `$XDG_STATE_HOME` to `~/.local/state`. An unset or empty override uses its default.
+The paths below describe the discovery implementation. Other platforms or
+installations can store history elsewhere. Supply that location explicitly.
+
+| Agent selector | Default native roots | Root override |
+| --- | --- | --- |
+| `antigravity` | `~/.gemini/antigravity` | None |
+| `astrbot` | `~/.astrbot/data`, `~/.astrbot_launcher/instances`, `./data/data_v4.db` | None |
+| `auggie` | `~/.augment/sessions` | None |
+| `claude-code` | `~/.claude/projects` | `CLAUDE_CONFIG_DIR` replaces `~/.claude` |
+| `cline` | `~/.cline/data`, `$XDG_CONFIG_HOME/<editor>/User/globalStorage/saoudrizwan.claude-dev/tasks` | `XDG_CONFIG_HOME` |
+| `codebuddy` | `~/.codebuddy` | `CODEBUDDY_HOME` |
+| `codex` | `~/.codex/sessions`, `~/.codex/archived_sessions` | `CODEX_HOME` replaces `~/.codex` |
+| `continue` | `~/.continue/sessions` | `CONTINUE_GLOBAL_DIR` replaces `~/.continue` |
+| `copilot-cli` | `~/.copilot/session-state` | None |
+| `crush` | `$XDG_DATA_HOME/crush`, `./.crush` | `XDG_DATA_HOME` |
+| `cursor` | `~/.cursor/projects` | None |
+| `deepagents` | `~/.deepagents` | None |
+| `deepseek-harness` | `~/.dsh/sessions` | `DSH_HOME` replaces `~/.dsh` |
+| `devin` | `$XDG_DATA_HOME/devin/cli/sessions.db` | `XDG_DATA_HOME` |
+| `droid` | `~/.factory/sessions` | None |
+| `firebender` | `./.idea/firebender/chat_history.db` | None |
+| `forgecode` | `~/.forge`, `~/forge`, `./.forge.db` | None |
+| `fx` | `~/.fx/sessions` | None |
+| `gemini-cli` | `~/.gemini/tmp` | None |
+| `goose` | `$XDG_DATA_HOME/goose/sessions` | `XDG_DATA_HOME` |
+| `grok-build` | `~/.grok/sessions` | None |
+| `hermes` | `~/.hermes` | `HERMES_HOME` |
+| `junie` | `~/.junie/sessions` | None |
+| `kilo` | `$XDG_DATA_HOME/kilo` | `XDG_DATA_HOME` |
+| `kimi-code` | `~/.kimi-code` | `KIMI_CODE_HOME` |
+| `kiro` | `$XDG_DATA_HOME/kiro-cli`, `$XDG_DATA_HOME/amazon-q`, `$XDG_DATA_HOME/kiro` | `XDG_DATA_HOME` |
+| `lingma` | `~/.lingma` | None |
+| `mimocode` | `$XDG_DATA_HOME/mimocode` | `XDG_DATA_HOME` |
+| `mistral-vibe` | `~/.vibe/logs` | `VIBE_HOME` replaces `~/.vibe` |
+| `mux` | `~/.mux/sessions` | None |
+| `nanoclaw` | `~/nanoclaw`, `~/code/nanoclaw` | None |
+| `openclaw` | `~/.openclaw/agents` | `OPENCLAW_STATE_DIR` replaces `~/.openclaw` |
+| `opencode` | `$XDG_DATA_HOME/opencode` | `XDG_DATA_HOME` |
+| `openhands` | `~/.openhands/conversations`, `~/.openhands/v1_conversations` | None |
+| `pi` | `~/.pi/agent/sessions` | None |
+| `qoder` | `~/.qoder/projects` | None |
+| `qwen-code` | `~/.qwen/projects` | None |
+| `roo-code` | `$XDG_CONFIG_HOME/<editor>/User/globalStorage/<extension>/tasks` | `XDG_CONFIG_HOME` |
+| `rovodev` | `~/.rovodev/sessions` | `ROVODEV_HOME` replaces `~/.rovodev` |
+| `shelley` | `./shelley.db` | None |
+| `tabnine` | `~/.tabnine/agent` | None |
+| `warp` | `$XDG_STATE_HOME/warp-terminal` | `XDG_STATE_HOME` |
+| `zed` | `$XDG_DATA_HOME/zed` | `XDG_DATA_HOME` |
+
+For Cline and Roo Code, `<editor>` is `Code`, `Code - Insiders`, `VSCodium` or
+`Cursor`. Roo Code's `<extension>` is `rooveterinaryinc.roo-cline` or
+`RooVeterinaryInc.roo-cline`. Some roots contain SQLite databases and companion
+files rather than plain text logs. Keep those files together when copying history.
+
+## Converter library
+
+| Tool README | Live-test status |
+| --- | --- |
+| [ASR converter framework](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-applicable` |
+
+The README lists every supported group and links its source profile, mapping,
+fixtures and limits. A recorded tool outcome does not establish approval.
+Settings, usage, edits and lineage appear only when native evidence supports them.
+Unsupported fields, missing history, malformed input and size limits stay visible
+through metadata, declared losses and gaps.
+
+## Agent profiles
+
+All registered converters below have synthetic native fixtures and validated
+ASR goldens. They remain `not-live-tested` until a fresh agent session qualifies
+that converter. Source profile support does not cover every host release.
+The two OpenClaw entries use the same `openclaw` CLI selector.
+
+| Tool README | Live-test status |
+| --- | --- |
+| [antigravity native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
+| [AstrBot database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Auggie converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Claude Code converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Cline converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [CodeBuddy converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Codex converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Continue converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [copilot-cli native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
+| [Crush database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Cursor converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [DeepAgents database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [deepseek-harness native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
+| [Devin database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [droid native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
+| [Firebender database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [ForgeCode database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [fx converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Gemini CLI converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Goose database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [grok-build native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
+| [Hermes converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [junie native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
+| [Kilo database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [kimi-code native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
+| [Kiro database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Lingma database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [MiMoCode database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Mistral Vibe converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Mux converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [NanoClaw converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [OpenClaw database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [openclaw native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
+| [OpenCode database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [OpenHands converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [pi native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
+| [qoder native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
+| [qwen-code native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
+| [Roo Code converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Rovo Dev converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Shelley database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [tabnine native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
+| [Warp database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+| [Zed database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
+
+Goose needs a stable installation namespace. Legacy Kiro sessions keyed by
+working directory also need one. Use the README's `--namespace` instructions.
+The default record limit is 16 MiB. Oversized complete records can become gaps,
+and an incomplete final line waits for a later conversion.

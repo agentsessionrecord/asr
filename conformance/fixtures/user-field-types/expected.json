@@ -1,0 +1,30 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-019",
+    "code": "schema.type",
+    "line": 1,
+    "pointer": "/user/email"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-019",
+    "code": "schema.type",
+    "line": 1,
+    "pointer": "/user/id"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-019",
+    "code": "schema.type",
+    "line": 1,
+    "pointer": "/user/name"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-019",
+    "code": "schema.type",
+    "line": 1,
+    "pointer": "/user/source"
+  }
+]

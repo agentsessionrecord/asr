@@ -1,0 +1,37 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-020",
+    "code": "schema.type",
+    "line": 2,
+    "pointer": "/agentSettings/modelSettings"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-020",
+    "code": "schema.minimum",
+    "line": 3,
+    "pointer": "/agentSettings/modelSettings/maxOutputTokens"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-020",
+    "code": "schema.type",
+    "line": 3,
+    "pointer": "/agentSettings/modelSettings/reasoningEffort"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-020",
+    "code": "schema.type",
+    "line": 3,
+    "pointer": "/agentSettings/modelSettings/serviceTier"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-020",
+    "code": "schema.type",
+    "line": 3,
+    "pointer": "/agentSettings/modelSettings/temperature"
+  }
+]

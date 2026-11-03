@@ -1,0 +1,2 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"live-7","producer":{"name":"example-recorder","version":"1.0","method":"recorder","source":"example-hooks"}}
+{"type":"inference","id":"unknown"}

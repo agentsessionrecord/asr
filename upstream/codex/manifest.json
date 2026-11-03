@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "agent": "codex",
+  "base": "ff2346f33f851bd4e90c8e42ae60abcc7e7f293b",
+  "head": "34d046cdf67cce73016fb79e21bdc8a41a191e65",
+  "patches": [
+    {
+      "path": "patches/0001-Add-offline-session-export-crate-with-core-mappings-.patch",
+      "commit": "6d2e791833d630a6e0157a0bc82d2211f6e8d120",
+      "sha256": "93dd64f97022f2f9b5c5a91c4c687076cf26ba4bfda90f68daf6668e09992fd7"
+    },
+    {
+      "path": "patches/0002-Map-saved-settings-offered-tools-and-approval-decisi.patch",
+      "commit": "a66bd87f42e866a5538b5baf77dc15daaf463c19",
+      "sha256": "0d38fbd2837a5524becb102ded919bd1d897fc9996df244216b4c8196642f2af"
+    },
+    {
+      "path": "patches/0003-Wire-offline-session-exports-into-the-CLI.patch",
+      "commit": "5a2784564eac45c786e13620ffe82c593dce7908",
+      "sha256": "6f0656752718ec9a48c29c8e61cd00fc60fc37e77729b45b582541b83c7a2f8b"
+    },
+    {
+      "path": "patches/0004-Add-explicit-session-discovery-registration.patch",
+      "commit": "ab4456f07105f6dc65076940bf9458fd6bac690c",
+      "sha256": "2e2c809c9c64f4b80e45416573d07eb0d4d257555775ce0c880a7fb5f707c1a0"
+    },
+    {
+      "path": "patches/0005-Preserve-unknown-native-content-in-a-namespaced-ASR-.patch",
+      "commit": "34d046cdf67cce73016fb79e21bdc8a41a191e65",
+      "sha256": "c9276d2e0ddbe2f0c588def986ba93a96c60321fae4bf97a6be794e1fecbe7be"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "contracts.mjs",
+      "codex"
+    ]
+  ],
+  "provenance": {
+    "upstreamBase": "ff2346f33f851bd4e90c8e42ae60abcc7e7f293b",
+    "implementationRevision": "34d046cdf67cce73016fb79e21bdc8a41a191e65",
+    "implementationBranch": "codex/fix2-repo",
+    "sampleFiles": {
+      "samples/asr/session.jsonl": "4fa1457a7010d81c02aa1fc4d0b0f7ce7f41fbbfd6c5419eee320eca175fdfad",
+      "samples/native/session.jsonl": "7cbedd52b6586f642fb8e42b7b29ce9eb32553642c154a4d0d3608a69edd5884"
+    },
+    "patchSeries": [
+      "patches/0001-Add-offline-session-export-crate-with-core-mappings-.patch",
+      "patches/0002-Map-saved-settings-offered-tools-and-approval-decisi.patch",
+      "patches/0003-Wire-offline-session-exports-into-the-CLI.patch",
+      "patches/0004-Add-explicit-session-discovery-registration.patch",
+      "patches/0005-Preserve-unknown-native-content-in-a-namespaced-ASR-.patch"
+    ]
+  },
+  "files": {
+    ".gitattributes": "f8ecfcc97c6f3ebf96632b7f40d750db27797188ddfb3894ed9487eb8061a156",
+    "PROPOSAL.md": "a37ed91c050008f8db64d61d66450cb0c7a94113640700427df0c822b1822f0b",
+    "README.md": "bc1a8521c8e96748a3e0f198e3c34bc0411c471984e2209248f352e0f7939587",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "contracts.mjs": "980fb5cac2e07dc9ec3568d4093fc72756566f00e5ae59cece8d8d7944cdbde4",
+    "patches/0001-Add-offline-session-export-crate-with-core-mappings-.patch": "93dd64f97022f2f9b5c5a91c4c687076cf26ba4bfda90f68daf6668e09992fd7",
+    "patches/0002-Map-saved-settings-offered-tools-and-approval-decisi.patch": "0d38fbd2837a5524becb102ded919bd1d897fc9996df244216b4c8196642f2af",
+    "patches/0003-Wire-offline-session-exports-into-the-CLI.patch": "6f0656752718ec9a48c29c8e61cd00fc60fc37e77729b45b582541b83c7a2f8b",
+    "patches/0004-Add-explicit-session-discovery-registration.patch": "2e2c809c9c64f4b80e45416573d07eb0d4d257555775ce0c880a7fb5f707c1a0",
+    "patches/0005-Preserve-unknown-native-content-in-a-namespaced-ASR-.patch": "c9276d2e0ddbe2f0c588def986ba93a96c60321fae4bf97a6be794e1fecbe7be",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "4fa1457a7010d81c02aa1fc4d0b0f7ce7f41fbbfd6c5419eee320eca175fdfad",
+    "samples/native/session.jsonl": "7cbedd52b6586f642fb8e42b7b29ce9eb32553642c154a4d0d3608a69edd5884",
+    "validation.json": "5e3ddb0e9e7bfe62982eeeea6274bed4550ea58d7c4c5a923d6da177560a9dc5"
+  }
+}

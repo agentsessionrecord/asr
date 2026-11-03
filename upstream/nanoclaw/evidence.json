@@ -1,0 +1,23 @@
+{
+  "checks": [
+    "pnpm install --frozen-lockfile",
+    "pnpm exec vitest run .claude/skills/export-agent-session/scripts/export-agent-session.test.ts",
+    "pnpm exec tsc -p .claude/skills/export-agent-session/tsconfig.json",
+    "focused ESLint on skill scripts",
+    "skill structure validation",
+    "Prettier on skill files",
+    "native mailbox CLI and packaged fixture reproduction"
+  ],
+  "focusedTestsPassed": 1,
+  "newExporterTests": 1,
+  "fixtureReproduction": "passed",
+  "samples": {
+    "samples/asr/session.jsonl": {
+      "records": 3,
+      "errors": 0,
+      "warnings": 0
+    }
+  },
+  "liveTestStatus": "not-live-tested",
+  "liveTestNotes": "No live host or agent container was configured. Synthetic native mailboxes, the optional skill utility and focused checks passed."
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "severity": "warning",
+    "requirement": "ASR-070",
+    "code": "call-without-result",
+    "line": 2,
+    "pointer": "/callId"
+  },
+  {
+    "severity": "warning",
+    "requirement": "ASR-070",
+    "code": "missing-tool-name",
+    "line": 2,
+    "pointer": "/name"
+  }
+]

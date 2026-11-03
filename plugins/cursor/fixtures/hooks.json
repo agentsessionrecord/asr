@@ -1,0 +1,98 @@
+[
+  {
+    "event": "sessionStart",
+    "payload": {
+      "hook_event_name": "sessionStart",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-generation",
+      "cursor_version": "1.7.2",
+      "session_id": "synthetic-session",
+      "composer_mode": "agent"
+    }
+  },
+  {
+    "event": "beforeSubmitPrompt",
+    "payload": {
+      "hook_event_name": "beforeSubmitPrompt",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-generation",
+      "cursor_version": "1.7.2",
+      "prompt": "Print a synthetic marker."
+    }
+  },
+  {
+    "event": "preToolUse",
+    "payload": {
+      "hook_event_name": "preToolUse",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-generation",
+      "cursor_version": "1.7.2",
+      "tool_use_id": "synthetic-call",
+      "tool_name": "Shell",
+      "tool_input": {
+        "command": "printf marker"
+      },
+      "cwd": "/work/synthetic"
+    }
+  },
+  {
+    "event": "postToolUse",
+    "payload": {
+      "hook_event_name": "postToolUse",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-generation",
+      "cursor_version": "1.7.2",
+      "tool_use_id": "synthetic-call",
+      "tool_name": "Shell",
+      "tool_input": {
+        "command": "printf marker"
+      },
+      "tool_output": "{\"exitCode\":0,\"stdout\":\"marker\"}",
+      "duration": 0
+    }
+  },
+  {
+    "event": "subagentStart",
+    "payload": {
+      "hook_event_name": "subagentStart",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-generation",
+      "cursor_version": "1.7.2",
+      "subagent_id": "synthetic-child",
+      "parent_conversation_id": "synthetic-session",
+      "tool_call_id": "synthetic-spawn",
+      "subagent_type": "explore",
+      "task": "Synthetic task."
+    }
+  },
+  {
+    "event": "afterAgentResponse",
+    "payload": {
+      "hook_event_name": "afterAgentResponse",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-generation",
+      "cursor_version": "1.7.2",
+      "text": "Done.\n"
+    }
+  },
+  {
+    "event": "stop",
+    "payload": {
+      "hook_event_name": "stop",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-generation",
+      "cursor_version": "1.7.2",
+      "status": "completed"
+    }
+  },
+  {
+    "event": "sessionEnd",
+    "payload": {
+      "hook_event_name": "sessionEnd",
+      "conversation_id": "synthetic-session",
+      "generation_id": "synthetic-generation",
+      "cursor_version": "1.7.2",
+      "reason": "completed"
+    }
+  }
+]

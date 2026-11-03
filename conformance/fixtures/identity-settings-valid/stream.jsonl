@@ -1,0 +1,7 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"settings-7","producer":{"name":"example-export","version":"1","method":"native"},"user":{"id":"account-7","email":"alex@example.com","name":"Alex Rivera","source":"future_source","futureField":false}}
+{"type":"session_info","id":"initial","agentSettings":{"mode":"Plan Mode","approval":"on-request","sandbox":"read-only"}}
+{"type":"session_info","id":"changed","agentSettings":{"mode":"execute"}}
+{"type":"session_info","id":"empty","agentSettings":{}}
+{"type":"inference","id":"recorded-zero","model":{"requested":"example-model"},"settings":{"reasoningEffort":"Extra High","maxOutputTokens":0,"temperature":0,"serviceTier":"future-tier","futureField":{"value":null}}}
+{"type":"inference","id":"empty-settings","model":{"requested":"example-model"},"settings":{}}
+{"type":"inference","id":"unknown-settings","model":{"requested":"example-model"}}

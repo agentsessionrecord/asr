@@ -1,0 +1,30 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-019",
+    "code": "schema.anyOf",
+    "line": 2,
+    "pointer": "/person"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-019",
+    "code": "schema.type",
+    "line": 3,
+    "pointer": "/person/id"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-019",
+    "code": "schema.anyOf",
+    "line": 5,
+    "pointer": "/person"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-019",
+    "code": "schema.type",
+    "line": 6,
+    "pointer": "/person"
+  }
+]

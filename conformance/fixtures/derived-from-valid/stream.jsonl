@@ -1,0 +1,2 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"audit-7","producer":{"name":"example-export","version":"1.0","method":"native"},"derivedFrom":{"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"missing":["tool_output"]}
+{"type":"gap","id":"removed","reason":"redacted"}

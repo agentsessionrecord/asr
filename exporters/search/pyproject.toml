@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asr-search"
+version = "0.1.0"
+description = "Offline ASR search and vector export with local loaders"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+asr-search = "asr_search.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["asr_search*"]

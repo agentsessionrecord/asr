@@ -1,0 +1,73 @@
+{
+  "agent": "claude-code",
+  "configuredModel": true,
+  "executableSha256": "86cb722ab68348877dba7971e4d0c659919e05e6228c05e006e83da320e656ef",
+  "producerSourceSha256": "55e9e490731ba003553c6bc166a17c65e3325c4dc71560df47db9c3538b302cb",
+  "providerSettingsVerified": true,
+  "pluginValidationExit": 0,
+  "version": "2.1.305 (Claude Code)",
+  "exitCode": 0,
+  "stderrBytes": 0,
+  "elapsedSeconds": 10.099,
+  "streams": 1,
+  "records": 32,
+  "recordTypes": {
+    "session": 1,
+    "org.agentsessionrecord.hooks/hook": 17,
+    "session_info": 3,
+    "message": 2,
+    "tool_call": 4,
+    "tool_result": 4,
+    "file_change": 1
+  },
+  "hooks": {
+    "SessionStart": 1,
+    "UserPromptSubmit": 1,
+    "PreToolUse": 4,
+    "PostToolUse": 3,
+    "PostToolBatch": 4,
+    "PermissionRequest": 1,
+    "MessageDisplay": 1,
+    "Stop": 1,
+    "SessionEnd": 1
+  },
+  "checks": {
+    "processSucceeded": true,
+    "hasExplicitStart": true,
+    "hasExplicitEnd": true,
+    "callsAndResultsPaired": true,
+    "initialRepository": true,
+    "appliedEdit": true,
+    "blameMatched": true,
+    "blameSession": true,
+    "lateEffectiveInput": true,
+    "requestedInputPreserved": true,
+    "effectiveOutput": true,
+    "noInventedApproval": true,
+    "refusedCommandDidNotExecute": true,
+    "nativeRefusalObserved": true
+  },
+  "blame": {
+    "editStatus": "matched",
+    "committedSessions": 0,
+    "proof": false
+  },
+  "nativePermissionDecisions": {
+    "accept": 3,
+    "reject": 1
+  },
+  "validation": {
+    "valid": true,
+    "files": 1,
+    "records": 32,
+    "errors": 0,
+    "warnings": 18,
+    "inputFailures": 0,
+    "counts": {
+      "warning:unknown-extension": 1,
+      "warning:unknown-type": 17
+    }
+  },
+  "passed": true,
+  "checkedAt": "2026-11-01"
+}

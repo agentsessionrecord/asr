@@ -1,0 +1,17 @@
+[project]
+name = "agent-session-record"
+version = "0.1.0"
+description = "Generated ASR types and an append-only session writer"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["pydantic>=2.12,<3", "jsonschema>=4.25,<5", "rfc3339-validator>=0.1.4,<0.2"]
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = ["pytest>=8.4,<10"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

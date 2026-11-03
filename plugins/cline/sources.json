@@ -1,0 +1,15 @@
+{
+  "sourceRevision": "46996c9992d91e57c268091c971cfda52b0da399",
+  "fixtureKind": "synthetic",
+  "repository": "https://github.com/cline/cline",
+  "testedVersions": {
+    "cli": "3.0.74",
+    "sdk": "0.2.0"
+  },
+  "paths": [
+    "apps/cli/src/utils/hooks.ts",
+    "sdk/packages/core/src/hooks/hook-file-hooks.ts",
+    "sdk/packages/core/src/hooks/hook-file-config.ts",
+    "sdk/packages/core/src/services/local-runtime-bootstrap.ts"
+  ]
+}

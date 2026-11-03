@@ -1,0 +1,57 @@
+{
+  "fields": [
+    "session_id",
+    "cwd",
+    "tool_name",
+    "tool_input",
+    "tool_response",
+    "prompt_id",
+    "prompt",
+    "source",
+    "reason"
+  ],
+  "kinds": {
+    "exec": "execute",
+    "read": "read",
+    "write": "edit",
+    "edit": "edit",
+    "apply_patch": "edit",
+    "notebook_read": "read",
+    "notebook_edit": "edit",
+    "grep": "search",
+    "glob": "search",
+    "webfetch": "fetch",
+    "exit_plan_mode": "switch_mode"
+  },
+  "secret_tools": [],
+  "shell_tools": [
+    "exec"
+  ],
+  "agent_tools": [],
+  "new_session_sources": [],
+  "post_status": "unknown",
+  "agent": "devin",
+  "events": {
+    "SessionStart": "SessionStart",
+    "PreToolUse": "PreToolUse",
+    "PostToolUse": "PostToolUse",
+    "PermissionRequest": "PermissionRequest",
+    "UserPromptSubmit": "UserPromptSubmit",
+    "Stop": "Stop",
+    "PostCompaction": "PostCompact",
+    "SessionEnd": "SessionEnd"
+  },
+  "rename": {
+    "summary": "compact_summary"
+  },
+  "session_start_is_new": true,
+  "observations": [
+    "tool_name",
+    "tool_input",
+    "stop_hook_active"
+  ],
+  "missing": [
+    "call_ids",
+    "final_model_facing_output"
+  ]
+}

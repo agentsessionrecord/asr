@@ -1,0 +1,372 @@
+From d7d2f835bc5643bccd8306d8c6bce9a14bb59aa6 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:28 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ cmd/shelley-export/main.go |  40 ++++++++
+ db/agent_session.go        | 201 +++++++++++++++++++++++++++++++++++++
+ db/agent_session_test.go   |  97 ++++++++++++++++++
+ 3 files changed, 338 insertions(+)
+ create mode 100644 cmd/shelley-export/main.go
+ create mode 100644 db/agent_session.go
+ create mode 100644 db/agent_session_test.go
+
+diff --git a/cmd/shelley-export/main.go b/cmd/shelley-export/main.go
+new file mode 100644
+index 0000000..47656e8
+--- /dev/null
++++ b/cmd/shelley-export/main.go
+@@ -0,0 +1,40 @@
++package main
++
++import (
++	"context"
++	"flag"
++	"fmt"
++	"net/url"
++	"os"
++	"path/filepath"
++
++	"shelley.exe.dev/db"
++)
++
++func run() error {
++	database := flag.String("db", "shelley.db", "Native SQLite database")
++	session := flag.String("session", "", "Conversation ID")
++	format := flag.String("format", "agent-session", "Export format")
++	flag.Parse()
++	if *session == "" || *format != "agent-session" || flag.NArg() != 0 {
++		return fmt.Errorf("use --session ID --format agent-session")
++	}
++	absolute, err := filepath.Abs(*database)
++	if err != nil {
++		return err
++	}
++	source := url.URL{Scheme: "file", Path: absolute, RawQuery: "mode=ro"}
++	databaseHandle, err := db.New(db.Config{DSN: source.String()})
++	if err != nil {
++		return err
++	}
++	defer databaseHandle.Close()
++	return databaseHandle.WriteAgentSession(context.Background(), *session, os.Stdout)
++}
++
++func main() {
++	if err := run(); err != nil {
++		fmt.Fprintln(os.Stderr, err)
++		os.Exit(1)
++	}
++}
+diff --git a/db/agent_session.go b/db/agent_session.go
+new file mode 100644
+index 0000000..4ef6858
+--- /dev/null
++++ b/db/agent_session.go
+@@ -0,0 +1,201 @@
++package db
++
++import (
++	"context"
++	"encoding/json"
++	"fmt"
++	"io"
++	"path/filepath"
++	"time"
++	"unicode"
++	"unicode/utf8"
++
++	"shelley.exe.dev/llm"
++)
++
++// WriteAgentSession exports the retained database rows in their sequence order.
++func (db *DB) WriteAgentSession(requestContext context.Context, id string, output io.Writer) error {
++	conversation, err := db.GetConversationByID(requestContext, id)
++	if err != nil {
++		return err
++	}
++	if conversation == nil {
++		return fmt.Errorf("conversation not found")
++	}
++	rows, err := db.ListMessages(requestContext, id)
++	if err != nil {
++		return err
++	}
++	records := []map[string]any{{
++		"type": "session", "id": "header", "formatVersion": "0.1",
++		"agent": map[string]any{"name": "shelley"}, "sessionId": id,
++		"producer":  map[string]any{"name": "shelley-agent-session", "version": "0.1.0", "method": "native", "source": "shelley-sqlite"},
++		"startedAt": conversation.CreatedAt.Format(time.RFC3339Nano),
++		"missing":   []string{"usage", "model", "approvals", "agent_settings", "tools", "file_changes", "commits", "subagents", "copies", "provider_state", "native_events", "tool_result_updates"},
++	}}
++	if conversation.Cwd != nil && filepath.IsAbs(*conversation.Cwd) {
++		records[0]["cwd"] = *conversation.Cwd
++	}
++	reserved := map[string]bool{"header": true}
++	counts := map[string]int{}
++	for _, row := range rows {
++		counts[row.MessageID]++
++		reserved[row.MessageID] = true
++	}
++	recordID := func(position, part int) string {
++		nativeID := rows[position].MessageID
++		valid := nativeID != "" && nativeID != "header" && utf8.RuneCountInString(nativeID) <= 256
++		for _, character := range nativeID {
++			if unicode.IsControl(character) {
++				valid = false
++			}
++		}
++		if part == 0 && valid && counts[nativeID] == 1 {
++			return nativeID
++		}
++		derived := fmt.Sprintf("asr-%d-%d", position, part)
++		for reserved[derived] {
++			derived += "-derived"
++		}
++		return derived
++	}
++	decoded := make([]*llm.Message, len(rows))
++	lastResult := map[string]string{}
++	callIDs := map[string]bool{}
++	for position, row := range rows {
++		if row.LlmData == nil {
++			continue
++		}
++		var shape map[string]json.RawMessage
++		var message llm.Message
++		if json.Unmarshal([]byte(*row.LlmData), &shape) != nil || shape["Content"] == nil || shape["Role"] == nil || json.Unmarshal([]byte(*row.LlmData), &message) != nil {
++			continue
++		}
++		decoded[position] = &message
++		for part, content := range message.Content {
++			if content.Type == llm.ContentTypeToolUse && content.ID != "" {
++				callIDs[content.ID] = true
++			}
++			if content.Type == llm.ContentTypeToolResult && content.ToolUseID != "" {
++				callIDs[content.ToolUseID] = true
++			}
++			if content.Type == llm.ContentTypeToolResult && content.ToolUseID != "" {
++				lastResult[content.ToolUseID] = recordID(position, part)
++			}
++		}
++	}
++	for position, row := range rows {
++		message := decoded[position]
++		if message == nil || (message.Role != llm.MessageRoleUser && message.Role != llm.MessageRoleAssistant) {
++			records = append(records, map[string]any{"type": "gap", "id": recordID(position, 0), "reason": "not_recorded", "count": 1, "detail": "Native row has no supported model message."})
++			continue
++		}
++		contents := message.Content
++		if len(contents) == 0 {
++			contents = []llm.Content{{Type: llm.ContentTypeText}}
++		}
++		for part, content := range contents {
++			recordID := recordID(position, part)
++			record := map[string]any{"id": recordID, "ts": row.CreatedAt.Format(time.RFC3339Nano)}
++
++			switch content.Type {
++			case llm.ContentTypeToolUse:
++				record["type"], record["callId"], record["name"] = "tool_call", content.ID, content.ToolName
++				if content.ID == "" {
++					derived := "derived-" + recordID
++					for callIDs[derived] {
++						derived += "-derived"
++					}
++					callIDs[derived] = true
++					record["callId"] = derived
++				}
++				if len(content.ToolInput) > 0 {
++					record["inputText"] = string(content.ToolInput)
++				}
++				if message.Role == llm.MessageRoleAssistant {
++					record["requestedBy"] = "model"
++				}
++			case llm.ContentTypeToolResult:
++				if content.ToolUseID != "" && lastResult[content.ToolUseID] != recordID {
++					continue
++				}
++				record["type"], record["status"] = "tool_result", "completed"
++				if content.ToolError {
++					record["status"] = "failed"
++				}
++				if content.ToolUseID != "" {
++					record["callId"] = content.ToolUseID
++				}
++				parts, complete := agentSessionParts(content.ToolResult)
++				record["content"] = parts
++				if !complete {
++					record["truncated"] = true
++				}
++			default:
++				if content.Type != llm.ContentTypeText && content.Type != llm.ContentTypeThinking && content.Type != llm.ContentTypeRedactedThinking {
++					record["type"], record["reason"], record["detail"] = "gap", "not_recorded", "Unsupported native content is excluded."
++					break
++				}
++				role := "user"
++				if message.Role == llm.MessageRoleAssistant {
++					role = "assistant"
++					record["author"] = "model"
++				}
++				if row.Type == string(MessageTypeSystem) {
++					role = "system"
++					record["author"], record["origin"] = "harness", "instructions"
++				}
++				if row.UserEmail != nil && role == "user" {
++					record["author"] = "human"
++					record["person"] = map[string]any{"email": *row.UserEmail, "source": "agent_account"}
++				}
++				parts, _ := agentSessionParts([]llm.Content{content})
++				if len(message.Content) == 0 {
++					parts = []map[string]any{}
++				}
++				record["type"], record["role"], record["content"] = "message", role, parts
++			}
++			records = append(records, record)
++		}
++	}
++	encoder := json.NewEncoder(output)
++	encoder.SetEscapeHTML(false)
++	for _, record := range records {
++		if err := encoder.Encode(record); err != nil {
++			return err
++		}
++	}
++	return nil
++}
++
++func agentSessionParts(contents []llm.Content) ([]map[string]any, bool) {
++	parts := []map[string]any{}
++	complete := true
++	for _, content := range contents {
++		switch content.Type {
++		case llm.ContentTypeText:
++			if content.MediaType != "" {
++				parts = append(parts, map[string]any{"type": "image", "mimeType": content.MediaType, "data": content.Data})
++			} else {
++				parts = append(parts, map[string]any{"type": "text", "text": content.Text})
++			}
++		case llm.ContentTypeThinking:
++			parts = append(parts, asrReasoning(content.Thinking, false))
++		case llm.ContentTypeRedactedThinking:
++			parts = append(parts, map[string]any{"type": "reasoning", "visibility": "encrypted"})
++		default:
++			complete = false
++		}
++	}
++	return parts, complete
++}
++
++func asrReasoning(text string, summary bool) map[string]any {
++	if text == "" {
++		return map[string]any{"type": "reasoning", "visibility": "omitted"}
++	}
++	if summary {
++		return map[string]any{"type": "reasoning", "visibility": "summary", "summary": []string{text}}
++	}
++	return map[string]any{"type": "reasoning", "text": text}
++}
+diff --git a/db/agent_session_test.go b/db/agent_session_test.go
+new file mode 100644
+index 0000000..be53e0e
+--- /dev/null
++++ b/db/agent_session_test.go
+@@ -0,0 +1,97 @@
++package db
++
++import (
++	"bytes"
++	"context"
++	"encoding/json"
++	"path/filepath"
++	"strings"
++	"testing"
++
++	"shelley.exe.dev/llm"
++)
++
++func TestAgentSessionNativeDatabase(t *testing.T) {
++	requestContext := context.Background()
++	database, err := New(Config{DSN: filepath.Join(t.TempDir(), "synthetic.db")})
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer database.Close()
++	if err := database.Migrate(requestContext); err != nil {
++		t.Fatal(err)
++	}
++	conversation, err := database.CreateConversation(requestContext, nil, true, nil, nil, ConversationOptions{})
++	if err != nil {
++		t.Fatal(err)
++	}
++	saved, err := database.CreateMessage(requestContext, CreateMessageParams{ConversationID: conversation.ConversationID, Type: MessageTypeAgent, LLMData: llm.Message{Role: llm.MessageRoleAssistant, Content: []llm.Content{{Type: llm.ContentTypeText, Text: "hello\n"}, {Type: llm.ContentTypeRedactedThinking, Data: "opaque-synthetic-state"}}}})
++	if err != nil {
++		t.Fatal(err)
++	}
++	var output bytes.Buffer
++	if err := database.WriteAgentSession(requestContext, conversation.ConversationID, &output); err != nil {
++		t.Fatal(err)
++	}
++	if strings.Contains(output.String(), "opaque-synthetic-state") || strings.Contains(output.String(), "endedAt") {
++		t.Fatal("export leaked excluded state")
++	}
++	lines := strings.Split(strings.TrimSuffix(output.String(), "\n"), "\n")
++	if len(lines) != 3 {
++		t.Fatalf("records: %d", len(lines))
++	}
++	var message map[string]any
++	if err := json.Unmarshal([]byte(lines[1]), &message); err != nil {
++		t.Fatal(err)
++	}
++	if message["id"] != saved.MessageID {
++		t.Fatal("native message ID was lost")
++	}
++	if message["role"] != "assistant" {
++		t.Fatal("role was not preserved")
++	}
++	output.Reset()
++	if err := database.WriteAgentSession(requestContext, "missing", &output); err == nil || output.Len() != 0 {
++		t.Fatal("missing source became a session")
++	}
++}
++
++func TestAgentSessionDerivedCallDoesNotPairWithNativeResult(t *testing.T) {
++	requestContext := context.Background()
++	database, err := New(Config{DSN: filepath.Join(t.TempDir(), "synthetic.db")})
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer database.Close()
++	if err := database.Migrate(requestContext); err != nil {
++		t.Fatal(err)
++	}
++	conversation, err := database.CreateConversation(requestContext, nil, true, nil, nil, ConversationOptions{})
++	if err != nil {
++		t.Fatal(err)
++	}
++	saved, err := database.CreateMessage(requestContext, CreateMessageParams{ConversationID: conversation.ConversationID, Type: MessageTypeAgent, LLMData: llm.Message{Role: llm.MessageRoleAssistant, Content: []llm.Content{{Type: llm.ContentTypeToolUse, ToolName: "read", ToolInput: json.RawMessage(`{}`)}}}})
++	if err != nil {
++		t.Fatal(err)
++	}
++	nativeID := "derived-" + saved.MessageID
++	_, err = database.CreateMessage(requestContext, CreateMessageParams{ConversationID: conversation.ConversationID, Type: MessageTypeUser, LLMData: llm.Message{Role: llm.MessageRoleUser, Content: []llm.Content{{Type: llm.ContentTypeToolResult, ToolUseID: nativeID, ToolResult: []llm.Content{{Type: llm.ContentTypeText, Text: "result"}}}}}})
++	if err != nil {
++		t.Fatal(err)
++	}
++	var output bytes.Buffer
++	if err := database.WriteAgentSession(requestContext, conversation.ConversationID, &output); err != nil {
++		t.Fatal(err)
++	}
++	lines := strings.Split(strings.TrimSuffix(output.String(), "\n"), "\n")
++	var call, result map[string]any
++	if err := json.Unmarshal([]byte(lines[1]), &call); err != nil {
++		t.Fatal(err)
++	}
++	if err := json.Unmarshal([]byte(lines[2]), &result); err != nil {
++		t.Fatal(err)
++	}
++	if call["callId"] != nativeID+"-derived" || result["callId"] != nativeID {
++		t.Fatal("derived call was paired with a native result")
++	}
++}
+
+base-commit: e8dd9cc6817248188d2be2912680e8555ef72f13

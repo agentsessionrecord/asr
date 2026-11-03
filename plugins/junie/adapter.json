@@ -1,0 +1,55 @@
+{
+  "fields": [
+    "session_id",
+    "cwd",
+    "source",
+    "reason",
+    "prompt",
+    "tool_name",
+    "tool_input",
+    "last_assistant_message",
+    "error"
+  ],
+  "kinds": {
+    "Bash": "execute",
+    "Write": "edit",
+    "Edit": "edit",
+    "Read": "read",
+    "Glob": "search",
+    "Grep": "search"
+  },
+  "secret_tools": [],
+  "shell_tools": [
+    "Bash"
+  ],
+  "agent_tools": [],
+  "new_session_sources": [
+    "startup",
+    "clear"
+  ],
+  "post_status": "unknown",
+  "agent": "junie",
+  "events": {
+    "SessionStart": "SessionStart",
+    "UserPromptSubmit": "UserPromptSubmit",
+    "PreToolUse": "PreToolUse",
+    "PermissionRequest": "PermissionRequest",
+    "Stop": "Stop",
+    "StopFailure": "StopFailure",
+    "SessionEnd": "SessionEnd"
+  },
+  "observations": [
+    "tool_name",
+    "tool_input",
+    "permission_reason",
+    "error_details",
+    "stop_hook_active"
+  ],
+  "missing": [
+    "sessionless_callbacks",
+    "call_ids",
+    "tool_results",
+    "effective_tool_input",
+    "async_receipt_order"
+  ]
+}

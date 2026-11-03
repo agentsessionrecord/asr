@@ -1,0 +1,49 @@
+{
+  "sessionId": "continue-sample",
+  "workspaceDirectory": "/work/app",
+  "mode": "agent",
+  "chatModelTitle": "configured-alias",
+  "usage": {
+    "promptTokens": 0,
+    "completionTokens": 7
+  },
+  "history": [
+    {
+      "id": "prompt",
+      "message": {
+        "role": "user",
+        "content": "Read it."
+      }
+    },
+    {
+      "id": "reply",
+      "timestamp": "2026-10-31T12:00:02Z",
+      "message": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "Reading.\n"
+          }
+        ]
+      },
+      "toolCallStates": [
+        {
+          "toolCallId": "read-1",
+          "toolCall": {
+            "id": "read-1",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"path\":\"src/parser.py\"}"
+            }
+          },
+          "status": "done",
+          "output": "  ready\n"
+        }
+      ]
+    },
+    {
+      "conversationSummary": "Earlier messages were compacted."
+    }
+  ]
+}

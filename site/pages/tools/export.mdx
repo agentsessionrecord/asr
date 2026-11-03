@@ -1,0 +1,57 @@
+---
+title: "Export ASR"
+description: "Create traces, tables, search bundles, eval datasets and Git notes from ASR."
+---
+
+Exporters read existing ASR streams and keep citations back to source records.
+Choose the output for your query or destination. Each README gives its local
+installation, command, content policy and loader instructions.
+
+| Tool README | Live-test status |
+| --- | --- |
+| [ASR eval dataset exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/evals/README.md) | `not-applicable` |
+| [ASR Parquet data tables](https://github.com/agentsessionrecord/asr/blob/main/exporters/tables/README.md) | `partial` |
+| [ASR search and vector exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/search/README.md) | `partial` |
+| [Braintrust observability exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/braintrust/README.md) | `not-live-tested` |
+| [Git notes and Git AI exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/git-notes/README.md) | `not-applicable` |
+| [`Langfuse` observability exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/langfuse/README.md) | `not-live-tested` |
+| [OCSF SIEM exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/siem/README.md) | `partial` |
+| [OpenTelemetry exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/otel/README.md) | `partial` |
+| [Phoenix observability exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/phoenix/README.md) | `partial` |
+
+## Choose an output
+
+OpenTelemetry produces OTLP traces and logs. Tables produce Parquet and Arrow
+with DuckDB queries and loader examples for ClickHouse, BigQuery and Snowflake.
+SIEM output follows OCSF and provides request files for Splunk, Datadog and Elastic.
+Search writes OpenSearch or Elasticsearch bulk data and citation-preserving
+vector chunks for Qdrant. Vector creation requires an explicit embedding command.
+Git notes and Git AI export keep edit evidence distinct from commit evidence.
+
+The `Langfuse`, Braintrust and Phoenix exporters write trace and dataset import
+files. Evals produce portable dataset rows with source citations. Ordinary
+observed output does not become a passed test or a verified expected answer.
+
+## Reader and content limits
+
+Missing models, costs, counts, outcomes and times stay unknown. Copies add no
+duplicate usage. Session totals stay separate from sums of model calls.
+Operation timestamps require the documented source meaning. A nearby timestamp
+does not establish an interval.
+
+Content defaults and memory limits differ by exporter. Some commands can send
+data or load a destination when explicitly configured. Others only write local
+files. Review the selected README before including content or using a loader.
+These exports do not make private source data safe to share.
+
+## Test evidence
+
+OpenTelemetry used local OTLP endpoints. Tables exercised DuckDB and local
+ClickHouse. Search exercised local OpenSearch and Qdrant containers, with
+synthetic embeddings. Phoenix used a local service. Git notes used synthetic
+repositories. SIEM exercised local protocol endpoints.
+
+Production Splunk, Datadog, Elasticsearch, BigQuery, Snowflake, Git AI and hosted
+observability services remain untested. The `Langfuse` and Braintrust SDK contracts
+were checked locally. A `passed` local protocol test does not qualify every
+listed service or a production embedding model.

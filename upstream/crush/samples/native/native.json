@@ -1,0 +1,141 @@
+{
+  "messages": [
+    {
+      "id": "3b617ab1-dd6c-4840-a5b2-48b2ce9a0287",
+      "session_id": "14b76ce1-f0b5-4bd7-a411-3f8b829262b8",
+      "role": "user",
+      "parts": "[{\"type\":\"text\",\"data\":{\"text\":\"Exact\\r\\n\"}},{\"type\":\"finish\",\"data\":{\"reason\":\"stop\",\"time\":0}}]",
+      "model": {
+        "String": "",
+        "Valid": true
+      },
+      "created_at": 1793556328,
+      "updated_at": 1793556328,
+      "finished_at": {
+        "Int64": 0,
+        "Valid": false
+      },
+      "provider": {
+        "String": "",
+        "Valid": false
+      },
+      "is_summary_message": 0,
+      "prism_model_id": {
+        "String": "",
+        "Valid": false
+      },
+      "prism_model_name": {
+        "String": "",
+        "Valid": false
+      },
+      "prism_hypercredit_savings": {
+        "Float64": 0,
+        "Valid": false
+      },
+      "prism_dollar_savings": {
+        "Float64": 0,
+        "Valid": false
+      }
+    },
+    {
+      "id": "85b81cf4-5977-4a88-a4e2-3e2f82267bec",
+      "session_id": "14b76ce1-f0b5-4bd7-a411-3f8b829262b8",
+      "role": "assistant",
+      "parts": "[{\"type\":\"reasoning\",\"data\":{\"thinking\":\"Check the fixture.\",\"signature\":\"SYNTHETIC-OPAQUE\",\"thought_signature\":\"\",\"tool_id\":\"\",\"responses_data\":null}},{\"type\":\"tool_call\",\"data\":{\"id\":\"call-1\",\"name\":\"read\",\"input\":\"{\\\"path\\\":\\\"fixture.txt\\\"}\",\"provider_executed\":false,\"finished\":true}}]",
+      "model": {
+        "String": "",
+        "Valid": true
+      },
+      "created_at": 1793556328,
+      "updated_at": 1793556328,
+      "finished_at": {
+        "Int64": 0,
+        "Valid": false
+      },
+      "provider": {
+        "String": "",
+        "Valid": false
+      },
+      "is_summary_message": 0,
+      "prism_model_id": {
+        "String": "",
+        "Valid": false
+      },
+      "prism_model_name": {
+        "String": "",
+        "Valid": false
+      },
+      "prism_hypercredit_savings": {
+        "Float64": 0,
+        "Valid": false
+      },
+      "prism_dollar_savings": {
+        "Float64": 0,
+        "Valid": false
+      }
+    },
+    {
+      "id": "39b6073c-13c3-4dfd-9665-425d20c3f2e0",
+      "session_id": "14b76ce1-f0b5-4bd7-a411-3f8b829262b8",
+      "role": "tool",
+      "parts": "[{\"type\":\"tool_result\",\"data\":{\"tool_call_id\":\"call-1\",\"name\":\"read\",\"content\":\"Synthetic fixture.\\n\",\"data\":\"\",\"mime_type\":\"\",\"metadata\":\"\",\"is_error\":false}},{\"type\":\"finish\",\"data\":{\"reason\":\"stop\",\"time\":0}}]",
+      "model": {
+        "String": "",
+        "Valid": true
+      },
+      "created_at": 1793556328,
+      "updated_at": 1793556328,
+      "finished_at": {
+        "Int64": 0,
+        "Valid": false
+      },
+      "provider": {
+        "String": "",
+        "Valid": false
+      },
+      "is_summary_message": 0,
+      "prism_model_id": {
+        "String": "",
+        "Valid": false
+      },
+      "prism_model_name": {
+        "String": "",
+        "Valid": false
+      },
+      "prism_hypercredit_savings": {
+        "Float64": 0,
+        "Valid": false
+      },
+      "prism_dollar_savings": {
+        "Float64": 0,
+        "Valid": false
+      }
+    }
+  ],
+  "session": {
+    "id": "14b76ce1-f0b5-4bd7-a411-3f8b829262b8",
+    "parent_session_id": {
+      "String": "",
+      "Valid": false
+    },
+    "title": "Synthetic export fixture",
+    "message_count": 3,
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "cost": 0,
+    "updated_at": 1793556328,
+    "created_at": 1793556328,
+    "summary_message_id": {
+      "String": "",
+      "Valid": false
+    },
+    "todos": {
+      "String": "",
+      "Valid": false
+    },
+    "channel": {
+      "String": "",
+      "Valid": false
+    }
+  }
+}

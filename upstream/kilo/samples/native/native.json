@@ -1,0 +1,68 @@
+[
+  {
+    "id": "evt_synthetic_0",
+    "type": "session.created.1",
+    "seq": 0,
+    "data": "{\"sessionID\": \"ses_synthetic\", \"info\": {\"id\": \"ses_synthetic\", \"slug\": \"demo\", \"projectID\": \"global\", \"directory\": \"/work/demo\", \"title\": \"Synthetic session\", \"version\": \"7.8.25\", \"time\": {\"created\": 1767225600000, \"updated\": 1767225600000}, \"permission\": []}}"
+  },
+  {
+    "id": "evt_synthetic_1",
+    "type": "message.updated.1",
+    "seq": 1,
+    "data": "{\"sessionID\": \"ses_synthetic\", \"info\": {\"id\": \"msg_prompt\", \"sessionID\": \"ses_synthetic\", \"role\": \"user\", \"agent\": \"code\", \"model\": {\"providerID\": \"example\", \"modelID\": \"requested-model\"}, \"time\": {\"created\": 1767225600001}}}"
+  },
+  {
+    "id": "evt_synthetic_2",
+    "type": "message.part.updated.1",
+    "seq": 2,
+    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_prompt\", \"messageID\": \"msg_prompt\", \"type\": \"text\", \"text\": \"Read the synthetic fixture.\"}, \"time\": 1767225600002}"
+  },
+  {
+    "id": "evt_synthetic_3",
+    "type": "message.updated.1",
+    "seq": 3,
+    "data": "{\"sessionID\": \"ses_synthetic\", \"info\": {\"id\": \"msg_reply\", \"sessionID\": \"ses_synthetic\", \"role\": \"assistant\", \"agent\": \"code\", \"mode\": \"code\", \"modelID\": \"requested-model\", \"providerID\": \"example\", \"parentID\": \"msg_prompt\", \"path\": {\"cwd\": \"/work/demo\", \"root\": \"/work/demo\"}, \"cost\": 0, \"tokens\": {\"input\": 0, \"output\": 0, \"reasoning\": 0, \"cache\": {\"read\": 0, \"write\": 0}}, \"time\": {\"created\": 1767225600003}}}"
+  },
+  {
+    "id": "evt_synthetic_4",
+    "type": "message.part.updated.1",
+    "seq": 4,
+    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_start\", \"messageID\": \"msg_reply\", \"type\": \"step-start\"}, \"time\": 1767225600004}"
+  },
+  {
+    "id": "evt_synthetic_5",
+    "type": "message.part.updated.1",
+    "seq": 5,
+    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_tool\", \"messageID\": \"msg_reply\", \"type\": \"tool\", \"callID\": \"read-1\", \"tool\": \"read\", \"state\": {\"status\": \"running\", \"input\": {\"path\": \"/work/demo/input.txt\"}, \"time\": {\"start\": 1767225600005}}}, \"time\": 1767225600005}"
+  },
+  {
+    "id": "evt_synthetic_6",
+    "type": "message.part.updated.1",
+    "seq": 6,
+    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_note\", \"messageID\": \"msg_prompt\", \"type\": \"text\", \"text\": \"A recorded notice.\"}, \"time\": 1767225600000}"
+  },
+  {
+    "id": "evt_synthetic_7",
+    "type": "message.part.updated.1",
+    "seq": 7,
+    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_tool\", \"messageID\": \"msg_reply\", \"type\": \"tool\", \"callID\": \"read-1\", \"tool\": \"read\", \"state\": {\"status\": \"completed\", \"input\": {\"path\": \"/work/demo/rewritten.txt\"}, \"output\": \"synthetic\\n\", \"title\": \"Read\", \"metadata\": {\"approval\": {\"source\": \"project\", \"rule\": {\"permission\": \"read\", \"pattern\": \"*\", \"action\": \"allow\"}}}, \"time\": {\"start\": 1767225600005, \"end\": 1767225600007}}}, \"time\": 1767225600007}"
+  },
+  {
+    "id": "evt_synthetic_8",
+    "type": "message.part.updated.1",
+    "seq": 8,
+    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_reply\", \"messageID\": \"msg_reply\", \"type\": \"text\", \"text\": \"The fixture contains synthetic text.\", \"time\": {\"start\": 1767225600008, \"end\": 1767225600008}}, \"time\": 1767225600008}"
+  },
+  {
+    "id": "evt_synthetic_9",
+    "type": "message.part.updated.1",
+    "seq": 9,
+    "data": "{\"sessionID\": \"ses_synthetic\", \"part\": {\"sessionID\": \"ses_synthetic\", \"id\": \"prt_finish\", \"messageID\": \"msg_reply\", \"type\": \"step-finish\", \"reason\": \"stop\", \"cost\": 0, \"tokens\": {\"input\": 10, \"output\": 4, \"reasoning\": 2, \"cache\": {\"read\": 3, \"write\": 1}}}, \"time\": 1767225600009}"
+  },
+  {
+    "id": "evt_synthetic_10",
+    "type": "session.updated.1",
+    "seq": 10,
+    "data": "{\"sessionID\": \"ses_synthetic\", \"info\": {\"agent\": null, \"permission\": null}}"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-011",
+    "code": "schema.pattern",
+    "line": 2,
+    "pointer": "/from"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-011",
+    "code": "schema.pattern",
+    "line": 3,
+    "pointer": "/copiedFrom/session"
+  }
+]

@@ -1,0 +1,264 @@
+From d51f3bceb46c7fd55fb295ebfb54f9d63b7168af Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:28 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ tests/app_server/test_agent_session_export.py |  53 ++++++
+ vibe/app_server/agent_session_export.py       | 160 ++++++++++++++++++
+ .../builtins/vibe/skills/vibe/SKILL.md        |  13 ++
+ 3 files changed, 226 insertions(+)
+ create mode 100644 tests/app_server/test_agent_session_export.py
+ create mode 100644 vibe/app_server/agent_session_export.py
+
+diff --git a/tests/app_server/test_agent_session_export.py b/tests/app_server/test_agent_session_export.py
+new file mode 100644
+index 0000000..7f72cb5
+--- /dev/null
++++ b/tests/app_server/test_agent_session_export.py
+@@ -0,0 +1,53 @@
++from __future__ import annotations
++
++import json
++
++import pytest
++
++from vibe.app_server.agent_session_export import export_agent_session
++from vibe.app_server.models import PublicSessionState
++
++
++def snapshot() -> PublicSessionState:
++    return PublicSessionState.model_validate({
++        "eventId": 5,
++        "session": {
++            "id": "synthetic",
++            "status": {"type": "idle"},
++            "createdAt": 1,
++            "updatedAt": 4,
++        },
++        "historyBeforeCursor": "older",
++        "history": [
++            {
++                "type": "message",
++                "id": "u",
++                "sessionId": "synthetic",
++                "createdAt": 2,
++                "updatedAt": 2,
++                "generationStatus": "completed",
++                "role": "user",
++                "content": [{"type": "text", "text": "Exact\r\n"}],
++            }
++        ],
++    })
++
++
++def test_snapshot_is_ordered_private_and_explicitly_partial() -> None:
++    state = snapshot()
++    text = export_agent_session(state)
++    rows = [json.loads(line) for line in text.splitlines()]
++    assert rows[1]["type"] == "gap"
++    assert rows[2]["content"] == [{"type": "text", "text": "Exact\r\n"}]
++    assert "author" not in rows[2]
++    assert "ts" not in rows[2]
++    assert text == export_agent_session(state)
++    assert not any(row["type"] == "inference" for row in rows)
++
++
++def test_foreign_identity_is_rejected() -> None:
++    state = snapshot()
++    assert state.history is not None
++    state.history[0].session_id = "other"
++    with pytest.raises(ValueError, match="another session"):
++        export_agent_session(state)
+diff --git a/vibe/app_server/agent_session_export.py b/vibe/app_server/agent_session_export.py
+new file mode 100644
+index 0000000..258d72e
+--- /dev/null
++++ b/vibe/app_server/agent_session_export.py
+@@ -0,0 +1,160 @@
++"""Offline ASR export at the public app-server snapshot boundary.
++
++Run with ``uv run python -m vibe.app_server.agent_session_export``. The input is
++the ``state`` object returned by ``session/read``, not a private Runtime journal.
++"""
++
++from __future__ import annotations
++
++import argparse
++import json
++from pathlib import Path
++import re
++from typing import Any
++
++from vibe.app_server.models import (
++    PublicMessageEntry,
++    PublicReasoningEntry,
++    PublicSessionState,
++    TextContentBlock,
++)
++
++_MAX_RECORD_ID_LENGTH = 256
++
++
++def _asr_reasoning(text: str, summary: bool = False) -> dict[str, object]:
++    if not text:
++        return {"type": "reasoning", "visibility": "omitted"}
++    if summary:
++        return {"type": "reasoning", "visibility": "summary", "summary": [text]}
++    return {"type": "reasoning", "text": text}
++
++
++def export_agent_session(state: PublicSessionState) -> str:
++    """Preserve public history order without exposing config or opaque state."""
++    if not state.session.id:
++        raise ValueError("A native session identity is required")
++    rows: list[dict[str, Any]] = [
++        {
++            "type": "session",
++            "id": "header",
++            "formatVersion": "0.1",
++            "agent": {"name": "mistral-vibe"},
++            "sessionId": state.session.id,
++            "producer": {
++                "name": "vibe-asr-export",
++                "version": "1",
++                "method": "native",
++                "source": state.format,
++            },
++            "missing": [
++                "timestamps",
++                "usage",
++                "model",
++                "agent_settings",
++                "tools",
++                "approvals",
++                "tool_calls",
++                "tool_output",
++                "file_changes",
++                "commits",
++                "subagents",
++                "copies",
++                "media",
++                "native_events",
++                "message_author",
++                "reasoning",
++                "snapshot_updates",
++            ],
++        }
++    ]
++    if state.session.cwd is not None:
++        rows[0]["cwd"] = state.session.cwd
++    if state.history is None or state.history_before_cursor is not None:
++        rows.append(
++            {
++                "type": "gap",
++                "id": "history-prefix",
++                "reason": "not_recorded",
++                "detail": "The snapshot does not include the complete history prefix.",
++            }
++        )
++    reserved = {"header", "history-prefix"}
++    native_ids = {entry.id for entry in state.history or []}
++    used = set(reserved)
++    for index, entry in enumerate(state.history or []):
++        if entry.session_id != state.session.id:
++            raise ValueError("History entry belongs to another session")
++        identity = entry.id
++        if (
++            not identity
++            or len(identity) > _MAX_RECORD_ID_LENGTH
++            or identity in used
++            or re.search(r"[\x00-\x1f\x7f]", identity)
++        ):
++            identity = f"history-{index}"
++            while identity in used or identity in native_ids:
++                identity = "derived-" + identity
++        used.add(identity)
++        row: dict[str, Any] = {"id": identity}
++        if isinstance(entry, PublicMessageEntry):
++            content = [
++                {"type": "text", "text": block.text}
++                for block in entry.content
++                if isinstance(block, TextContentBlock)
++            ]
++            row.update(type="message", role=entry.role, content=content)
++            if len(content) != len(entry.content):
++                row["truncated"] = True
++            if entry.role == "assistant":
++                row["author"] = "model"
++            elif entry.role == "system":
++                row.update(author="harness", origin="instructions")
++            elif entry.source == "harness":
++                row.update(author="harness", origin="injected")
++        elif isinstance(entry, PublicReasoningEntry):
++            # The public text is readable. No encrypted replay state is copied.
++            row.update(
++                type="message",
++                role="assistant",
++                author="model",
++                content=[_asr_reasoning(entry.text, False)],
++            )
++        else:
++            row.update(
++                type="gap",
++                reason="not_recorded",
++                detail="This public history entry is not normalized.",
++            )
++        if row.get("type") == "message" and entry.generation_status == "in_progress":
++            row["truncated"] = True
++        # Legacy projections can synthesize created_at. Do not claim those times.
++        rows.append(row)
++    return "".join(
++        json.dumps(row, ensure_ascii=False, allow_nan=False) + "\n" for row in rows
++    )
++
++
++def main() -> None:
++    """Export one explicit snapshot without starting a backend or provider."""
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument(
++        "--session", type=Path, required=True, help="PublicSessionState JSON file"
++    )
++    parser.add_argument("--format", choices=["agent-session"], default="agent-session")
++    parser.add_argument("--output", type=Path)
++    args = parser.parse_args()
++    state = PublicSessionState.model_validate_json(args.session.read_bytes())
++    stream = export_agent_session(state)
++    if args.output is None:
++        print(stream, end="")
++    else:
++        import os
++
++        descriptor = os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
++        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as target:
++            target.write(stream)
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/vibe/plugins/builtins/vibe/skills/vibe/SKILL.md b/vibe/plugins/builtins/vibe/skills/vibe/SKILL.md
+index 4bad902..6a5495f 100644
+--- a/vibe/plugins/builtins/vibe/skills/vibe/SKILL.md
++++ b/vibe/plugins/builtins/vibe/skills/vibe/SKILL.md
+@@ -73,6 +73,19 @@ lazily: when `read_file` reads a file below the project root, any `AGENTS.md`
+ between the file's parent and the project root is injected into
+ context.
+ 
++## Agent Session Record export
++
++Export the public `state` object returned by app-server `session/read`:
++
++```bash
++uv run python -m vibe.app_server.agent_session_export --session state.json --format agent-session --output session.asr.jsonl
++```
++
++This offline command preserves public text and readable reasoning in history order.
++It declares missing history, tool details and accounting. It does not read private
++Runtime journals or start a model request. Output files are private and must not
++already exist.
++
+ ## Lifecycle: Exit, Update, Version, Resume
+ 
+ ### Exit
+
+base-commit: 338ad4bf0f73c4dd879d667cf7ab011555ae1751

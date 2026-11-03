@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "agent": "qwen-code",
+  "base": "9ebd2de1713039b8cb5f60c9982e3d4c450e3a8b",
+  "head": "613c42412ddb98da8b449c552fe17fac99ca9114",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "613c42412ddb98da8b449c552fe17fac99ca9114",
+      "sha256": "4049f650f67d5c2a4d55b4cf9d41bba610857b6781a9456b13a74f985fead3da"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "--test",
+      "test.mjs"
+    ]
+  ],
+  "provenance": {
+    "base": "9ebd2de1713039b8cb5f60c9982e3d4c450e3a8b",
+    "commit": "613c42412ddb98da8b449c552fe17fac99ca9114"
+  },
+  "files": {
+    ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
+    "PROPOSAL.md": "05b1cd02a3c0f9b42766e83f16a7a6d61b929bbdad3c432b7d34b81bb1a612cc",
+    "README.md": "09ddab38cb8e33ff6d1f7d426f04ef9e2ce5aa5ba50bb5f78cbcaf1999e769f7",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "discovery.json": "acc1eab0427ab3edcbbbad0fe0cf5cf7cc52c909b31e3da9c23a494e3fc76a24",
+    "patches/0001-native-agent-session-export.patch": "4049f650f67d5c2a4d55b4cf9d41bba610857b6781a9456b13a74f985fead3da",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/README.md": "fdc756cb38f014e6ad31a32a3e4a56769a5c44e1ac67a88e70b3a19bb3569db0",
+    "samples/asr/session.jsonl": "3dbb8d9c155a5c42b72f3376f4ebe9cfc210169c058737fb237a6cedebbdc546",
+    "samples/native/native.jsonl": "0496bbe9beefe2fc3ca9f53a6797d663be47e9997e6d7af0c8553261fcb5bd5f",
+    "test.mjs": "c7bec76aecac591c3ef6f0ad873a45d909d7735dd303b0d4cc28ccd5e1283f5f"
+  }
+}

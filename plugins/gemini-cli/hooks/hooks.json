@@ -1,0 +1,108 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "sequential": true,
+        "hooks": [
+          {
+            "type": "command",
+            "name": "asr-recorder",
+            "command": "node \"${extensionPath}/dist/record.mjs\" gemini-cli 2>/dev/null || :",
+            "timeout": 1000
+          }
+        ]
+      }
+    ],
+    "BeforeAgent": [
+      {
+        "sequential": true,
+        "hooks": [
+          {
+            "type": "command",
+            "name": "asr-recorder",
+            "command": "node \"${extensionPath}/dist/record.mjs\" gemini-cli 2>/dev/null || :",
+            "timeout": 1000
+          }
+        ]
+      }
+    ],
+    "BeforeTool": [
+      {
+        "sequential": true,
+        "hooks": [
+          {
+            "type": "command",
+            "name": "asr-recorder",
+            "command": "node \"${extensionPath}/dist/record.mjs\" gemini-cli 2>/dev/null || :",
+            "timeout": 1000
+          }
+        ]
+      }
+    ],
+    "AfterTool": [
+      {
+        "sequential": true,
+        "hooks": [
+          {
+            "type": "command",
+            "name": "asr-recorder",
+            "command": "node \"${extensionPath}/dist/record.mjs\" gemini-cli 2>/dev/null || :",
+            "timeout": 1000
+          }
+        ]
+      }
+    ],
+    "AfterAgent": [
+      {
+        "sequential": true,
+        "hooks": [
+          {
+            "type": "command",
+            "name": "asr-recorder",
+            "command": "node \"${extensionPath}/dist/record.mjs\" gemini-cli 2>/dev/null || :",
+            "timeout": 1000
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "sequential": true,
+        "hooks": [
+          {
+            "type": "command",
+            "name": "asr-recorder",
+            "command": "node \"${extensionPath}/dist/record.mjs\" gemini-cli 2>/dev/null || :",
+            "timeout": 1000
+          }
+        ]
+      }
+    ],
+    "PreCompress": [
+      {
+        "sequential": true,
+        "hooks": [
+          {
+            "type": "command",
+            "name": "asr-recorder",
+            "command": "node \"${extensionPath}/dist/record.mjs\" gemini-cli 2>/dev/null || :",
+            "timeout": 1000
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "sequential": true,
+        "hooks": [
+          {
+            "type": "command",
+            "name": "asr-recorder",
+            "command": "node \"${extensionPath}/dist/record.mjs\" gemini-cli 2>/dev/null || :",
+            "timeout": 1000
+          }
+        ]
+      }
+    ]
+  }
+}

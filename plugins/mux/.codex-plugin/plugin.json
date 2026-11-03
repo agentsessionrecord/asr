@@ -1,0 +1,6 @@
+{
+  "name": "asr-recorder",
+  "version": "0.1.0",
+  "description": "Record local hook observations.",
+  "mcpServers": "./.mcp.json"
+}

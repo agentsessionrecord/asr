@@ -1,0 +1,74 @@
+{
+  "title": "Synthetic",
+  "updated_at": "2026-01-01T00:00:00Z",
+  "messages": [
+    {
+      "User": {
+        "id": "prompt",
+        "content": [
+          {
+            "Text": "Read the synthetic item.\n"
+          }
+        ]
+      }
+    },
+    {
+      "Agent": {
+        "content": [
+          {
+            "Thinking": {
+              "text": "Check the item.\n",
+              "signature": "synthetic-excluded-signature"
+            }
+          },
+          {
+            "ToolUse": {
+              "id": "call-1",
+              "name": "read",
+              "raw_input": "{ \"number\":9007199254740993 }",
+              "input": {
+                "type": "json",
+                "value": {
+                  "number": 9007199254740993
+                }
+              },
+              "is_input_complete": true
+            }
+          }
+        ],
+        "tool_results": {
+          "call-1": {
+            "tool_use_id": "call-1",
+            "tool_name": "read",
+            "is_error": false,
+            "content": [
+              {
+                "Text": "item\n"
+              }
+            ],
+            "output": null
+          }
+        }
+      }
+    },
+    {
+      "Compaction": {
+        "Summary": "Read one item.\n"
+      }
+    },
+    "Resume",
+    {
+      "Agent": {
+        "content": [
+          {
+            "RedactedThinking": "opaque-synthetic-state"
+          },
+          {
+            "Text": "Finished.\n"
+          }
+        ],
+        "tool_results": {}
+      }
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Agent Session Record",
+  "description": "An open format for searching agent sessions and tracing code to the work that produced it.",
+  "colors": {
+    "primary": "#18181b",
+    "light": "#fafafa",
+    "dark": "#18181b"
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "/"
+  },
+  "favicon": "/favicon.svg",
+  "banner": {
+    "content": "ASR 0.1 is a draft for review. Feedback: [feedback@agentsessionrecord.org](mailto:feedback@agentsessionrecord.org)",
+    "dismissible": true
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "White paper (PDF)",
+        "href": "/downloads/agent-session-record-whitepaper.pdf"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Send feedback",
+      "href": "mailto:feedback@agentsessionrecord.org"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "index",
+              "get-started/why-asr",
+              "get-started/quick-tour",
+              "get-started/agent-developers",
+              "get-started/tool-builders",
+              "community/faq"
+            ]
+          },
+          {
+            "group": "Project",
+            "pages": [
+              "whitepaper",
+              "community/contributing",
+              "community/governance"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Tools",
+        "groups": [
+          {
+            "group": "Tools by job",
+            "pages": [
+              "tools/index",
+              "tools/convert",
+              "tools/record",
+              "tools/collect",
+              "tools/view",
+              "tools/export",
+              "tools/import",
+              "tools/patch"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Specification",
+        "groups": [
+          {
+            "group": "Core",
+            "pages": [
+              "spec/overview",
+              "spec/format",
+              "spec/records",
+              "spec/sessions",
+              "spec/code",
+              "spec/missing-data",
+              "spec/annotations",
+              "spec/conformance"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Integrations",
+            "pages": [
+              "guides/acp",
+              "guides/git-ai",
+              "guides/otel",
+              "guides/integration",
+              "guides/organizations",
+              "guides/audits",
+              "guides/replay"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Agents",
+        "groups": [
+          {
+            "group": "Agents and converters",
+            "pages": [
+              "agents/index",
+              "agents/claude-code",
+              "agents/codex",
+              "agents/gemini-cli",
+              "agents/opencode",
+              "agents/openclaw"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view"
+    ]
+  },
+  "seo": {
+    "indexing": "navigable"
+  }
+}

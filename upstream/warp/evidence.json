@@ -1,0 +1,20 @@
+{
+  "checks": [
+    "cargo test -p persistence agent_session --lib",
+    "cargo clippy -p persistence --all-targets --tests -- -D warnings",
+    "cargo fmt -p persistence",
+    "native SQLite example and packaged fixture reproduction"
+  ],
+  "focusedTestsPassed": 2,
+  "newExporterTests": 2,
+  "fixtureReproduction": "passed",
+  "samples": {
+    "samples/asr/session.jsonl": {
+      "records": 5,
+      "errors": 0,
+      "warnings": 0
+    }
+  },
+  "liveTestStatus": "not-live-tested",
+  "liveTestNotes": "No account-backed app session was started. Native persistence tests and synthetic SQLite export passed."
+}

@@ -1,0 +1,1190 @@
+From 613c42412ddb98da8b449c552fe17fac99ca9114 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:28 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ docs/cli/agent-session-export.md              |  40 ++
+ docs/design/agent-session-export.md           |  46 +++
+ docs/design/agent-session-export.zh-CN.md     |  37 ++
+ packages/cli/src/commands/sessions.test.ts    |   9 +-
+ packages/cli/src/commands/sessions.ts         |   2 +
+ .../src/commands/sessions/agent-session.ts    | 357 ++++++++++++++++++
+ .../cli/src/commands/sessions/export.test.ts  | 270 +++++++++++++
+ packages/cli/src/commands/sessions/export.ts  | 321 ++++++++++++++++
+ 8 files changed, 1080 insertions(+), 2 deletions(-)
+ create mode 100644 docs/cli/agent-session-export.md
+ create mode 100644 docs/design/agent-session-export.md
+ create mode 100644 docs/design/agent-session-export.zh-CN.md
+ create mode 100644 packages/cli/src/commands/sessions/agent-session.ts
+ create mode 100644 packages/cli/src/commands/sessions/export.test.ts
+ create mode 100644 packages/cli/src/commands/sessions/export.ts
+
+diff --git a/docs/cli/agent-session-export.md b/docs/cli/agent-session-export.md
+new file mode 100644
+index 0000000..a9c37e1
+--- /dev/null
++++ b/docs/cli/agent-session-export.md
+@@ -0,0 +1,40 @@
++# Export sessions as Agent Session Record
++
++Export one saved session to standard output:
++
++```sh
++qwen sessions export --format agent-session --session SESSION_ID
++```
++
++Use `--output DIRECTORY` for separate private JSONL files. Files are named with
++SHA-256 hashes of session IDs. Existing files are refused. Each file retains the
++native identity in its header. `--session` can repeat with directory output.
++Without `--session`, directory output selects all sessions in the current
++project. `--since` accepts an RFC 3339 timestamp and selects by source file
++modification time.
++
++Use `--input FILE` to read a specific native transcript. This option can repeat.
++It bypasses project discovery and does not read global configuration. A missing
++source, duplicate session identity or ambiguous standard output is an error.
++
++The exporter writes ASR 0.1 with `producer.method: native`. It preserves recorded
++text, tool arguments, model-facing results and source order. It folds result
++updates at their final observation. A rewind does not erase retained work.
++Malformed lines and incomplete tails produce gaps. Missing times and outcomes
++stay unknown. Native integers outside the safe JavaScript range become strings.
++
++Approvals, complete settings, model-call accounting, offered tools, file-change
++normalization, commits, instruction context and copy detection are declared
++missing. No inference is invented from a message boundary. No approval is
++inferred from a tool outcome. Qwen preserves recorded approval policy updates, prompt-time approval mode, custom titles and explicit parent-session links. Managed transaction journals are refused. Legacy chat recordings are supported.
++
++Known credential fields, credential patterns, secret values present in the
++exporter's environment and opaque provider signatures are excluded. Exclusion
++marks shortened records and declares losses. Review exports before sharing.
++This filter cannot recognize every secret in arbitrary prose.
++
++This change provides an offline export command. It does not write live ASR,
++install a discovery file or change native recording. A discovery file can use
++`["qwen", "sessions", "export", "--format", "agent-session"]` as its
++`exportCommand`, with `formatVersions: ["0.1"]` and
++`supportsDeletionHook: false`. Consumers still supply a selector or output path.
+diff --git a/docs/design/agent-session-export.md b/docs/design/agent-session-export.md
+new file mode 100644
+index 0000000..031d6cc
+--- /dev/null
++++ b/docs/design/agent-session-export.md
+@@ -0,0 +1,46 @@
++# Native Agent Session Record export
++
++[English](agent-session-export.md) | [简体中文](agent-session-export.zh-CN.md)
++
++## Problem and current state
++
++Saved legacy transcripts expose messages and tool results through native
++`ChatRecord` values. There is no ASR export subcommand. Collectors need a stable
++session identity and an ordered stream without starting a model session.
++
++## Proposed changes
++
++Add `sessions export --format agent-session`. A CLI-local projection reads
++complete JSONL lines and uses the native record types. It preserves retained
++branches, folds duplicate tool results at completion and records source policy
++updates. A small helper handles content parts, IDs, secret exclusion and output.
++No core runtime code changes.
++
++## Decisions and scope
++
++Explicit `--input` files bypass configuration. Default discovery uses the
++existing project session service and includes archived transcripts. One selector
++writes to standard output. Directory exports use hashed filenames and exclusive
++private writes. File modification times implement `--since`.
++
++Only recorded human provenance establishes human authorship. Missing model-call
++boundaries, approvals, full settings, instructions, usage, file changes, commits
++and copy detection remain declared losses. No current Git state, account identity
++or configuration is borrowed as historical evidence. Managed journals are
++rejected because their transaction protocol needs a separate mapping.
++
++## Risks and validation
++
++Arbitrary prose can contain secrets that a filter cannot recognize. Exports
++must be reviewed before sharing. Source data is untrusted and never executed.
++Malformed lines and incomplete tails produce gaps. Native large integers remain
++exact strings. Tests cover mapping, order, corruption, secret exclusion, output
++selection and private files. Synthetic scratch sessions exercise the local
++model endpoint. The ASR validator checks each final sample with zero errors.
++
++## Acceptance and open questions
++
++The command emits deterministic ASR 0.1 with native producer identity. Focused
++tests and validation pass. Existing sessions commands retain their behavior.
++Live ASR, managed journals and automatic discovery registration are out of scope.
++There are no open implementation questions.
+diff --git a/docs/design/agent-session-export.zh-CN.md b/docs/design/agent-session-export.zh-CN.md
+new file mode 100644
+index 0000000..05929b7
+--- /dev/null
++++ b/docs/design/agent-session-export.zh-CN.md
+@@ -0,0 +1,37 @@
++# 原生 Agent Session Record 导出
++
++[English](agent-session-export.md) | [简体中文](agent-session-export.zh-CN.md)
++
++## 问题和现状
++
++保存的旧版转录通过原生 `ChatRecord` 值提供消息和工具结果。目前没有 ASR
++导出子命令。采集程序需要稳定的会话标识和有序记录流，且不能启动模型会话。
++
++## 建议变更
++
++增加 `sessions export --format agent-session`。CLI 内部的投影读取完整 JSONL
++行并使用原生记录类型。它保留存储中的所有分支，在完成位置合并重复工具结果，
++并记录原生策略更新。辅助模块负责内容、标识、秘密排除和输出。核心运行时代码不变。
++
++## 决策和范围
++
++显式 `--input` 文件绕过配置。默认发现使用现有项目会话服务，包括已归档转录。
++单个选择器输出到标准输出。目录导出使用哈希文件名，并以私有权限排他创建文件。
++`--since` 使用源文件的修改时间。
++
++只有已记录的人类来源才建立人类作者身份。缺失的模型调用边界、审批、完整设置、
++指令、用量、文件变更、提交和副本检测均声明为损失。不会将当前 Git 状态、账户身份
++或配置作为历史证据。托管日志采用事务协议，需要单独映射，因此明确拒绝。
++
++## 风险和验证
++
++任意文本可能含有过滤器无法识别的秘密。分享前必须检查导出。源数据不可信，
++不会执行。损坏行和未完成尾行产生缺口。原生大整数保留为精确字符串。
++测试覆盖映射、顺序、损坏、秘密排除、输出选择和私有文件。合成临时会话通过
++本地模型代理运行。ASR 验证器要求每个最终样例均为零错误。
++
++## 验收和待定问题
++
++命令产生确定性的 ASR 0.1，并标明原生生产者。定向测试和验证通过。
++现有会话命令的行为保持一致。实时 ASR、托管日志和自动发现注册不在范围内。
++没有尚未解决的实现问题。
+diff --git a/packages/cli/src/commands/sessions.test.ts b/packages/cli/src/commands/sessions.test.ts
+index b69727a..e60fbbb 100644
+--- a/packages/cli/src/commands/sessions.test.ts
++++ b/packages/cli/src/commands/sessions.test.ts
+@@ -8,6 +8,10 @@ import { describe, it, expect, vi } from 'vitest';
+ 
+ // Subcommand modules are stubbed so this file tests wiring only — loading
+ // the real ones would pull the whole core barrel in behind them.
++vi.mock('./sessions/export.js', () => ({
++  exportCommand: { command: 'export', describe: 'Export sessions' },
++}));
++
+ vi.mock('./sessions/list.js', () => ({
+   listCommand: {
+     command: 'list',
+@@ -58,7 +62,7 @@ describe('sessions command', () => {
+     expect(options.key).toHaveProperty('help');
+   });
+ 
+-  it('should register the list, ps and controllers subcommands', () => {
++  it('should register the list, export, ps and controllers subcommands', () => {
+     const mockYargs = {
+       command: vi.fn().mockReturnThis(),
+       demandCommand: vi.fn().mockReturnThis(),
+@@ -71,12 +75,13 @@ describe('sessions command', () => {
+     }
+     builder(mockYargs as unknown as Argv);
+ 
+-    expect(mockYargs.command).toHaveBeenCalledTimes(3);
++    expect(mockYargs.command).toHaveBeenCalledTimes(4);
+ 
+     const commandCalls = mockYargs.command.mock.calls;
+     const commandNames = commandCalls.map((call) => call[0].command);
+ 
+     expect(commandNames).toContain('list');
++    expect(commandNames).toContain('export');
+     expect(commandNames).toContain('ps');
+     expect(commandNames).toContain('controllers');
+ 
+diff --git a/packages/cli/src/commands/sessions.ts b/packages/cli/src/commands/sessions.ts
+index 9f48ad0..ed6526c 100644
+--- a/packages/cli/src/commands/sessions.ts
++++ b/packages/cli/src/commands/sessions.ts
+@@ -5,6 +5,7 @@
+  */
+ 
+ import type { CommandModule, Argv } from 'yargs';
++import { exportCommand } from './sessions/export.js';
+ import { controllersCommand } from './sessions/controllers.js';
+ import { listCommand } from './sessions/list.js';
+ import { psCommand } from './sessions/ps.js';
+@@ -15,6 +16,7 @@ export const sessionsCommand: CommandModule = {
+   builder: (yargs: Argv) =>
+     yargs
+       .command(listCommand)
++      .command(exportCommand)
+       .command(psCommand)
+       .command(controllersCommand)
+       .demandCommand(1, 'You need at least one command before continuing.')
+diff --git a/packages/cli/src/commands/sessions/agent-session.ts b/packages/cli/src/commands/sessions/agent-session.ts
+new file mode 100644
+index 0000000..76963ab
+--- /dev/null
++++ b/packages/cli/src/commands/sessions/agent-session.ts
+@@ -0,0 +1,357 @@
++/**
++ * @license
++ * Copyright 2026 Qwen Team
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import { createHash } from 'node:crypto';
++import * as fs from 'node:fs';
++import * as path from 'node:path';
++
++export type RecordValue = Record<string, unknown>;
++const isObject = (value: unknown): value is RecordValue =>
++  value !== null && typeof value === 'object' && !Array.isArray(value);
++export const isString = (value: unknown): value is string =>
++  typeof value === 'string';
++export const list = (value: unknown): unknown[] =>
++  Array.isArray(value) ? value : [];
++export const object = (value: unknown): RecordValue =>
++  isObject(value) ? value : {};
++
++export function parseNative(text: string): unknown {
++  return JSON.parse(
++    text,
++    (_key, value: unknown, context?: { source: string }) => {
++      if (
++        typeof value === 'number' &&
++        Math.abs(value) > Number.MAX_SAFE_INTEGER
++      ) {
++        if (!context?.source)
++          throw new Error('Exact native integers require Node.js 22 or newer');
++        return context.source;
++      }
++      return value;
++    },
++  );
++}
++
++export function nativeLines(text: string): unknown[] {
++  const lines = text.split('\n');
++  const tail = lines.pop();
++  const records = lines.map((line) => {
++    try {
++      const value: unknown = parseNative(line);
++      if (!value || typeof value !== 'object' || Array.isArray(value))
++        return null;
++      return value;
++    } catch {
++      return null;
++    }
++  });
++  if (tail) records.push(null);
++  return records;
++}
++
++export function timestamp(value: unknown): string | undefined {
++  return typeof value === 'string' &&
++    /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(
++      value,
++    ) &&
++    Number.isFinite(Date.parse(value))
++    ? value
++    : undefined;
++}
++
++const kindByName: Record<string, string> = {
++  read_file: 'read',
++  read_many_files: 'read',
++  list_directory: 'read',
++  write_file: 'edit',
++  replace: 'edit',
++  edit: 'edit',
++  run_shell_command: 'execute',
++  grep_search: 'search',
++  glob: 'search',
++  web_fetch: 'fetch',
++  google_web_search: 'search',
++};
++
++export class SessionExport {
++  readonly records: RecordValue[] = [];
++  readonly missing = new Set([
++    'approvals',
++    'agent_settings',
++    'tools',
++    'usage',
++    'model',
++    'inference_settings',
++    'file_changes',
++    'commits',
++    'copies',
++    'subagents',
++    'instructions',
++    'exit_codes',
++    'native_metadata',
++    'message_author',
++    'tool_output',
++    'reasoning',
++    'provider_state',
++  ]);
++  private readonly used = new Set<string>();
++  private readonly secrets = Object.entries(process.env)
++    .filter(
++      ([key, value]) =>
++        /key|token|password|secret/i.test(key) && value && value.length >= 8,
++    )
++    .map(([, value]) => value!);
++
++  constructor(
++    readonly vendor: string,
++    private readonly reserved = new Set<string>(),
++  ) {}
++
++  id(key: string, native?: string): string {
++    let id =
++      native &&
++      native.length <= 256 &&
++      !Array.from(native).some(
++        (char) => char.charCodeAt(0) <= 31 || char.charCodeAt(0) === 127,
++      )
++        ? native
++        : `asr-${createHash('sha256').update(key).digest('hex')}`;
++    while (this.used.has(id) || (id !== native && this.reserved.has(id)))
++      id = `asr-${createHash('sha256')
++        .update(id + key)
++        .digest('hex')}`;
++    this.used.add(id);
++    return id;
++  }
++
++  add(key: string, record: RecordValue, native?: string): RecordValue {
++    const raw: RecordValue = { ...record, id: this.id(key, native) };
++    let shortened = false;
++    const clean = (value: unknown, field = ''): unknown => {
++      const entry = object(value);
++      if (
++        field === 'functionResponse' &&
++        /^(request_secret|get_password|get_credential)$/i.test(
++          String(entry['name']),
++        )
++      ) {
++        shortened = true;
++        return { id: entry['id'], name: entry['name'] };
++      }
++      if (
++        (field === 'functionCall' || field === '') &&
++        /^(request_secret|get_password|get_credential)$/i.test(
++          String(entry['name']),
++        )
++      ) {
++        value = {
++          ...entry,
++          args: undefined,
++          input: undefined,
++          truncated: true,
++        };
++        shortened = true;
++      }
++      if (
++        /^(?:thoughtSignature|signature|encryptedContent|encrypted_content|authorization|token|session[_-]?(?:key|token)|auth[_-]?token|client[_-]?secret|private[_-]?key|secret[_-]?(?:answer|value)|api[_-]?key|access[_-]?token|refresh[_-]?token|password|secret|credentials)$/i.test(
++          field,
++        )
++      ) {
++        shortened = true;
++        return undefined;
++      }
++      if (typeof value === 'string') {
++        let text = value.replace(
++          /\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|Bearer\s+[A-Za-z0-9._~+/-]{20,})\b/gi,
++          '[redacted]',
++        );
++        for (const secret of this.secrets)
++          text = text.split(secret).join('[redacted]');
++        if (text !== value) shortened = true;
++        return text;
++      }
++      if (Array.isArray(value))
++        return value.map((entry) => clean(entry) ?? null);
++      if (value && typeof value === 'object') {
++        return Object.fromEntries(
++          Object.entries(value).flatMap(([k, v]) => {
++            const cleaned = clean(v, k);
++            return cleaned === undefined ? [] : [[k, cleaned]];
++          }),
++        );
++      }
++      return value;
++    };
++    const result = object(clean(raw));
++    if (
++      raw['type'] === 'tool_result' &&
++      Array.isArray(raw['content']) &&
++      raw['content'].some((part) => {
++        const response = object(
++          object(object(part)['part'])['functionResponse'],
++        );
++        const output = object(response['response'])['output'];
++        return (
++          typeof output === 'string' && output.includes('<tool_output_masked>')
++        );
++      })
++    )
++      result['truncated'] = true;
++    if (shortened) {
++      result['truncated'] = true;
++      this.missing.add('secrets');
++    }
++    this.records.push(result);
++    return result;
++  }
++
++  gap(key: string, reason = 'unparseable'): void {
++    this.missing.add('history');
++    this.add(key, { type: 'gap', reason, count: 1 });
++  }
++
++  parts(value: unknown): RecordValue[] {
++    return (
++      Array.isArray(value)
++        ? value
++        : value === undefined || value === null
++          ? []
++          : [value]
++    ).map((part: unknown) => {
++      if (typeof part === 'string') return { type: 'text', text: part };
++      const p = object(part);
++      if (isString(p['text'])) {
++        return p['thought']
++          ? asrReasoning(p['text'], false)
++          : { type: 'text', text: p['text'] };
++      }
++      if (p['thought'] === true || p['thoughtSignature'])
++        return { type: 'reasoning', visibility: 'omitted' };
++      const media = object(p['inlineData']);
++      if (
++        isString(media['mimeType']) &&
++        /^(image|audio)\//.test(media['mimeType'])
++      ) {
++        return {
++          type: media['mimeType'].split('/')[0],
++          mimeType: media['mimeType'],
++          data: media['data'],
++        };
++      }
++      return { type: `${this.vendor}/part`, part: p };
++    });
++  }
++
++  call(
++    key: string,
++    call: RecordValue,
++    ts?: string,
++    native?: string,
++    turnId?: string,
++  ): void {
++    this.add(
++      key,
++      {
++        type: 'tool_call',
++        callId:
++          isString(call['id']) && call['id'] ? call['id'] : `derived-${key}`,
++        name: call['name'],
++        input: call['args'],
++        ts,
++        kind: isString(call['name']) ? kindByName[call['name']] : undefined,
++        requestedBy: call['requestedBy'],
++        turnId,
++      },
++      native,
++    );
++  }
++
++  finish(header: RecordValue): string {
++    const session = this.add('header', {
++      type: 'session',
++      formatVersion: '0.1',
++      ...header,
++      missing: [...this.missing].sort(),
++    });
++    if (session['sessionId'] !== header['sessionId'])
++      throw new Error('Session identity contains excluded data');
++    session['missing'] = [...this.missing].sort();
++    return (
++      [session, ...this.records.slice(0, -1)]
++        .map((r) => JSON.stringify(r))
++        .join('\n') + '\n'
++    );
++  }
++}
++
++export interface ExportArgs {
++  format: string;
++  session?: string[];
++  input?: string[];
++  output?: string;
++  since?: string;
++}
++
++export function exportFiles(
++  args: ExportArgs,
++  files: string[],
++  convert: (text: string) => string,
++): void {
++  if (args.format !== 'agent-session')
++    throw new Error('Unsupported export format');
++  if (!args.output && args.session?.length !== 1)
++    throw new Error('Select exactly one --session or supply --output');
++  const since = args.since ? timestamp(args.since) : undefined;
++  if (args.since && !since)
++    throw new Error('--since must be an RFC 3339 timestamp');
++  const wanted = new Set(args.session);
++  const exports = new Map<string, string>();
++  for (const file of [...new Set(files)].sort()) {
++    if (since && fs.statSync(file).mtimeMs < Date.parse(since)) continue;
++    const text = new TextDecoder('utf-8', { fatal: true }).decode(
++      fs.readFileSync(file),
++    );
++    if (wanted.size) {
++      let identity: unknown;
++      try {
++        identity = object(parseNative(text))['sessionId'];
++      } catch {
++        identity = object(
++          nativeLines(text).find((r) => isString(object(r)['sessionId'])),
++        )['sessionId'];
++      }
++      if (typeof identity !== 'string' || !wanted.has(identity)) continue;
++    }
++    const stream = convert(text);
++    const sessionId = object(parseNative(stream.split('\n')[0]))['sessionId'];
++    if (!isString(sessionId))
++      throw new Error('Missing exported session identity');
++    if (wanted.size && !wanted.has(sessionId)) continue;
++    if (exports.has(sessionId))
++      throw new Error('Several source files have the same session identity');
++    exports.set(sessionId, stream);
++  }
++  if (!exports.size || [...wanted].some((id) => !exports.has(id)))
++    throw new Error('Selected session source is unavailable');
++  if (!args.output) {
++    process.stdout.write([...exports.values()][0]);
++    return;
++  }
++  fs.mkdirSync(args.output, { recursive: true, mode: 0o700 });
++  for (const [id, stream] of exports) {
++    const name = createHash('sha256').update(id).digest('hex') + '.jsonl';
++    fs.writeFileSync(path.join(args.output, name), stream, {
++      mode: 0o600,
++      flag: 'wx',
++    });
++  }
++}
++
++function asrReasoning(text: unknown, summary = false): { type: string; visibility?: string; text?: string; summary?: string[] } {
++  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
++  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
++  return { type: "reasoning", text };
++}
+diff --git a/packages/cli/src/commands/sessions/export.test.ts b/packages/cli/src/commands/sessions/export.test.ts
+new file mode 100644
+index 0000000..e9e4ae3
+--- /dev/null
++++ b/packages/cli/src/commands/sessions/export.test.ts
+@@ -0,0 +1,270 @@
++import { describe, it, expect, vi } from 'vitest';
++import * as fs from 'node:fs';
++import * as os from 'node:os';
++import * as path from 'node:path';
++import { exportSession, exportCommand } from './export.js';
++import { exportFiles, parseNative } from './agent-session.js';
++
++const discovery = vi.hoisted(() => ({ directory: '' }));
++vi.mock('./common.js', () => ({
++  initSessionService: () => ({
++    getSessionTranscriptPath: () => `${discovery.directory}/unused.jsonl`,
++  }),
++}));
++
++const records = (text: string) =>
++  text
++    .trimEnd()
++    .split('\n')
++    .map((line) => JSON.parse(line));
++const at = '2026-10-30T12:00:00Z';
++
++const extra = (uuid: string) =>
++  JSON.stringify({
++    uuid,
++    sessionId: 'synthetic-session',
++    parentUuid: null,
++    timestamp: at,
++    type: 'user',
++    provenance: 'real_user',
++    cwd: '/work/example',
++    version: 'synthetic',
++    message: { role: 'user', parts: [{ text: 'hello\r\n  world ' }] },
++  });
++const fixture = () => extra('prompt') + '\n';
++
++describe('Agent Session Record export', () => {
++  it('discovers current project storage and filters unrelated sessions before decoding', async () => {
++    const dir = fs.mkdtempSync(
++      path.join(os.tmpdir(), 'agent-session-discovery-'),
++    );
++    discovery.directory = dir;
++    const store = dir;
++    fs.mkdirSync(store, { recursive: true });
++    fs.writeFileSync(path.join(store, 'session-synthetic.jsonl'), fixture());
++    fs.writeFileSync(
++      path.join(store, 'managed.jsonl'),
++      JSON.stringify({
++        uuid: 'managed',
++        sessionId: 'unselected',
++        subtype: 'managed_session_header_v1',
++      }) + '\n',
++    );
++    const write = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
++    try {
++      await exportCommand.handler({
++        format: 'agent-session',
++        session: ['synthetic-session'],
++        _: [],
++        $0: 'test',
++      });
++      expect(write).toHaveBeenCalledWith(exportSession(fixture()));
++    } finally {
++      write.mockRestore();
++      fs.rmSync(dir, { recursive: true, force: true });
++    }
++  });
++
++  it('writes deterministic native streams with exact text and no invented outcomes', () => {
++    const source = fixture();
++    const a = exportSession(source);
++    expect(exportSession(source)).toBe(a);
++    const output = records(a);
++    expect(output[0].producer.method).toBe('native');
++    expect(output[0].sessionId).toBe('synthetic-session');
++    expect(output[0]).not.toHaveProperty('endedAt');
++    expect(output.some((r) => r.type === 'approval')).toBe(false);
++    expect(output.some((r) => r.type === 'inference')).toBe(false);
++    expect(output.find((r) => r.id === 'prompt').content).toEqual([
++      { type: 'text', text: 'hello\r\n  world ' },
++    ]);
++    expect(new Set(output.map((r) => r.id)).size).toBe(output.length);
++  });
++
++  it('keeps large native values exact before JavaScript can round them', () => {
++    expect(parseNative('{"id":9007199254740993}')).toEqual({
++      id: '9007199254740993',
++    });
++  });
++
++  it('marks corrupt complete lines and incomplete tails without dropping later work', () => {
++    const source =
++      fixture() + 'broken\n' + extra('later') + '\n' + '{"unfinished":';
++    const output = records(exportSession(source));
++    expect(output.filter((r) => r.type === 'gap')).toHaveLength(2);
++    expect(output.some((r) => r.id === 'later')).toBe(true);
++    expect(output[0].missing).toContain('history');
++  });
++
++  it('omits known secrets and opaque provider state', () => {
++    const source = fixture().replace(
++      'hello\\r\\n  world ',
++      'Bearer ' + 'a'.repeat(32),
++    );
++    const stream = exportSession(source);
++    expect(stream).not.toContain('a'.repeat(32));
++    expect(records(stream)[0].missing).toContain('secrets');
++    expect(records(stream).find((r) => r.id === 'prompt').truncated).toBe(true);
++  });
++
++  it('does not emit a session for missing identity', () => {
++    expect(() => exportSession('{}\n')).toThrow('identity');
++  });
++
++  it('rejects ambiguous stdout, unavailable sessions and invalid time filters', () => {
++    expect(() =>
++      exportFiles({ format: 'agent-session' }, [], exportSession),
++    ).toThrow('exactly one');
++    expect(() =>
++      exportFiles(
++        { format: 'agent-session', session: ['missing'] },
++        [],
++        exportSession,
++      ),
++    ).toThrow('unavailable');
++    expect(() =>
++      exportFiles(
++        { format: 'agent-session', session: ['missing'], since: 'yesterday' },
++        [],
++        exportSession,
++      ),
++    ).toThrow('RFC 3339');
++  });
++
++  it('writes safe private filenames and refuses to overwrite files', () => {
++    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-session-export-'));
++    try {
++      const input = path.join(dir, 'source.jsonl');
++      fs.writeFileSync(input, fixture());
++      const output = path.join(dir, 'exports');
++      const args = { format: 'agent-session', output };
++      exportFiles(args, [input], exportSession);
++      const [name] = fs.readdirSync(output);
++      expect(name).toMatch(/^[a-f0-9]{64}\.jsonl$/);
++      if (process.platform !== 'win32')
++        expect(fs.statSync(path.join(output, name)).mode & 0o777).toBe(0o600);
++      expect(() => exportFiles(args, [input], exportSession)).toThrow();
++      const write = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
++      try {
++        exportFiles(
++          { format: 'agent-session', session: ['synthetic-session'] },
++          [input],
++          exportSession,
++        );
++        expect(write).toHaveBeenCalledWith(exportSession(fixture()));
++      } finally {
++        write.mockRestore();
++      }
++    } finally {
++      fs.rmSync(dir, { recursive: true, force: true });
++    }
++  });
++});
++describe('Qwen transcript evidence', () => {
++  it('assembles same-UUID fragments at completion and keeps intervening records', () => {
++    const first = JSON.parse(extra('fragment'));
++    const final = {
++      ...first,
++      timestamp: '2026-10-30T11:59:59Z',
++      message: { role: 'user', parts: [{ text: 'tail' }] },
++    };
++    const output = records(
++      exportSession(
++        fixture() +
++          [first, JSON.parse(extra('notice')), final]
++            .map((row) => JSON.stringify(row))
++            .join('\n') +
++          '\n',
++      ),
++    );
++    const message = output.find((r) => r.id === 'fragment');
++    expect(message.content.map((p: { text: string }) => p.text).join('')).toBe(
++      'hello\r\n  world tail',
++    );
++    expect(message.ts).toBe(final.timestamp);
++    expect(output.findIndex((r) => r.id === 'notice')).toBeLessThan(
++      output.findIndex((r) => r.id === 'fragment'),
++    );
++  });
++
++  it('exports recorded approval policy changes without inventing decisions or asks', () => {
++    const source =
++      fixture() +
++      JSON.stringify({
++        ...JSON.parse(extra('policy')),
++        type: 'system',
++        message: undefined,
++        subtype: 'session_approval_mode',
++        systemPayload: { mode: 'yolo' },
++      }) +
++      '\n';
++    const output = records(exportSession(source));
++    expect(output.find((r) => r.type === 'session_info').agentSettings).toEqual(
++      { approval: { mode: 'yolo' } },
++    );
++    expect(output.some((r) => r.type === 'approval')).toBe(false);
++  });
++
++  it('keeps calls and model-facing outcomes separate and folds repeated results', () => {
++    const base = JSON.parse(extra('base'));
++    const call = {
++      ...base,
++      uuid: 'call-record',
++      type: 'assistant',
++      message: {
++        role: 'model',
++        parts: [
++          {
++            functionCall: {
++              id: 'call',
++              name: 'read_file',
++              args: { path: '/work/example.txt' },
++            },
++          },
++        ],
++      },
++    };
++    const result = {
++      ...base,
++      uuid: 'result-one',
++      type: 'tool_result',
++      message: {
++        role: 'user',
++        parts: [
++          { functionResponse: { id: 'call', response: { output: 'done' } } },
++        ],
++      },
++      toolCallResult: { status: 'success', resultDisplay: 'display only' },
++    };
++    const source =
++      fixture() +
++      [
++        call,
++        result,
++        JSON.parse(extra('notice')),
++        { ...result, uuid: 'result-two' },
++      ]
++        .map((row) => JSON.stringify(row))
++        .join('\n') +
++      '\n';
++    const stream = exportSession(source);
++    const output = records(stream);
++    expect(output.filter((r) => r.type === 'tool_result')).toHaveLength(1);
++    expect(output.find((r) => r.type === 'tool_result').status).toBe(
++      'completed',
++    );
++    expect(output.findIndex((r) => r.id === 'notice')).toBeLessThan(
++      output.findIndex((r) => r.type === 'tool_result'),
++    );
++    expect(stream).not.toContain('display only');
++  });
++
++  it('rejects managed journals instead of treating transaction envelopes as chat', () => {
++    const source =
++      JSON.stringify({
++        ...JSON.parse(extra('managed')),
++        subtype: 'managed_session_header_v1',
++      }) + '\n';
++    expect(() => exportSession(source)).toThrow('Managed');
++  });
++});
+diff --git a/packages/cli/src/commands/sessions/export.ts b/packages/cli/src/commands/sessions/export.ts
+new file mode 100644
+index 0000000..f32c0f2
+--- /dev/null
++++ b/packages/cli/src/commands/sessions/export.ts
+@@ -0,0 +1,321 @@
++/**
++ * @license
++ * Copyright 2026 Qwen Team
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import type { CommandModule } from 'yargs';
++import type { ChatRecord } from '@qwen-code/qwen-code-core';
++import * as fs from 'node:fs';
++import * as path from 'node:path';
++import {
++  SessionExport,
++  exportFiles,
++  nativeLines,
++  object,
++  isString,
++  timestamp,
++  type ExportArgs,
++  type RecordValue,
++} from './agent-session.js';
++
++function isChatRecord(value: unknown): value is ChatRecord {
++  const r = object(value);
++  return (
++    isString(r['uuid']) &&
++    isString(r['sessionId']) &&
++    ['user', 'assistant', 'tool_result', 'system'].includes(String(r['type']))
++  );
++}
++
++export function exportSession(text: string): string {
++  const rows = nativeLines(text);
++  const first = object(rows.find((row) => isString(object(row)['sessionId'])));
++  if (!isString(first['sessionId']) || !first['sessionId'])
++    throw new Error('Missing native session identity');
++  if (
++    rows.some((row) =>
++      String(object(row)['subtype']).startsWith('managed_session_'),
++    )
++  )
++    throw new Error(
++      'Managed session journals are not supported by this exporter',
++    );
++  const out = new SessionExport(
++    'com.qwen.code',
++    new Set(
++      rows
++        .map((r) => object(r)['uuid'])
++        .filter((id): id is string => typeof id === 'string'),
++    ),
++  );
++  const last = new Map<string, number>();
++  const responseLast = new Map<string, number>();
++  const fragments = new Map<string, RecordValue>();
++  rows.forEach((raw, index) => {
++    const r = object(raw);
++    if (isString(r['uuid'])) {
++      const previous = fragments.get(r['uuid']);
++      if (previous && previous['parentUuid'] !== r['parentUuid']) {
++        rows[index] = null;
++        return;
++      }
++      const previousMessage = object(previous?.['message']);
++      const currentMessage = object(r['message']);
++      const merged = previous
++        ? {
++            ...previous,
++            timestamp: r['timestamp'],
++            ...(r['message']
++              ? {
++                  message: {
++                    ...currentMessage,
++                    parts: [
++                      ...(Array.isArray(previousMessage['parts'])
++                        ? previousMessage['parts']
++                        : []),
++                      ...(Array.isArray(currentMessage['parts'])
++                        ? currentMessage['parts']
++                        : []),
++                    ],
++                  },
++                }
++              : {}),
++            toolCallResult: previous['toolCallResult'] ?? r['toolCallResult'],
++          }
++        : r;
++      fragments.set(r['uuid'], merged);
++      rows[index] = merged;
++      last.set(r['uuid'], index);
++    }
++  });
++  rows.forEach((raw, index) => {
++    const r = object(raw);
++    if (last.get(String(r['uuid'])) !== index) return;
++    const parts = object(r['message'])['parts'];
++    for (const p of Array.isArray(parts) ? parts : []) {
++      const response = object(object(p)['functionResponse']);
++      if (isString(response['id'])) responseLast.set(response['id'], index);
++    }
++  });
++  let parent: RecordValue | undefined;
++  rows.forEach((raw, index) => {
++    const r = object(raw);
++    const key = String(r['uuid'] ?? `line-${index}`);
++    if (
++      raw === null ||
++      !isChatRecord(raw) ||
++      r['sessionId'] !== first['sessionId']
++    ) {
++      out.gap(`invalid-${index}`);
++      return;
++    }
++    if (last.get(key) !== index) return;
++    const record = raw;
++    const ts = timestamp(record.timestamp);
++    if (!ts) out.missing.add('timestamps');
++    const payload = object(record.systemPayload);
++    const base = { ts, turnId: record.goalContext?.turnId ?? record.promptId };
++    if (
++      record.subtype === 'parent_session' &&
++      isString(payload['parentSessionId'])
++    ) {
++      const component = Array.from(payload['parentSessionId'])
++        .map((char) =>
++          /[%:#]/.test(char) ||
++          char.charCodeAt(0) <= 32 ||
++          char.charCodeAt(0) === 127
++            ? encodeURIComponent(char)
++            : char,
++        )
++        .join('');
++      parent = { session: `qwen-code:${component}`, kind: 'subagent' };
++    } else if (record.subtype === 'session_approval_mode') {
++      out.add(
++        key,
++        { type: 'session_info', ...base, agentSettings: { approval: payload } },
++        key,
++      );
++    } else if (
++      record.subtype === 'custom_title' &&
++      isString(payload['customTitle'])
++    ) {
++      out.add(
++        key,
++        { type: 'session_info', ...base, title: payload['customTitle'] },
++        key,
++      );
++    } else if (record.subtype === 'chat_compression') {
++      const history = payload['compressedHistory'];
++      const count = payload['summaryPrefixLength'];
++      if (
++        Array.isArray(history) &&
++        Number.isSafeInteger(count) &&
++        Number(count) >= 0
++      ) {
++        history.slice(0, Number(count)).forEach((entry, i) =>
++          out.add(
++            `${key}-summary-${i}`,
++            {
++              type: 'message',
++              ...base,
++              role: 'user',
++              author: 'harness',
++              origin: 'compaction',
++              content: out.parts(object(entry)['parts']),
++            },
++            i === 0 ? key : undefined,
++          ),
++        );
++      } else out.missing.add('compaction_summary');
++    } else if (record.message) {
++      if (record.executionContext)
++        out.add(`${key}-settings`, {
++          type: 'session_info',
++          ...base,
++          agentSettings: { approval: record.executionContext.approvalMode },
++        });
++      const parts = record.message.parts ?? [];
++      let block: unknown[] = [];
++      let segment = 0;
++      const flush = (position: number) => {
++        if (!block.length) return;
++        const nativeId = segment++ === 0 ? key : undefined;
++        out.add(
++          `${key}-message-${position}`,
++          {
++            type: 'message',
++            ...base,
++            role: record.type === 'assistant' ? 'assistant' : 'user',
++            ...(record.provenance === 'real_user'
++              ? { author: 'human', origin: 'prompt' }
++              : record.clientInitiatedSkills
++                ? { author: 'harness', origin: 'instructions' }
++                : record.provenance === 'assistant_output' ||
++                    record.type === 'assistant'
++                  ? { author: 'model' }
++                  : record.provenance === 'system'
++                    ? { author: 'harness', origin: 'injected' }
++                    : {}),
++            content: out.parts(block),
++          },
++          nativeId,
++        );
++        block = [];
++      };
++      parts.forEach((part, position) => {
++        if (part.functionCall) {
++          flush(position);
++          out.call(
++            `${key}-call-${position}`,
++            {
++              ...object(part.functionCall),
++              requestedBy: record.clientInitiatedSkills
++                ? 'harness'
++                : record.type === 'assistant'
++                  ? 'model'
++                  : undefined,
++            },
++            ts,
++            segment++ === 0 ? key : undefined,
++            base.turnId,
++          );
++        } else if (part.functionResponse) {
++          flush(position);
++          const callId = part.functionResponse.id;
++          if (
++            callId &&
++            (responseLast.get(callId) !== index ||
++              parts.findLastIndex((p) => p.functionResponse?.id === callId) !==
++                position)
++          )
++            return;
++          const statuses: Record<string, string> = {
++            success: 'completed',
++            error: 'failed',
++            cancelled: 'cancelled',
++          };
++          out.add(
++            `${key}-result-${position}`,
++            {
++              type: 'tool_result',
++              ...base,
++              callId,
++              status:
++                record.toolCallResult?.callId === callId ||
++                parts.filter((p) => p.functionResponse).length === 1
++                  ? (statuses[record.toolCallResult?.status ?? ''] ?? 'unknown')
++                  : 'unknown',
++              content: out.parts(
++                callId
++                  ? parts.filter((p) => p.functionResponse?.id === callId)
++                  : [part],
++              ),
++            },
++            segment++ === 0 ? key : undefined,
++          );
++        } else block.push(part);
++      });
++      flush(parts.length);
++    }
++  });
++  return out.finish({
++    agent: {
++      name: 'qwen-code',
++      ...(isString(first['version']) ? { version: first['version'] } : {}),
++    },
++    sessionId: first['sessionId'],
++    ...(isString(first['cwd']) && path.isAbsolute(first['cwd'])
++      ? { cwd: first['cwd'] }
++      : {}),
++    parent,
++    producer: {
++      name: 'qwen-code-export',
++      version: '1',
++      method: 'native',
++      source: 'qwen-chat-recording',
++    },
++  });
++}
++
++export const exportCommand: CommandModule<unknown, ExportArgs> = {
++  command: 'export',
++  describe: 'Export saved sessions as Agent Session Record JSONL',
++  builder: (yargs) =>
++    yargs
++      .option('format', {
++        type: 'string',
++        choices: ['agent-session'],
++        demandOption: true,
++      })
++      .option('session', { type: 'string', array: true })
++      .option('input', {
++        type: 'string',
++        array: true,
++        describe:
++          'Read explicit native session files instead of current project storage',
++      })
++      .option('since', { type: 'string' })
++      .option('output', {
++        type: 'string',
++        describe:
++          'Write private files to a directory without replacing existing files',
++      }),
++  handler: async (args) => {
++    let files = args.input;
++    if (!files) {
++      const { initSessionService } = await import('./common.js');
++      const service = initSessionService();
++      const dir = path.dirname(service.getSessionTranscriptPath('unused'));
++      files = [dir, path.join(dir, 'archive')].flatMap((directory) =>
++        fs.existsSync(directory)
++          ? fs
++              .readdirSync(directory)
++              .filter((name) => name.endsWith('.jsonl'))
++              .map((name) => path.join(directory, name))
++          : [],
++      );
++    }
++    exportFiles(args, files, exportSession);
++  },
++};
+
+base-commit: 9ebd2de1713039b8cb5f60c9982e3d4c450e3a8b

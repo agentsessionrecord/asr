@@ -1,0 +1,7 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"person-commit-1","producer":{"name":"example-export","version":"1.0","method":"native"},"cwd":"/work/parser","repos":[{"path":"/work/parser"}]}
+{"type":"message","id":"prompt","role":"user","content":[{"type":"text","text":"Handle empty input. Leave the change for me to commit."}],"author":"human","origin":"prompt"}
+{"type":"inference","id":"model-edit","model":{"id":"example-model"}}
+{"type":"tool_call","id":"edit-call","inferenceId":"model-edit","callId":"edit-1","name":"replace_text","kind":"edit","input":{"path":"/work/parser/parser.py","oldText":"    return int(value)\n","newText":"    return int(value or \"0\")\n"}}
+{"type":"tool_result","id":"edit-result","callId":"edit-1","status":"completed"}
+{"type":"file_change","id":"edit","path":"/work/parser/parser.py","op":"modify","status":"applied","callId":"edit-1","edits":[{"oldText":"    return int(value)\n","newText":"    return int(value or \"0\")\n"}]}
+{"type":"message","id":"reply","role":"assistant","author":"model","phase":"final","content":[{"type":"text","text":"The edit is ready for you to commit."}]}

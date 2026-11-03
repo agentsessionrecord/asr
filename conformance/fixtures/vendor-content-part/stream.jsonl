@@ -1,0 +1,2 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"vendor-content-part","producer":{"name":"example-export","version":"1","method":"native"}}
+{"type":"message","id":"attachment","role":"user","content":[{"type":"com.example.agent/content","_meta":{"com.example.agent":{"native":{"type":"document","name":"notes.pdf"}}}},{"type":"text","text":"Read these notes."}]}

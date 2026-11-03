@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-035",
+    "code": "missing-model-loss",
+    "line": 2,
+    "pointer": "/model"
+  }
+]

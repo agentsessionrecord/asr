@@ -1,0 +1,167 @@
+{
+  "date": "2026-11-01",
+  "producerVersion": "0.1.0",
+  "endpoint": "local OpenAI-compatible endpoint",
+  "accountsCreated": 0,
+  "sourceTextRetained": false,
+  "runs": [
+    {
+      "agent": "opencode",
+      "version": "1.19.5",
+      "scenario": "live",
+      "streams": 1,
+      "records": 24,
+      "calls": 1,
+      "results": 1,
+      "completed": 1,
+      "failed": 0,
+      "rewritten": 0,
+      "denied": 0,
+      "approvalRecords": 0,
+      "errors": 0,
+      "diagnostics": {
+        "warning:unknown-extension": 1,
+        "warning:unknown-type": 15
+      }
+    },
+    {
+      "agent": "kilo",
+      "version": "7.8.18",
+      "scenario": "live",
+      "streams": 1,
+      "records": 24,
+      "calls": 1,
+      "results": 1,
+      "completed": 1,
+      "failed": 0,
+      "rewritten": 0,
+      "denied": 0,
+      "approvalRecords": 0,
+      "errors": 0,
+      "diagnostics": {
+        "warning:unknown-extension": 1,
+        "warning:unknown-type": 15
+      }
+    },
+    {
+      "agent": "mimocode",
+      "version": "0.1.16",
+      "scenario": "live",
+      "streams": 1,
+      "records": 32,
+      "calls": 1,
+      "results": 1,
+      "completed": 1,
+      "failed": 0,
+      "rewritten": 0,
+      "denied": 0,
+      "approvalRecords": 0,
+      "errors": 0,
+      "diagnostics": {
+        "warning:unknown-extension": 1,
+        "warning:unknown-type": 22
+      }
+    },
+    {
+      "agent": "opencode",
+      "version": "1.19.5",
+      "scenario": "rich",
+      "streams": 1,
+      "records": 31,
+      "calls": 2,
+      "results": 2,
+      "completed": 1,
+      "failed": 1,
+      "rewritten": 1,
+      "denied": 1,
+      "approvalRecords": 0,
+      "errors": 0,
+      "diagnostics": {
+        "warning:unknown-extension": 1,
+        "warning:unknown-type": 19
+      }
+    },
+    {
+      "agent": "kilo",
+      "version": "7.8.18",
+      "scenario": "rich",
+      "streams": 1,
+      "records": 31,
+      "calls": 2,
+      "results": 2,
+      "completed": 1,
+      "failed": 1,
+      "rewritten": 1,
+      "denied": 1,
+      "approvalRecords": 0,
+      "errors": 0,
+      "diagnostics": {
+        "warning:unknown-extension": 1,
+        "warning:unknown-type": 19
+      }
+    },
+    {
+      "agent": "mimocode",
+      "version": "0.1.16",
+      "scenario": "rich",
+      "streams": 1,
+      "records": 50,
+      "calls": 3,
+      "results": 3,
+      "completed": 3,
+      "failed": 0,
+      "rewritten": 0,
+      "denied": 0,
+      "approvalRecords": 0,
+      "errors": 0,
+      "diagnostics": {
+        "warning:unknown-extension": 1,
+        "warning:unknown-type": 34
+      }
+    }
+  ],
+  "reproductionRuns": [
+    {
+      "agent": "opencode",
+      "exit": 0,
+      "streams": 1,
+      "records": 31,
+      "calls": 2,
+      "results": 2,
+      "rewritten": 1,
+      "denied": 1,
+      "validationErrors": 0,
+      "warningCodes": {
+        "warning:unknown-extension": 1,
+        "warning:unknown-type": 19
+      }
+    },
+    {
+      "agent": "mimocode",
+      "exit": 0,
+      "streams": 1,
+      "records": 32,
+      "calls": 1,
+      "results": 1,
+      "scenario": "wrapper-command",
+      "rewritten": 0,
+      "denied": 0,
+      "observedMarker": 1,
+      "validationErrors": 0,
+      "warningCodes": {
+        "warning:unknown-extension": 1,
+        "warning:unknown-type": 22
+      }
+    }
+  ],
+  "limitations": [
+    "OpenCode V2 has synthetic contract coverage only.",
+    "Permission requests and replies have synthetic coverage. Live policy refusals did not emit permission.replied, so no approval decisions were invented.",
+    "MiMoCode used exec wrappers. The rich probe did not exercise a direct bash rewrite or refusal. Wrapper results do not establish nested tool outcomes."
+  ],
+  "diagnosticNotes": {
+    "unknown-extension": "Declared passive hook extension is not registered with the validator.",
+    "unknown-type": "Lifecycle and hook observation records use declared vendor types.",
+    "mimocode-stderr": "One-time SQLite migration diagnostics. Exit status was zero."
+  }
+}

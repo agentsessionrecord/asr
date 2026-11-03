@@ -1,0 +1,13 @@
+{
+  "checks": [
+    "Native formatter test and real Loader composition test passed",
+    "22 focused export and existing Markdown route tests passed",
+    "Affected Host project typecheck",
+    "Oxlint on all changed TypeScript files",
+    "Paired translation check"
+  ],
+  "sampleRecords": 5,
+  "sampleErrors": 0,
+  "sampleWarnings": [],
+  "liveTestStatus": "not-live-tested"
+}

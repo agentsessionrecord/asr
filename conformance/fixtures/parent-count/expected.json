@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-032",
+    "code": "parent-count",
+    "line": 2,
+    "pointer": "/parentCount"
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-072",
+    "code": "schema.type",
+    "line": 2,
+    "pointer": "/agentSettings/externalSandbox"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-072",
+    "code": "schema.type",
+    "line": 3,
+    "pointer": "/agentSettings/externalSandbox/kind"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-072",
+    "code": "schema.type",
+    "line": 3,
+    "pointer": "/agentSettings/externalSandbox/source"
+  }
+]

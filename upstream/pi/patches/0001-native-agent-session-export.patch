@@ -1,0 +1,503 @@
+From e39eebeb213f17f715d8d56492b5c628c58aadb8 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:28 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ package-lock.json                             |   3 +-
+ .../install-lock/package-lock.json            |   1 +
+ packages/coding-agent/package.json            |   1 +
+ .../src/core/export-agent-session.ts          | 244 ++++++++++++++++++
+ .../src/export-agent-session-cli.ts           |  23 ++
+ .../test/export-agent-session.test.ts         | 161 ++++++++++++
+ 6 files changed, 432 insertions(+), 1 deletion(-)
+ create mode 100644 packages/coding-agent/src/core/export-agent-session.ts
+ create mode 100644 packages/coding-agent/src/export-agent-session-cli.ts
+ create mode 100644 packages/coding-agent/test/export-agent-session.test.ts
+
+diff --git a/package-lock.json b/package-lock.json
+index 7c8fb25..cb896cc 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -5877,7 +5877,8 @@
+ 				"yaml": "2.9.0"
+ 			},
+ 			"bin": {
+-				"pi": "dist/bundle/cli.js"
++				"pi": "dist/bundle/cli.js",
++				"pi-session-export": "dist/export-agent-session-cli.js"
+ 			},
+ 			"devDependencies": {
+ 				"@types/cross-spawn": "6.0.6",
+diff --git a/packages/coding-agent/install-lock/package-lock.json b/packages/coding-agent/install-lock/package-lock.json
+index 25e273c..bc6971f 100644
+--- a/packages/coding-agent/install-lock/package-lock.json
++++ b/packages/coding-agent/install-lock/package-lock.json
+@@ -520,6 +520,7 @@
+ 				"yaml": "2.9.0"
+ 			},
+ 			"bin": {
++				"pi-session-export": "dist/export-agent-session-cli.js",
+ 				"pi": "dist/bundle/cli.js"
+ 			},
+ 			"engines": {
+diff --git a/packages/coding-agent/package.json b/packages/coding-agent/package.json
+index 0e452d9..ded6b65 100644
+--- a/packages/coding-agent/package.json
++++ b/packages/coding-agent/package.json
+@@ -7,6 +7,7 @@
+ 		"configDir": ".pi"
+ 	},
+ 	"bin": {
++		"pi-session-export": "dist/export-agent-session-cli.js",
+ 		"pi": "dist/bundle/cli.js"
+ 	},
+ 	"main": "./dist/index.js",
+diff --git a/packages/coding-agent/src/core/export-agent-session.ts b/packages/coding-agent/src/core/export-agent-session.ts
+new file mode 100644
+index 0000000..1b077ac
+--- /dev/null
++++ b/packages/coding-agent/src/core/export-agent-session.ts
+@@ -0,0 +1,244 @@
++/** Offline Agent Session Record export of the complete native session tree. */
++import type { FileEntry, SessionEntry, SessionHeader } from "./session-manager.ts";
++
++type RecordValue = Record<string, unknown>;
++
++/** Export version 3 native entries in file order, including abandoned branches. */
++export function exportAgentSession(header: SessionHeader, entries: readonly SessionEntry[]): string {
++	if (!header.id || header.version !== 3) throw new Error("A version 3 session header is required");
++	const rows: RecordValue[] = [
++		{
++			type: "session",
++			id: "header",
++			formatVersion: "0.1",
++			agent: { name: "pi" },
++			sessionId: header.id,
++			cwd: header.cwd,
++			startedAt: header.timestamp,
++			producer: { name: "pi-asr-export", version: "1", method: "native", source: "pi-session-v3" },
++			missing: [
++				"approvals",
++				"agent_settings",
++				"tools",
++				"file_changes",
++				"commits",
++				"subagents",
++				"copies",
++				"media",
++				"native_metadata",
++				"message_author",
++				"usage",
++				"reasoning",
++			],
++		},
++	];
++	const used = new Set(["header"]);
++	const nativeIds = new Set(entries.map((entry) => entry.id));
++	const resultPositions = new Map<string, number>();
++	for (const entry of entries) {
++		let suffix = 0;
++		const append = (record: RecordValue): void => {
++			let id = typeof record.id === "string" ? record.id : suffix++ === 0 ? entry.id : `${entry.id}/${suffix}`;
++			if (!id || id.length > 240 || /[\u0000-\u001f\u007f]/.test(id) || used.has(id)) id = `derived-${rows.length}`;
++			while (used.has(id) || (id !== entry.id && nativeIds.has(id))) id = `derived-${id}`;
++			used.add(id);
++			rows.push({ ts: entry.timestamp, ...record, id });
++		};
++		if (entry.type === "thinking_level_change") {
++			append({ type: "session_info", agentSettings: { modelSettings: { reasoningEffort: entry.thinkingLevel } } });
++		} else if (entry.type === "session_info") {
++			if (entry.name !== undefined) append({ type: "session_info", title: entry.name });
++		} else if (entry.type === "compaction" || entry.type === "branch_summary") {
++			append({
++				type: "message",
++				role: "user",
++				author: entry.fromHook ? "hook" : "harness",
++				origin: "compaction",
++				content: [{ type: "text", text: entry.summary }],
++			});
++		} else if (entry.type === "custom_message") {
++			append({
++				type: "message",
++				role: "user",
++				author: "harness",
++				origin: "injected",
++				content: parts(entry.content),
++			});
++		} else if (entry.type === "message") {
++			const message = entry.message;
++			if (message.role === "assistant") {
++				let inferenceId = message.responseId || `${entry.id}/inference`;
++				if (inferenceId.length > 220 || /[\u0000-\u001f\u007f]/.test(inferenceId))
++					inferenceId = `inference-${rows.length}`;
++				while (used.has(inferenceId) || nativeIds.has(inferenceId)) inferenceId = `derived-${inferenceId}`;
++				// Local harness failures can produce assistant rows without any provider request.
++				const identified = Boolean(message.responseId) || !["error", "aborted"].includes(message.stopReason);
++				const usage = message.usage;
++				const inference: RecordValue = {
++					type: "inference",
++					id: inferenceId,
++					model: {
++						provider: message.provider,
++						requested: message.model,
++						...(message.responseModel ? { id: message.responseModel } : {}),
++					},
++					stopReason: message.rawStopReason ?? message.stopReason,
++				};
++				const counts: RecordValue = {};
++				for (const [name, value] of Object.entries({
++					cacheReadTokens: usage.cacheRead,
++					cacheWriteTokens: usage.cacheWrite,
++					outputTokens: usage.output,
++					reasoningTokens: usage.reasoning,
++				})) {
++					if (safeCount(value)) counts[name] = value;
++				}
++				if ([usage.input, usage.cacheRead, usage.cacheWrite].every(safeCount)) {
++					const total = usage.input + usage.cacheRead + usage.cacheWrite;
++					if (safeCount(total)) counts.inputTokens = total;
++				}
++				if (Object.keys(counts).length) inference.usage = counts;
++				if (typeof usage.cost.total === "number" && Number.isFinite(usage.cost.total) && usage.cost.total >= 0) {
++					inference.cost = {
++						amount: usage.cost.total,
++						currency: "USD",
++						source: usage.cost.totalFromProvider ? "provider_reported" : "harness_estimated",
++					};
++				}
++				if (message.responseId) inference._meta = { "dev.pi.export": { responseId: message.responseId } };
++				const exactCounts = Object.fromEntries(
++					Object.entries({
++						input: usage.input,
++						output: usage.output,
++						cacheRead: usage.cacheRead,
++						cacheWrite: usage.cacheWrite,
++						reasoning: usage.reasoning,
++					}).filter(([, value]) => typeof value === "string"),
++				);
++				if (Object.keys(exactCounts).length)
++					inference._meta = {
++						"dev.pi.export": { ...(message.responseId ? { responseId: message.responseId } : {}), exactCounts },
++					};
++				if (message.providerThinkingLevel !== undefined)
++					inference.settings = { reasoningEffort: message.providerThinkingLevel };
++				if (safeCount(message.durationMs)) inference.durationMs = message.durationMs;
++				if (message.errorMessage !== undefined) inference.error = { message: message.errorMessage };
++				for (const part of message.content) {
++					if (part.type === "toolCall") {
++						append({
++							type: "tool_call",
++							...(identified ? { inferenceId } : {}),
++							callId: part.id,
++							name: part.name,
++							input: part.arguments,
++							requestedBy: "model",
++						});
++					} else {
++						const content =
++							part.type === "text"
++								? [{ type: "text", text: part.text }]
++								: [
++										part.redacted
++											? { type: "reasoning", visibility: "encrypted" }
++											: asrReasoning(
++													part.thinking,
++													["anthropic", "openai", "openai-codex"].includes(message.provider ?? ""),
++												),
++									];
++						append({
++							type: "message",
++							role: "assistant",
++							content,
++							...(identified ? { author: "model", inferenceId } : {}),
++							...(["error", "aborted"].includes(message.stopReason) ? { truncated: true } : {}),
++						});
++					}
++				}
++				if (identified) append(inference);
++				else append({ type: "session_info", missing: ["unidentified_inference"] });
++			} else if (message.role === "toolResult") {
++				const previous = resultPositions.get(message.toolCallId);
++				if (previous !== undefined)
++					rows[previous] = { id: rows[previous].id, type: "session_info", missing: ["tool_result_updates"] };
++				resultPositions.set(message.toolCallId, rows.length);
++				append({
++					type: "tool_result",
++					callId: message.toolCallId,
++					status: message.isError ? "failed" : "completed",
++					content: parts(message.content),
++					...(message.content.some((part) => part.type !== "text") ? { truncated: true } : {}),
++					...(safeCount(message.durationMs) ? { durationMs: message.durationMs } : {}),
++				});
++			} else if (message.role === "user" || message.role === "system") {
++				append({
++					type: "message",
++					role: message.role,
++					content: parts(message.content),
++					...(typeof message.content !== "string" && message.content.some((part) => part.type !== "text")
++						? { truncated: true }
++						: {}),
++					...(message.role === "system" ? { author: "harness", origin: "instructions" } : {}),
++				});
++			} else if (message.role === "custom") {
++				append({
++					type: "message",
++					role: "user",
++					author: "harness",
++					origin: "injected",
++					content: parts(message.content),
++				});
++			} else if (message.role === "compactionSummary" || message.role === "branchSummary") {
++				append({
++					type: "message",
++					role: "user",
++					author: "harness",
++					origin: "compaction",
++					content: [{ type: "text", text: message.summary }],
++				});
++			} else {
++				append({ type: "gap", reason: "not_recorded", detail: "Native shell execution is not normalized." });
++			}
++		}
++	}
++	return `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`;
++}
++
++function safeCount(value: unknown): value is number {
++	return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
++}
++
++function parts(content: string | readonly { type: string; text?: string }[]): RecordValue[] {
++	return typeof content === "string"
++		? [{ type: "text", text: content }]
++		: content.filter((part) => part.type === "text").map((part) => ({ type: "text", text: part.text }));
++}
++
++/** Decode durable JSONL without silently discarding malformed lines or rounding native values. */
++export function exportAgentSessionFile(content: string): string {
++	const entries: FileEntry[] = [];
++	for (const line of content.split("\n").slice(0, -1)) {
++		entries.push(
++			JSON.parse(line, (_key: string, value: unknown, context?: { source: string }) => {
++				if (typeof value === "number" && Number.isInteger(value) && !Number.isSafeInteger(value)) {
++					if (!context) throw new Error("This Node version cannot preserve large native numbers");
++					return context.source;
++				}
++				return value;
++			}) as FileEntry,
++		);
++	}
++	if (!content.endsWith("\n")) throw new Error("Incomplete native session file");
++	const header = entries.shift();
++	if (header?.type !== "session" || entries.some((entry) => entry.type === "session"))
++		throw new Error("Invalid native session header");
++	return exportAgentSession(header, entries as SessionEntry[]);
++}
++
++function asrReasoning(
++	text: unknown,
++	summary = false,
++): { type: string; visibility?: string; text?: string; summary?: string[] } {
++	if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
++	if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
++	return { type: "reasoning", text };
++}
+diff --git a/packages/coding-agent/src/export-agent-session-cli.ts b/packages/coding-agent/src/export-agent-session-cli.ts
+new file mode 100644
+index 0000000..553df83
+--- /dev/null
++++ b/packages/coding-agent/src/export-agent-session-cli.ts
+@@ -0,0 +1,23 @@
++#!/usr/bin/env node
++/** Export a native Pi session without loading extensions, credentials, or the agent. */
++import { readFileSync, writeFileSync } from "node:fs";
++import { parseArgs } from "node:util";
++import { exportAgentSessionFile } from "./core/export-agent-session.ts";
++
++try {
++	const { values } = parseArgs({
++		options: {
++			session: { type: "string" },
++			format: { type: "string", default: "agent-session" },
++			output: { type: "string" },
++		},
++	});
++	if (!values.session || values.format !== "agent-session")
++		throw new Error("Use --session <native-file> --format agent-session");
++	const stream = exportAgentSessionFile(readFileSync(values.session, "utf8"));
++	if (values.output) writeFileSync(values.output, stream, { mode: 0o600, flag: "wx" });
++	else process.stdout.write(stream);
++} catch (error) {
++	console.error(error instanceof Error ? error.message : "Export failed");
++	process.exitCode = 1;
++}
+diff --git a/packages/coding-agent/test/export-agent-session.test.ts b/packages/coding-agent/test/export-agent-session.test.ts
+new file mode 100644
+index 0000000..cbd9479
+--- /dev/null
++++ b/packages/coding-agent/test/export-agent-session.test.ts
+@@ -0,0 +1,161 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++import { exportAgentSessionFile } from "../src/core/export-agent-session.ts";
++
++const header = {
++	type: "session",
++	version: 3,
++	id: "synthetic-session",
++	timestamp: "2026-10-30T12:00:00Z",
++	cwd: "/work/synthetic",
++};
++const usage = {
++	input: 10,
++	output: 4,
++	cacheRead: 2,
++	cacheWrite: 3,
++	reasoning: 0,
++	totalTokens: 19,
++	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
++};
++const source = `${[
++	header,
++	{
++		type: "message",
++		id: "u",
++		parentId: null,
++		timestamp: header.timestamp,
++		message: { role: "user", content: "Exact\r\n", timestamp: 1793361600000 },
++	},
++	{
++		type: "message",
++		id: "a",
++		parentId: "u",
++		timestamp: header.timestamp,
++		message: {
++			role: "assistant",
++			content: [
++				{ type: "thinking", thinking: "visible", thinkingSignature: "DO-NOT-COPY" },
++				{ type: "toolCall", id: "c", name: "read", arguments: { path: "fixture.txt" } },
++			],
++			api: "openai-completions",
++			provider: "fixture",
++			model: "requested",
++			responseModel: "served",
++			responseId: "response-7",
++			usage,
++			stopReason: "toolUse",
++			timestamp: 1793361600000,
++		},
++	},
++	{
++		type: "message",
++		id: "r",
++		parentId: "a",
++		timestamp: header.timestamp,
++		message: {
++			role: "toolResult",
++			toolCallId: "c",
++			toolName: "read",
++			content: [{ type: "text", text: "done\n" }],
++			isError: false,
++			timestamp: 1793361600000,
++		},
++	},
++	{
++		type: "message",
++		id: "branch",
++		parentId: "u",
++		timestamp: header.timestamp,
++		message: { role: "user", content: "Other branch", timestamp: 1793361600000 },
++	},
++]
++	.map((row) => JSON.stringify(row))
++	.join("\n")}\n`;
++
++test("keeps branches, exact text, model identities and inclusive usage", () => {
++	const output = exportAgentSessionFile(source);
++	const rows = output
++		.trimEnd()
++		.split("\n")
++		.map((line) => JSON.parse(line));
++	assert.equal(rows[1].content[0].text, "Exact\r\n");
++	const inference = rows.find((row) => row.type === "inference");
++	assert.equal(inference.id, "response-7");
++	assert.equal(inference.model.id, "served");
++	assert.equal(inference.model.requested, "requested");
++	assert.equal(inference.usage.inputTokens, 15);
++	assert.equal(inference.usage.reasoningTokens, 0);
++	assert.equal(inference.cost.amount, 0);
++	assert.equal(rows.at(-1).content[0].text, "Other branch");
++	assert.equal(rows[1].author, undefined);
++	assert.ok(!output.includes("DO-NOT-COPY"));
++	assert.equal(output, exportAgentSessionFile(source));
++	assert.equal(new Set(rows.map((row) => row.id)).size, rows.length);
++});
++
++test("omits unsafe core counts and preserves their exact source spelling", () => {
++	const rows = exportAgentSessionFile(source.replace('"input":10', '"input":9007199254740993'))
++		.trimEnd()
++		.split("\n")
++		.map((line) => JSON.parse(line));
++	const inference = rows.find((row) => row.type === "inference");
++	assert.equal(inference.usage.inputTokens, undefined);
++	assert.equal(inference._meta["dev.pi.export"].exactCounts.input, "9007199254740993");
++});
++
++test("preserves integers beyond JS precision in tool input", () => {
++	const input = source.replace('"path":"fixture.txt"', '"n":9007199254740993');
++	const rows = exportAgentSessionFile(input)
++		.trimEnd()
++		.split("\n")
++		.map((line) => JSON.parse(line));
++	assert.equal(rows.find((row) => row.type === "tool_call").input.n, "9007199254740993");
++});
++
++test("rejects corrupt, incomplete, duplicate-header and unsupported sources", () => {
++	assert.throws(() => exportAgentSessionFile(source.slice(0, -1)), /Incomplete/);
++	assert.throws(() => exportAgentSessionFile(`${source}bad\n`));
++	assert.throws(() => exportAgentSessionFile(`${source + JSON.stringify(header)}\n`), /header/);
++	assert.throws(() => exportAgentSessionFile(source.replace('"version":3', '"version":99')), /version 3/);
++});
++
++test("does not turn a local failed assistant settlement into an inference", () => {
++	const failed = source
++		.replace('"stopReason":"toolUse"', '"stopReason":"error"')
++		.replace('"responseId":"response-7",', "");
++	const rows = exportAgentSessionFile(failed)
++		.trimEnd()
++		.split("\n")
++		.map((line) => JSON.parse(line));
++	assert.equal(rows.filter((row) => row.type === "inference").length, 0);
++	assert.ok(rows.filter((row) => row.type === "message").every((row) => row.inferenceId === undefined));
++});
++
++test("uses recorded provider evidence for summaries and omits empty thinking", () => {
++	for (const provider of ["anthropic", "openai", "fixture"]) {
++		const native = source
++			.trimEnd()
++			.split("\n")
++			.map((line) => JSON.parse(line));
++		const reply = native.find((entry) => entry.id === "a");
++		reply.message.provider = provider;
++		reply.message.content = [
++			{ type: "thinking", thinking: "Exact\r\n" },
++			{ type: "thinking", thinking: "" },
++		];
++		const records = exportAgentSessionFile(native.map((entry) => JSON.stringify(entry)).join("\n") + "\n")
++			.trimEnd()
++			.split("\n")
++			.map((line) => JSON.parse(line));
++		assert.deepEqual(
++			records.flatMap((record) => record.content ?? []).filter((part) => part.type === "reasoning"),
++			[
++				provider === "fixture"
++					? { type: "reasoning", text: "Exact\r\n" }
++					: { type: "reasoning", visibility: "summary", summary: ["Exact\r\n"] },
++				{ type: "reasoning", visibility: "omitted" },
++			],
++		);
++	}
++});
+
+base-commit: a14cdf90f0a76532f3e20bc3c01872837cef24ba

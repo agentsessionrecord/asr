@@ -1,0 +1,5 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"mistral-vibe"},"sessionId":"synthetic-vibe","producer":{"name":"vibe-asr-export","version":"1","method":"native","source":"vibe.public-session-state/v1"},"missing":["timestamps","usage","model","agent_settings","tools","approvals","tool_calls","tool_output","file_changes","commits","subagents","copies","media","native_events","message_author","reasoning","snapshot_updates"],"cwd":"/work/synthetic"}
+{"type":"gap","id":"history-prefix","reason":"not_recorded","detail":"The snapshot does not include the complete history prefix."}
+{"id":"u","type":"message","role":"user","content":[{"type":"text","text":"Exact\r\n"}]}
+{"id":"r","type":"message","role":"assistant","author":"model","content":[{"type":"reasoning","text":"Check the fixture."}]}
+{"id":"a","type":"message","role":"assistant","content":[{"type":"text","text":"SYNTHETIC-OK"}],"author":"model"}

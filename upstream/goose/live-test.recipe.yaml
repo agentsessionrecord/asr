@@ -1,0 +1,7 @@
+version: 1.0.0
+title: ASR synthetic export check
+description: Record a synthetic reply for offline export validation.
+instructions: |
+  Reply with exactly ASR_LIVE_OK.
+  Do not use tools or start other agents.
+prompt: Complete the synthetic export check.

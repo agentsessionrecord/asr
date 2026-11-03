@@ -1,0 +1,3 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"minimal-1","producer":{"name":"example-export","version":"1.0","method":"native"}}
+{"type":"message","id":"prompt","role":"user","content":[{"type":"text","text":"Explain the empty-input check."}],"author":"human","origin":"prompt"}
+{"type":"message","id":"reply","role":"assistant","author":"model","phase":"final","content":[{"type":"text","text":"The check returns an empty list before parsing."}]}

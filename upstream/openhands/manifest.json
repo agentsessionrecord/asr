@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "agent": "openhands",
+  "base": "4ce9c4b874c178297d591f9d01a7e21dc50d757a",
+  "head": "956b40cb78ca2c2542056f2db34eead395fbed2a",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "956b40cb78ca2c2542056f2db34eead395fbed2a",
+      "sha256": "b9be9b7ecd844c86d0ec28e90b65f297f5ee94146dbc030e974d0eeeedb16f24"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "contracts.mjs",
+      "openhands"
+    ]
+  ],
+  "provenance": {
+    "patch": "patches/0001-native-agent-session-export.patch",
+    "sha256": "b9be9b7ecd844c86d0ec28e90b65f297f5ee94146dbc030e974d0eeeedb16f24",
+    "baseCommit": "4ce9c4b874c178297d591f9d01a7e21dc50d757a",
+    "commit": "956b40cb78ca2c2542056f2db34eead395fbed2a"
+  },
+  "files": {
+    "PROPOSAL.md": "317b62e8b4fa29729251cc15ed852f6b3f187673c4787840e3d95434b6c495bd",
+    "README.md": "9fb7541da92bdb474cfba8539813dac4c135f4c57006e902fee0c1ea157303df",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "contracts.mjs": "99fb438a4c3c097612f68a99a07d0c47c8b9c705361fb720e4c65d44a01d6420",
+    "patches/0001-native-agent-session-export.patch": "b9be9b7ecd844c86d0ec28e90b65f297f5ee94146dbc030e974d0eeeedb16f24",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "8ede6832a517905d5bae0ea319b1b779c934a9a61c92d09f2e62015aff31df53",
+    "samples/native/native.json": "48971a4e62a016667f2b903d0df4ba6db4a2d7365d3d672a2c27ecc44f290b5b"
+  }
+}

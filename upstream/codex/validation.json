@@ -1,0 +1,51 @@
+{
+  "validatorRevision": "e0b3efabcd84f97cc0df06b86f80233016991d52",
+  "captures": [
+    {
+      "kind": "synthetic-sample",
+      "files": 1,
+      "records": 8,
+      "errors": 0,
+      "warnings": 1,
+      "codes": {
+        "unknown-extension": 1
+      }
+    },
+    {
+      "kind": "isolated-compatible endpoint-session",
+      "files": 2,
+      "records": 29,
+      "errors": 0,
+      "warnings": 7,
+      "codes": {
+        "unknown-extension": 1,
+        "unknown-type": 6
+      }
+    }
+  ],
+  "focusedTests": {
+    "passed": 33,
+    "referenceValidatorEnabled": true
+  },
+  "checksPassed": [
+    "crate-clippy-warnings-denied",
+    "crate-format",
+    "production-example-build",
+    "discovery-regression",
+    "package-integrity-and-contracts",
+    "exact-upstream-base-apply"
+  ],
+  "liveScope": "Installed CLI inference and freshly built production export example.",
+  "specRound": {
+    "sourceRevision": "541b2214013f2f2d190b5f326acf2fac9816590e",
+    "validatorRevision": "eb12eee7f33f8a4cc2975af98e608690b801b3c0",
+    "validatorWorkingTree": "ASR-017 vendor content-part naming",
+    "syntheticSampleRegenerated": true,
+    "liveTestsRun": false,
+    "sourceTestsPassed": 33,
+    "sourceClippyPassed": true,
+    "sourceFormatPassed": true
+  },
+  "currentCodeLiveTest": "unverified",
+  "evidenceScope": "Prior revision. Counts do not certify the current implementation."
+}

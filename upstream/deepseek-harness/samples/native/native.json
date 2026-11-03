@@ -1,0 +1,103 @@
+{
+  "session": {
+    "version": 4,
+    "id": "synthetic-deepseek",
+    "createdAt": 1793361600000,
+    "isSeeded": false,
+    "cwd": "/work/synthetic",
+    "delegationDepth": 0
+  },
+  "inheritedEventCount": 0,
+  "events": [
+    {
+      "type": "user/message",
+      "seq": 1,
+      "time": 1793361600000,
+      "surfaceOp": "append",
+      "data": {
+        "role": "user",
+        "id": "u",
+        "source": {
+          "kind": "user"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Exact\r\n"
+          }
+        ]
+      }
+    },
+    {
+      "type": "assistant/message",
+      "seq": 2,
+      "time": 1793361600001,
+      "surfaceOp": "append",
+      "data": {
+        "turn": 1,
+        "step": 1,
+        "message": {
+          "role": "assistant",
+          "id": "a",
+          "source": {
+            "kind": "model",
+            "provider": "synthetic",
+            "model": "requested",
+            "replayState": {
+              "signature": "SYNTHETIC-OPAQUE"
+            }
+          },
+          "content": [
+            {
+              "type": "reasoning",
+              "text": "Check the fixture."
+            },
+            {
+              "type": "text",
+              "text": "Reading."
+            }
+          ]
+        },
+        "stream": []
+      }
+    },
+    {
+      "type": "tool/call",
+      "seq": 3,
+      "time": 1793361600002,
+      "data": {
+        "turn": 1,
+        "step": 1,
+        "callId": "call-1",
+        "name": "read",
+        "arguments": "{\"path\":\"fixture.txt\"}"
+      }
+    },
+    {
+      "type": "tool/result",
+      "seq": 4,
+      "time": 1793361600003,
+      "surfaceOp": "append",
+      "data": {
+        "turn": 1,
+        "step": 1,
+        "message": {
+          "role": "tool",
+          "id": "r",
+          "source": {
+            "kind": "tool",
+            "callId": "call-1"
+          },
+          "toolCallId": "call-1",
+          "isError": false,
+          "content": [
+            {
+              "type": "text",
+              "text": "Synthetic fixture.\n"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

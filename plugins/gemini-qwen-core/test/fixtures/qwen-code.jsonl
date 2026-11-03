@@ -1,0 +1,15 @@
+{"session_id":"synthetic-qwen","hook_event_name":"InstructionsLoaded","source_type":"file","source_id":"synthetic-instructions"}
+{"session_id":"synthetic-qwen","cwd":"/work/synthetic","hook_event_name":"SessionStart","source":"startup","permission_mode":"default","model":"synthetic-model"}
+{"session_id":"synthetic-qwen","hook_event_name":"UserPromptSubmit","prompt_id":"turn-1","prompt":"  Run the synthetic check.\r\n"}
+{"session_id":"synthetic-qwen","hook_event_name":"PreToolUse","prompt_id":"turn-1","permission_mode":"default","tool_use_id":"tool-1","tool_call_id":"provider-1","tool_name":"run_shell_command","tool_input":{"command":"printf requested"}}
+{"session_id":"synthetic-qwen","hook_event_name":"PermissionRequest","permission_mode":"default","tool_name":"run_shell_command","tool_input":{"command":"printf requested"}}
+{"session_id":"synthetic-qwen","hook_event_name":"PostToolUse","tool_use_id":"tool-1","tool_name":"run_shell_command","tool_input":{"command":"printf effective"},"duration_ms":0,"tool_response":{"llmContent":"early output","returnDisplay":"display only"}}
+{"session_id":"synthetic-qwen","hook_event_name":"Notification","message":"Between outcome and final batch.","notification_type":"info"}
+{"session_id":"synthetic-qwen","hook_event_name":"PostToolBatch","tool_calls":[{"tool_use_id":"tool-1","tool_name":"run_shell_command","tool_input":{"command":"printf requested"},"status":"success","tool_response":{"response_parts":[{"text":"effective\n"},{"document":{"name":"notes.pdf"}}],"result_display":"display only"}}]}
+{"session_id":"synthetic-qwen","hook_event_name":"PreToolUse","permission_mode":"auto","tool_use_id":"tool-2","tool_name":"run_shell_command","tool_input":{"command":"printf refused"}}
+{"session_id":"synthetic-qwen","hook_event_name":"PermissionDenied","tool_use_id":"tool-2","tool_name":"run_shell_command","tool_input":{"command":"printf refused"},"reason":"classifier_blocked"}
+{"session_id":"synthetic-qwen","hook_event_name":"PostToolBatch","tool_calls":[{"tool_use_id":"tool-2","tool_name":"run_shell_command","tool_input":{"command":"printf refused"},"status":"error","tool_response":{"response_parts":[{"text":"Synthetic refusal."}],"error_type":"permission_denied","execution_status":"not_started"}}]}
+{"session_id":"synthetic-qwen","hook_event_name":"MessageDisplay","message_id":"reply-1","displayed_text":"  Done","is_final":false}
+{"session_id":"synthetic-qwen","hook_event_name":"MessageDisplay","message_id":"reply-1","displayed_text":"  Done.\n","is_final":true}
+{"session_id":"synthetic-qwen","hook_event_name":"Stop","last_assistant_message":"  Done.\n","stop_hook_active":false}
+{"session_id":"synthetic-qwen","hook_event_name":"SessionEnd","reason":"other"}

@@ -1,0 +1,16 @@
+[
+  {
+    "severity": "warning",
+    "requirement": "ASR-070",
+    "code": "unknown-extension",
+    "line": 1,
+    "pointer": "/extensions/0"
+  },
+  {
+    "severity": "warning",
+    "requirement": "ASR-070",
+    "code": "unknown-type",
+    "line": 3,
+    "pointer": "/type"
+  }
+]

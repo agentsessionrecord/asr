@@ -1,0 +1,7 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"run-1","producer":{"name":"example-export","version":"1","method":"native"},"missing":["usage"]}
+{"type":"tool_call","id":"call","callId":"call-1","name":"run_tests"}
+{"type":"approval","id":"decision","callId":"call-1","decision":"approved"}
+{"type":"tool_result","id":"result","callId":"call-1","status":"completed"}
+{"type":"session_info","id":"lost-source","missing":["approvals"]}
+{"type":"gap","id":"gap","reason":"not_recorded","detail":"The approval event connection disconnected."}
+{"type":"session_info","id":"no-new-loss","missing":[]}

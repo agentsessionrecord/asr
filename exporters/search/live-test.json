@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "images": {
+    "opensearch": "opensearchproject/opensearch:2.19.4",
+    "qdrant": "qdrant/qdrant:v1.15.5"
+  },
+  "image_ids": {
+    "opensearch": "sha256:9e0b3b3b6805811bd63d9b9503ffe34a58ba33d03cc346000e318c6ff5c05bd9",
+    "qdrant": "sha256:0fb8897412abc81d1c0430a899b9a81eb8328aa634e7242d1bc804c1fe8fe863"
+  },
+  "counts": {
+    "sessions": 6,
+    "documents": 107,
+    "gaps": 1,
+    "unresolved_references": 1,
+    "chunks": 111
+  },
+  "additional_examples": {
+    "sessions": 11,
+    "documents": 93,
+    "chunks": 46
+  },
+  "search_queries": 8,
+  "repeat_loads": 2,
+  "vector_query": "passed",
+  "raw_precision": "passed",
+  "status": "passed"
+}

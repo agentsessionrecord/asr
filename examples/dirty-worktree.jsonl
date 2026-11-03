@@ -1,0 +1,4 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"dirty-worktree-1","producer":{"name":"example-export","version":"1","method":"native"},"cwd":"/work/parser","repos":[{"path":"/work/parser"}]}
+{"type":"tool_call","id":"edit-call","callId":"edit-1","name":"replace_text","kind":"edit","input":{"path":"/work/parser/parser.py","oldText":"limit = int(value)\n","newText":"limit = int(value or \"0\")\n"}}
+{"type":"tool_result","id":"edit-result","callId":"edit-1","status":"completed"}
+{"type":"file_change","id":"edit","callId":"edit-1","path":"/work/parser/parser.py","op":"modify","status":"applied","before":{"text":"limit = int(value)\nowner = \"person\"\n"},"after":{"text":"limit = int(value or \"0\")\nowner = \"person\"\n"}}

@@ -1,0 +1,6 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"live-7","producer":{"name":"example-recorder","version":"1.0","method":"recorder","source":"example-hooks"},"startedAt":"2026-10-31T12:00:00Z"}
+{"type":"tool_call","id":"call","ts":"2026-10-31T12:00:01Z","callId":"run-7","name":"shell","input":{"command":"echo requested"}}
+{"type":"message","id":"notice","ts":"2026-10-31T12:00:03Z","role":"user","author":"harness","origin":"notice","content":[{"type":"text","text":"A callback arrived before the final output."}]}
+{"type":"approval","id":"decision","callId":"run-7","decision":"approved","native":{"decision":"allow"}}
+{"type":"tool_result","id":"result","ts":"2026-10-31T12:00:04Z","callId":"run-7","status":"completed","input":{"command":"echo executed"},"content":[{"type":"text","text":"executed\n"}],"_meta":{"com.example.recorder":{"firstObservedAt":"2026-10-31T12:00:02Z"}}}
+{"type":"session_info","id":"end","ts":"2026-10-31T12:00:05Z","endedAt":"2026-10-31T12:00:05Z"}

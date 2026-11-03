@@ -1,0 +1,14 @@
+# Insert before the router filter in an Envoy HTTP connection manager.
+name: envoy.filters.http.ext_proc
+typed_config:
+  "@type": type.googleapis.com/envoy.extensions.filters.http.ext_proc.v3.ExternalProcessor
+  grpc_service:
+    envoy_grpc:
+      cluster_name: asr_recorder
+  failure_mode_allow: true
+  message_timeout: 5s
+  processing_mode:
+    request_header_mode: SEND
+    response_header_mode: SEND
+    request_body_mode: BUFFERED
+    response_body_mode: BUFFERED

@@ -1,0 +1,96 @@
+[
+  {
+    "event": "SessionStart",
+    "payload": {
+      "hook_event_name": "SessionStart",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic"
+    }
+  },
+  {
+    "event": "UserPromptSubmit",
+    "payload": {
+      "hook_event_name": "UserPromptSubmit",
+      "session_id": "synthetic-session",
+      "prompt": "Run a harmless synthetic command."
+    }
+  },
+  {
+    "event": "PreToolUse",
+    "payload": {
+      "hook_event_name": "PreToolUse",
+      "session_id": "synthetic-session",
+      "tool_name": "exec",
+      "tool_input": {
+        "command": "printf requested"
+      }
+    }
+  },
+  {
+    "event": "PermissionRequest",
+    "payload": {
+      "hook_event_name": "PermissionRequest",
+      "session_id": "synthetic-session",
+      "tool_name": "exec",
+      "tool_input": {
+        "command": "printf requested"
+      }
+    }
+  },
+  {
+    "event": "PostToolUse",
+    "payload": {
+      "hook_event_name": "PostToolUse",
+      "session_id": "synthetic-session",
+      "tool_name": "exec",
+      "tool_input": {
+        "command": "printf effective"
+      },
+      "tool_response": {
+        "success": true,
+        "output": "effective\n",
+        "error": null
+      }
+    }
+  },
+  {
+    "event": "PostToolUse",
+    "payload": {
+      "hook_event_name": "PostToolUse",
+      "session_id": "synthetic-session",
+      "tool_name": "exec",
+      "tool_input": {
+        "command": "false"
+      },
+      "tool_response": {
+        "success": false,
+        "output": "",
+        "error": "synthetic failure"
+      }
+    }
+  },
+  {
+    "event": "PostCompaction",
+    "payload": {
+      "hook_event_name": "PostCompaction",
+      "session_id": "synthetic-session",
+      "summary": "Synthetic context summary."
+    }
+  },
+  {
+    "event": "Stop",
+    "payload": {
+      "hook_event_name": "Stop",
+      "session_id": "synthetic-session",
+      "stop_hook_active": false
+    }
+  },
+  {
+    "event": "SessionEnd",
+    "payload": {
+      "hook_event_name": "SessionEnd",
+      "session_id": "synthetic-session",
+      "reason": "exit"
+    }
+  }
+]

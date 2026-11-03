@@ -1,0 +1,86 @@
+{
+  "agent": "droid",
+  "events": {
+    "PreToolUse": "PreToolUse",
+    "PostToolUse": "PostToolUse",
+    "UserPromptSubmit": "UserPromptSubmit",
+    "Notification": "Notification",
+    "Stop": "Stop",
+    "SubagentStop": "SubagentStop",
+    "PreCompact": "PreCompact",
+    "SessionStart": "SessionStart",
+    "SessionEnd": "SessionEnd"
+  },
+  "fields": [
+    "session_id",
+    "cwd",
+    "prompt_id",
+    "turn_id",
+    "tool_use_id",
+    "tool_name",
+    "tool_input",
+    "tool_response",
+    "permission_mode",
+    "agent_id",
+    "agent_type",
+    "effort",
+    "session_title",
+    "source",
+    "reason",
+    "model",
+    "from_model",
+    "to_model",
+    "requested_model",
+    "prompt",
+    "message",
+    "error",
+    "is_interrupt",
+    "duration_ms",
+    "tool_calls",
+    "compact_summary",
+    "message_id",
+    "index",
+    "delta",
+    "final",
+    "permission_suggestions",
+    "notification_type",
+    "last_assistant_message",
+    "task_name",
+    "task_result",
+    "task_error"
+  ],
+  "rename": {
+    "turn_id": "prompt_id"
+  },
+  "kinds": {
+    "Execute": "execute",
+    "Read": "read",
+    "Edit": "edit",
+    "Create": "edit",
+    "ApplyPatch": "edit",
+    "LS": "read",
+    "Glob": "search",
+    "Grep": "search",
+    "FetchUrl": "fetch",
+    "WebSearch": "fetch"
+  },
+  "secret_tools": [
+    "AskUserQuestion"
+  ],
+  "shell_tools": [
+    "Execute"
+  ],
+  "agent_tools": [
+    "Task"
+  ],
+  "new_session_sources": [
+    "startup",
+    "clear"
+  ],
+  "asks_sometimes": [],
+  "missing": [
+    "call_ids"
+  ],
+  "child_ids": false,
+  "post_status": "unknown"
+}

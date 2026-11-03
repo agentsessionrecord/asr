@@ -1,0 +1,16 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-031",
+    "code": "schema.pattern",
+    "line": 2,
+    "pointer": "/commit"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-031",
+    "code": "schema.pattern",
+    "line": 3,
+    "pointer": "/commitPrefix"
+  }
+]

@@ -1,0 +1,4 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"settings-7","producer":{"name":"example-export","version":"1","method":"native"}}
+{"type":"inference","id":"invalid-object","model":{"requested":"example-model"},"settings":"high"}
+{"type":"inference","id":"invalid-fields","model":{"requested":"example-model"},"settings":{"reasoningEffort":3,"maxOutputTokens":-1,"temperature":"0","serviceTier":false}}
+{"type":"inference","id":"fractional-limit","model":{"requested":"example-model"},"settings":{"maxOutputTokens":1.5}}

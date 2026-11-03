@@ -1,0 +1,8 @@
+[
+  {
+    "severity": "error",
+    "code": "schema.required",
+    "line": 1,
+    "pointer": ""
+  }
+]

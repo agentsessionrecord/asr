@@ -1,0 +1,6 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"cline"},"sessionId":"synthetic-session","producer":{"name":"cline-agent-session-export","version":"0.1.0","method":"native","source":"cline-messages"},"missing":["agent_settings","approvals","commits","copies","file_changes","inference_settings","instructions","message_author","model","native_metadata","provider_state","subagents","timestamps","tools","usage"]}
+{"type":"message","id":"prompt-1","ts":"1970-01-01T00:00:01.000Z","role":"user","content":[{"type":"text","text":"Read the synthetic note.\n"}]}
+{"type":"message","id":"reply-1","ts":"1970-01-01T00:00:02.000Z","role":"assistant","author":"model","content":[{"type":"reasoning","visibility":"summary","summary":["I will read it."]}]}
+{"type":"tool_call","id":"read-1","ts":"1970-01-01T00:00:02.000Z","callId":"read-1","name":"read_file","requestedBy":"model","input":{"path":"/work/example/note.txt"}}
+{"type":"tool_result","id":"asr-1","ts":"1970-01-01T00:00:03.000Z","callId":"read-1","status":"completed","content":[{"type":"text","text":"Synthetic note.\n"}]}
+{"type":"message","id":"reply-2","ts":"1970-01-01T00:00:04.000Z","role":"assistant","author":"model","content":[{"type":"text","text":"The note contains synthetic text.\n"}]}

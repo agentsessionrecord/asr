@@ -1,0 +1,17 @@
+[project]
+name = "asr-langfuse"
+version = "0.1.0"
+description = "Offline ASR imports for Langfuse"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["asr-evals==0.1.0"]
+
+[project.scripts]
+asr-langfuse = "asr_langfuse:main"
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+asr-evals = { workspace = true }

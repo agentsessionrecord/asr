@@ -1,0 +1,13 @@
+{
+  "metadata": "org.agentsessionrecord.hooks",
+  "extension": "org.agentsessionrecord.hooks/v1",
+  "record": "org.agentsessionrecord.hooks/hook",
+  "output": "ASR_OUTPUT_DIR",
+  "content": "ASR_CONTENT",
+  "losses": {
+    "redacted": "redacted_content",
+    "content": "content",
+    "lifecycle": "session_lifecycle",
+    "dropped": "dropped_callbacks"
+  }
+}

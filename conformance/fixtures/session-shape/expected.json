@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-019",
+    "code": "schema.required",
+    "line": 1,
+    "pointer": "/producer"
+  }
+]

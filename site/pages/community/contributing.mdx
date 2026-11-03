@@ -1,0 +1,24 @@
+---
+title: "Contributing"
+description: "Help make session conversion, search and blame useful across agents."
+---
+
+ASR is a draft for review. Contributions are welcome through [repository issues](https://github.com/agentsessionrecord/asr/issues) and [pull requests](https://github.com/agentsessionrecord/asr/pulls).
+
+## Review a real mapping
+
+Choose a native session with a prompt, an edit and a result you can inspect. Check that its IDs, order and tool links survive conversion. Include a sample without secrets, the source version and the expected ASR records.
+
+Useful cases include a person committing agent edits, a short commit ID, a failed tool, copied history and a later rebase. Explain what the source establishes and what remains unknown.
+
+## Improve the documentation
+
+The eight pages in `spec/` define the core. `guides/` explains integrations. `agents/` contains the agent list and converter notes. Hand-written site pages live in `site/pages/`.
+
+Use plain English and small JSONL examples with one record per line. Follow the [converter notes template](/agents#converter-notes-template) for native storage facts. State when a fact is not documented.
+
+## Propose a core change
+
+Name the question from the [overview](/spec/overview) that the change helps answer. Show the source data a producer can use and the result a reader needs. Include a small example and the effect on existing readers.
+
+If a field is specific to one agent, `_meta` may be enough. If a feature can be ignored without changing core meanings, an extension may suit it. The [governance page](/community/governance) describes how changes are considered.

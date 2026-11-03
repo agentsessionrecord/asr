@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "agent": "deepseek-harness",
+  "base": "ce7073d51254c26cd63b22a60835b8f948deb447",
+  "head": "2e2c8b883594ea07a8fbef5559917f7a98c5372b",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "2e2c8b883594ea07a8fbef5559917f7a98c5372b",
+      "sha256": "13c3af0034fa9b80b86d4ce651b9cb5c4528c9a7d9035260eb8825e768ab3ab2"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "../kimi-code/contracts.mjs",
+      "deepseek-harness"
+    ]
+  ],
+  "provenance": {
+    "repository": "https://github.com/deepseek-ai/deepseek-harness",
+    "base": "ce7073d51254c26cd63b22a60835b8f948deb447",
+    "head": "2e2c8b883594ea07a8fbef5559917f7a98c5372b",
+    "branch": "codex/fix2-repo",
+    "files": {
+      "patches/0001-native-agent-session-export.patch": "13c3af0034fa9b80b86d4ce651b9cb5c4528c9a7d9035260eb8825e768ab3ab2",
+      "samples/native/native.json": "07f8fcde447bf71038cac69846ca77feb4de665abd8920d7c5e61ffbec97423e",
+      "samples/asr/session.jsonl": "5550a35d561476558a0be121e7257758fe5db7c38aa9eb9c2b407953b9ccc334",
+      "PROPOSAL.md": "d342414aaa59b331f513fa64eb4548ab3cfee390615f048c656377f4981f6574",
+      "TESTS.json": "800a92f89c3f342d4d6e6f13d772fe5a2a263e7ba76247af97d29d3844f0b8ab",
+      ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944"
+    }
+  },
+  "files": {
+    ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
+    "PROPOSAL.md": "d342414aaa59b331f513fa64eb4548ab3cfee390615f048c656377f4981f6574",
+    "README.md": "74b1910c44f5ce54ec6af61552e5475a0427e02e673b3dd713b0f2702b95babb",
+    "TESTS.json": "800a92f89c3f342d4d6e6f13d772fe5a2a263e7ba76247af97d29d3844f0b8ab",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "patches/0001-native-agent-session-export.patch": "13c3af0034fa9b80b86d4ce651b9cb5c4528c9a7d9035260eb8825e768ab3ab2",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "5550a35d561476558a0be121e7257758fe5db7c38aa9eb9c2b407953b9ccc334",
+    "samples/native/native.json": "07f8fcde447bf71038cac69846ca77feb4de665abd8920d7c5e61ffbec97423e"
+  }
+}

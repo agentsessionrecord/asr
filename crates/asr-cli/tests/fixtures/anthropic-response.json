@@ -1,0 +1,1 @@
+{"id":"message-1","model":"synthetic-served","stop_reason":"end_turn","content":[{"type":"text","text":"synthetic answer"}],"usage":{"input_tokens":10,"cache_read_input_tokens":2,"cache_creation_input_tokens":3,"output_tokens":4}}

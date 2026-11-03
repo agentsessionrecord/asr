@@ -1,0 +1,91 @@
+---
+title: "Quick tour"
+description: "Follow one coding session from a prompt to a checked commit."
+---
+
+A user asks an agent to fix a parser. The agent changes one line, runs the tests, commits the change and replies. This example uses a fictional agent, model and repository. The exporter has the completed tool outcomes and the command output.
+
+Each code block continues the same JSONL file. Save the records in the order shown, with a newline after each line.
+
+## The prompt and model call
+
+The header keeps the agent's native session ID and the starting working directory. `producer` identifies the software that writes the file. Here the agent exports it directly. `missing` says that reasoning is not available.
+
+```jsonl
+{"type":"session","id":"session","formatVersion":"0.1","agent":{"name":"com.example.coder","version":"1.0"},"sessionId":"parser-42","producer":{"name":"example-export","version":"1.0","method":"native"},"cwd":"/work/parser","repos":[{"path":"/work/parser","remote":"https://github.com/example/parser","branch":"fix-empty-limit"}],"missing":["reasoning"]}
+{"type":"message","id":"prompt","turnId":"turn-1","role":"user","author":"human","origin":"prompt","content":[{"type":"text","text":"Make an empty limit mean zero. Run the parser tests and commit the fix."}]}
+{"type":"inference","id":"model-edit","turnId":"turn-1","model":{"provider":"example","id":"code-model-1"},"usage":{"inputTokens":820,"outputTokens":64}}
+```
+
+The prompt is marked `human` because the source distinguishes a person's input. `turnId` connects records in the same source turn. The `inference` record represents a recorded model call, with its own token counts. A message boundary alone does not establish a model call.
+
+## The edit
+
+```jsonl
+{"type":"tool_call","id":"call-edit","turnId":"turn-1","inferenceId":"model-edit","callId":"edit-1","name":"replace_text","kind":"edit","requestedBy":"model","input":{"path":"/work/parser/parser.py","oldText":"    return int(value)\n","newText":"    return int(value or \"0\")\n"},"locations":[{"path":"/work/parser/parser.py"}]}
+{"type":"tool_result","id":"result-edit","callId":"edit-1","status":"completed","content":[{"type":"text","text":"Replaced one occurrence in parser.py."}]}
+{"type":"file_change","id":"change","path":"/work/parser/parser.py","op":"modify","status":"applied","callId":"edit-1","edits":[{"oldText":"    return int(value)\n","newText":"    return int(value or \"0\")\n"}]}
+```
+
+The tool's arguments stay as recorded. The `file_change` supplies the path and replacement text in a shape readers can index. Its `callId` links it to the edit tool, and the tool's `inferenceId` links it to the model call.
+
+`applied` means the source records that the edit happened. A request to change a file is insufficient. One call that changes several files produces one `file_change` per file.
+
+## The test run
+
+```jsonl
+{"type":"inference","id":"model-test","turnId":"turn-1","model":{"provider":"example","id":"code-model-1"},"usage":{"inputTokens":930,"outputTokens":32}}
+{"type":"tool_call","id":"call-test","turnId":"turn-1","inferenceId":"model-test","callId":"test-1","name":"shell","kind":"execute","requestedBy":"model","input":{"command":"pytest tests/test_parser.py -q"}}
+{"type":"tool_result","id":"result-test","callId":"test-1","status":"completed","content":[{"type":"text","text":"6 passed in 0.08s"}],"exec":{"command":"pytest tests/test_parser.py -q","cwd":"/work/parser","exitCode":0,"stdout":"6 passed in 0.08s\n"}}
+```
+
+The result records both the tool's outcome and the process exit code. They are separate facts. A converter takes the outcome from the source instead of guessing it from output text. A call without a result has an unknown outcome.
+
+## The commit
+
+```jsonl
+{"type":"inference","id":"model-commit","turnId":"turn-1","model":{"provider":"example","id":"code-model-1"},"usage":{"inputTokens":1010,"outputTokens":48}}
+{"type":"tool_call","id":"call-commit","turnId":"turn-1","inferenceId":"model-commit","callId":"commit-1","name":"shell","kind":"execute","requestedBy":"model","input":{"command":"git add parser.py && git commit -m \"Handle empty limits\""}}
+{"type":"tool_result","id":"result-commit","callId":"commit-1","status":"completed","exec":{"command":"git add parser.py && git commit -m \"Handle empty limits\"","cwd":"/work/parser","exitCode":0,"stdout":"[fix-empty-limit a1b2c3d] Handle empty limits\n 1 file changed, 1 insertion(+), 1 deletion(-)\n"}}
+{"type":"vcs","id":"commit","action":"commit","status":"completed","evidence":"parsed_output","callId":"commit-1","repo":"/work/parser","commitPrefix":"a1b2c3d","subject":"Handle empty limits"}
+```
+
+Git prints a short commit ID. The converter keeps it in `commitPrefix`, with the printed subject. It does not expand the prefix by guessing.
+
+The reader resolves it in the real repository. It checks that the prefix is unique, the subject matches and the repository parent count fits the action, and the commit is reachable from a local branch or tag. See [Committed by](/spec/code#committed-by).
+
+## The final reply
+
+```jsonl
+{"type":"inference","id":"model-reply","turnId":"turn-1","model":{"provider":"example","id":"code-model-1"},"usage":{"inputTokens":1160,"outputTokens":22}}
+{"type":"message","id":"reply","turnId":"turn-1","inferenceId":"model-reply","role":"assistant","author":"model","phase":"final","status":"complete","content":[{"type":"text","text":"Empty limits return zero. All six parser tests pass. Committed as a1b2c3d."}]}
+```
+
+The reply is searchable text. Its statement about the commit is not itself commit evidence. End of file also does not say that the session ended. A source that records an end can supply `endedAt` in the header or a later `session_info`.
+
+## From the line back to the prompt
+
+For the changed return statement, the reader starts with `git blame`. It compares the commit's added lines with the original, applied edit. The replacement is usable only if it matches uniquely and survives in the commit.
+
+That supports two separate answers: the session edited the line, and the session committed the change. If the snippet were ambiguous, the line would stay unattributed.
+
+The citation `com.example.coder:parser-42#change` identifies the edit record. From it, the reader can follow the tool call, model call and prompt. [Code links and blame](/spec/code) describes rewrite pairs, other candidate sources and pull requests.
+
+## A person makes the commit
+
+Use the same session through the edit and test run, then end it without the commit call, commit result, `vcs` record or final reply above. The applied edit is unchanged:
+
+```jsonl
+{"type":"file_change","id":"change","path":"/work/parser/parser.py","op":"modify","status":"applied","callId":"edit-1","edits":[{"oldText":"    return int(value)\n","newText":"    return int(value or \"0\")\n"}]}
+```
+
+A person runs `git add parser.py` and `git commit -m "Handle empty limits"` outside the session. Given that separate evidence of the person's action and a unique surviving edit match, the answer is:
+
+```text
+Edited by com.example.coder:parser-42#change
+Prompt: Make an empty limit mean zero. Run the parser tests and commit the fix.
+Model: code-model-1
+Committed by a person outside the session
+```
+
+Without evidence of who made that commit, committed by remains unknown. The missing session commit record alone does not identify a person.

@@ -1,0 +1,33 @@
+{
+  "checks": [
+    "cargo test -p forge_domain agent_session --lib",
+    "cargo check -p forge_main",
+    "cargo build -p forge_main --bin forge",
+    "cargo clippy -p forge_domain -p forge_main --all-targets -- -D warnings",
+    "cargo clippy -p forge_domain --all-targets -- -D warnings after call ID fix",
+    "cargo fmt -p forge_domain -p forge_main",
+    "domain example and packaged fixture reproduction"
+  ],
+  "focusedTestsPassed": 3,
+  "newExporterTests": 3,
+  "fixtureReproduction": "passed",
+  "samples": {
+    "samples/asr/session.jsonl": {
+      "records": 7,
+      "errors": 0,
+      "warnings": 0
+    }
+  },
+  "liveTestStatus": "passed",
+  "liveTestNotes": "The debug CLI completed one synthetic turn through the OpenAI-compatible or Anthropic-compatible endpoint using private native provider settings. The actual CLI export produced 6 records with zero validator errors and warnings.",
+  "liveValidation": {
+    "records": 6,
+    "errors": 0,
+    "warnings": 0,
+    "providerSettingsFile": true,
+    "localBaseUrlVerified": true,
+    "toolCalls": 0
+  },
+  "currentCodeLiveTest": "unverified",
+  "evidenceScope": "Prior revision. Counts do not certify the current implementation."
+}

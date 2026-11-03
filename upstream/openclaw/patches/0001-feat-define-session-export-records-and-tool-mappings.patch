@@ -1,0 +1,592 @@
+From 4fc193cd57831c0f4862fc104401762271920353 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 16:26:16 -0500
+Subject: [PATCH 1/8] feat: define session export records and tool mappings
+
+---
+ src/sessions/agent-session-export.json.ts  | 207 +++++++++++++++
+ src/sessions/agent-session-export.tools.ts | 294 +++++++++++++++++++++
+ src/sessions/agent-session-export.types.ts |  59 +++++
+ 3 files changed, 560 insertions(+)
+ create mode 100644 src/sessions/agent-session-export.json.ts
+ create mode 100644 src/sessions/agent-session-export.tools.ts
+ create mode 100644 src/sessions/agent-session-export.types.ts
+
+diff --git a/src/sessions/agent-session-export.json.ts b/src/sessions/agent-session-export.json.ts
+new file mode 100644
+index 00000000000..9b0b0408972
+--- /dev/null
++++ b/src/sessions/agent-session-export.json.ts
+@@ -0,0 +1,207 @@
++import { createHash } from "node:crypto";
++import path from "node:path";
++import { asOptionalRecord } from "@openclaw/normalization-core/record-coerce";
++import { redactSensitiveText } from "../logging/redact.js";
++import type { AsrRecord, JsonObject } from "./agent-session-export.types.js";
++
++export const object = (value: unknown): JsonObject => asOptionalRecord(value) ?? {};
++export const string = (value: unknown): string | undefined =>
++  typeof value === "string" ? value : undefined;
++export const number = (value: unknown): number | undefined =>
++  typeof value === "number" &&
++  Number.isFinite(value) &&
++  (!Number.isInteger(value) || Number.isSafeInteger(value))
++    ? value
++    : undefined;
++export const array = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
++export function parseObject(value: string | null | undefined): JsonObject {
++  return value
++    ? object(
++        JSON.parse(value, (_key: string, item: unknown, context?: { source?: string }) => {
++          if (
++            typeof item === "number" &&
++            (!Number.isFinite(item) || (Number.isInteger(item) && !Number.isSafeInteger(item)))
++          ) {
++            if (!context?.source) {
++              throw new Error("ASR export requires JSON source-token support");
++            }
++            return context.source;
++          }
++          return item;
++        }),
++      )
++    : {};
++}
++export function unsafeNumbers(value: unknown): boolean {
++  if (typeof value === "bigint") {
++    return true;
++  }
++  if (typeof value === "number") {
++    return !Number.isFinite(value) || (Number.isInteger(value) && !Number.isSafeInteger(value));
++  }
++  return value !== null && typeof value === "object" && Object.values(value).some(unsafeNumbers);
++}
++export function jsonText(value: unknown): string {
++  if (typeof value === "bigint") {
++    return value.toString();
++  }
++  if (Array.isArray(value)) {
++    return `[${value.map((v) => jsonText(v ?? null)).join(",")}]`;
++  }
++  if (value !== null && typeof value === "object") {
++    return `{${Object.entries(value)
++      .filter(([, v]) => v !== undefined)
++      .map(([k, v]) => `${JSON.stringify(k)}:${jsonText(v)}`)
++      .join(",")}}`;
++  }
++  if (typeof value === "number" && unsafeNumbers(value)) {
++    throw new Error("ASR export: unsafe number without its original source token");
++  }
++  return JSON.stringify(value);
++}
++
++export function timestamp(value: unknown): string | undefined {
++  if (
++    typeof value === "string" &&
++    /^\d{4}-\d\d-\d\dT.*(?:Z|[+-]\d\d:\d\d)$/.test(value) &&
++    Number.isFinite(Date.parse(value))
++  ) {
++    return value; // Preserve the native sub-millisecond precision.
++  }
++  return typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= 8.64e15
++    ? new Date(value).toISOString()
++    : undefined;
++}
++export function meta(fields: JsonObject): JsonObject {
++  return { "ai.openclaw": fields };
++}
++export function recordId(...nativeKeys: (string | number)[]): string {
++  return `r-${createHash("sha256")
++    .update(JSON.stringify([1, ...nativeKeys]))
++    .digest("hex")}`;
++}
++export function sessionRef(id: string, agent = "openclaw"): string {
++  // SessionRef's grammar requires escaping delimiters, whitespace and controls.
++  const encoded = Array.from(id, (char) => {
++    const code = char.codePointAt(0)!;
++    return "%:#".includes(char) || code <= 0x20 || (code >= 0x7f && code <= 0x9f)
++      ? encodeURIComponent(char)
++      : char;
++  }).join("");
++  return `${agent}:${encoded}`;
++}
++export function exportPath(value: string, cwd?: string): string {
++  if (path.win32.isAbsolute(value) || path.posix.isAbsolute(value)) {
++    return value;
++  }
++  return cwd ? path.resolve(cwd, value) : value.replaceAll("\\", "/");
++}
++
++export function content(value: unknown): JsonObject[] {
++  if (typeof value === "string") {
++    return [{ type: "text", text: value }];
++  }
++  return array(value).flatMap((item) => {
++    const part = object(item);
++    if (part.type === "toolCall") {
++      return [];
++    }
++    if (part.type === "thinking") {
++      return [
++        part.redacted
++          ? { type: "reasoning", visibility: "encrypted" }
++          : asrReasoning(string(part.thinking), false),
++      ];
++    }
++    if (part.type === "text") {
++      return [{ type: "text", text: part.text, author: part.author, origin: part.origin }];
++    }
++    return typeof part.type === "string" ? [part] : [{ type: "_ai.openclaw/data", data: item }];
++  });
++}
++
++/** Prefer unique native IDs, reserving every native name before deriving extras. */
++export class ExportIds {
++  private readonly counts = new Map<string, number>();
++  private readonly used = new Set<string>();
++  constructor(candidates: (string | undefined)[]) {
++    for (const id of candidates) {
++      if (id !== undefined) {
++        this.counts.set(id, (this.counts.get(id) ?? 0) + 1);
++      }
++    }
++  }
++  claim(native: string | undefined, ...keys: (string | number)[]): string {
++    if (
++      native &&
++      native.length <= 256 &&
++      !Array.from(native).some((char) => {
++        const code = char.codePointAt(0)!;
++        return code < 32 || (code >= 127 && code <= 159);
++      }) &&
++      this.counts.get(native) === 1 &&
++      !this.used.has(native)
++    ) {
++      this.used.add(native);
++      return native;
++    }
++    let id = recordId(...keys);
++    let suffix = 0;
++    while (this.counts.has(id) || this.used.has(id)) {
++      id = recordId(...keys, ++suffix);
++    }
++    this.used.add(id);
++    return id;
++  }
++}
++
++/** Export is an egress boundary. Never consult current logging configuration to
++ * decide whether historical credentials or provider replay state may escape. */
++export function sanitizeRecord(record: AsrRecord, losses: Set<string>): AsrRecord {
++  let redacted = false;
++  const visit = (value: unknown, key = ""): unknown => {
++    if (
++      /^(?:thinkingSignature|thoughtSignature|textSignature|providerReplay|resolution_ref|runtime_epoch)$/i.test(
++        key,
++      )
++    ) {
++      losses.add("provider_state");
++      return undefined;
++    }
++    if (
++      /^(?:api[-_]?key|authorization|password|passwd|access[-_]?token|refresh[-_]?token|client[-_]?secret|secretValue|cookie|set-cookie)$/i.test(
++        key,
++      )
++    ) {
++      redacted = true;
++      return undefined;
++    }
++    if (typeof value === "string") {
++      const cleaned = redactSensitiveText(value, { mode: "tools" });
++      redacted ||= cleaned !== value;
++      return cleaned;
++    }
++    if (typeof value === "bigint") {
++      return value.toString();
++    }
++    if (Array.isArray(value)) {
++      return value.map((item) => visit(item));
++    }
++    if (value !== null && typeof value === "object") {
++      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, visit(v, k)]));
++    }
++    return value;
++  };
++  const cleaned = object(visit(record));
++  if (redacted) {
++    cleaned.truncated = true;
++    losses.add("secrets");
++  }
++  return { ...cleaned, type: record.type, id: record.id };
++}
++
++function asrReasoning(text: unknown, summary = false): { type: string; visibility?: string; text?: string; summary?: string[] } {
++  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
++  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
++  return { type: "reasoning", text };
++}
+diff --git a/src/sessions/agent-session-export.tools.ts b/src/sessions/agent-session-export.tools.ts
+new file mode 100644
+index 00000000000..63ab1b9e5e3
+--- /dev/null
++++ b/src/sessions/agent-session-export.tools.ts
+@@ -0,0 +1,294 @@
++import {
++  content,
++  exportPath,
++  jsonText,
++  meta,
++  number,
++  object,
++  parseObject,
++  string,
++  timestamp,
++  unsafeNumbers,
++} from "./agent-session-export.json.js";
++import type { AsrRecord, ExportApproval, JsonObject } from "./agent-session-export.types.js";
++
++type Emit = (type: string, fields?: JsonObject, nativeId?: string) => AsrRecord;
++
++/** These names are OpenClaw's built-in tools, not guesses from argument text. */
++const toolKinds: Record<string, string> = {
++  read: "read",
++  write: "edit",
++  edit: "edit",
++  exec: "execute",
++  bash: "execute",
++  bashExecution: "execute",
++  web_fetch: "fetch",
++  web_search: "search",
++};
++
++export class ExportTools {
++  readonly calls = new Map<string, AsrRecord[]>();
++  readonly callCounts = new Map<string, number>();
++  readonly secretCalls = new Set<string>();
++  readonly exportedApprovals = new Set<string>();
++
++  constructor(
++    readonly emit: Emit,
++    readonly cwd: string | undefined,
++    readonly losses: Set<string>,
++    readonly approvals: ExportApproval[],
++  ) {}
++
++  call(call: JsonObject, inferenceId?: string, requestedBy?: string, parentCallId?: unknown) {
++    const callId = string(call.id);
++    if (!callId) {
++      this.emit("gap", { reason: "unparseable", detail: "Native tool call has no ID." });
++      this.losses.add("tool_calls");
++      return;
++    }
++    const secret = this.secretCalls.has(callId);
++    const textInput = typeof call.arguments === "string" || unsafeNumbers(call.arguments);
++    const input = object(call.arguments);
++    const target = string(input.path) ?? string(input.file_path);
++    const record = this.emit(
++      "tool_call",
++      {
++        callId,
++        name: string(call.name),
++        kind: toolKinds[String(call.name)],
++        requestedBy,
++        parentCallId: string(parentCallId),
++        inferenceId,
++        input: secret || textInput ? undefined : call.arguments,
++        inputText:
++          secret || !textInput
++            ? undefined
++            : typeof call.arguments === "string"
++              ? call.arguments
++              : jsonText(call.arguments),
++        locations:
++          target && ["read", "write", "edit"].includes(String(call.name))
++            ? [{ path: exportPath(target, this.cwd) }]
++            : undefined,
++        truncated: secret || undefined,
++        _meta: meta({ async: call.async, executionMode: call.executionMode }),
++      },
++      callId,
++    );
++    const calls = this.calls.get(callId) ?? [];
++    calls.push(record);
++    this.calls.set(callId, calls);
++    if (secret) {
++      this.losses.add("secrets");
++    }
++  }
++
++  private approval(details: JsonObject, callId: string | undefined): ExportApproval | undefined {
++    // A pending request receipt predates a later decision in the mutable row.
++    // Only a post-decision receipt can anchor that decision in transcript order.
++    const row = this.approvals.find((candidate) => candidate.approval_id === details.approvalId);
++    if (
++      !row ||
++      details.status === "approval-pending" ||
++      this.exportedApprovals.has(row.approval_id)
++    ) {
++      return row;
++    }
++    const decision =
++      row.status === "allowed"
++        ? "approved"
++        : row.status === "denied"
++          ? "denied"
++          : ["expired", "cancelled"].includes(row.status)
++            ? "cancelled"
++            : undefined;
++    if (
++      !decision ||
++      (row.resolver_kind === "system" && row.terminal_reason === "storage-corrupt")
++    ) {
++      return row;
++    }
++    const linked =
++      callId && row.source_tool_call_id === callId && this.callCounts.get(callId) === 1;
++    const presentation = parseObject(row.presentation_json);
++    const subject = string(presentation.command) ?? string(presentation.title);
++    if (!linked && subject === undefined) {
++      return row;
++    }
++    this.emit(
++      "approval",
++      {
++        ts: timestamp(row.resolved_at_ms),
++        turnId: row.source_run_id ?? undefined,
++        callId: linked ? callId : undefined,
++        subject: linked ? undefined : subject,
++        decision,
++        by:
++          decision !== "cancelled" &&
++          row.terminal_reason === "user" &&
++          ["device", "channel"].includes(row.resolver_kind ?? "")
++            ? "user"
++            : undefined,
++        scope: decision === "approved" && row.decision === "allow-once" ? "once" : undefined,
++        native: row,
++        _meta: meta({ position: "linked_result" }),
++      },
++      row.approval_id,
++    );
++    this.exportedApprovals.add(row.approval_id);
++    return row;
++  }
++
++  result(message: JsonObject, nested = false) {
++    const nativeCallId = string(message.toolCallId);
++    const callId =
++      nativeCallId &&
++      this.callCounts.get(nativeCallId) !== undefined &&
++      this.callCounts.get(nativeCallId) !== 1
++        ? undefined
++        : nativeCallId;
++    const details = object(message.details);
++    const secret = nativeCallId !== undefined && this.secretCalls.has(nativeCallId);
++    const status = details.openclawSyntheticMissingToolResult
++      ? "unknown"
++      : details.reason === "policy-denied" || details.failureKind === "auto-review-denied"
++        ? "denied"
++        : details.status === "running" || details.status === "approval-pending"
++          ? "unknown"
++          : message.isError === true
++            ? "failed"
++            : message.isError === false
++              ? "completed"
++              : "unknown";
++    if (!secret) {
++      // Review status/risk by itself is not a deciding verdict. The final outcome
++      // is persisted by the review owner and can coexist with a human decision.
++      if (
++        callId &&
++        (["approved", "denied"].includes(String(details.approvalReviewOutcome)) ||
++          details.failureKind === "auto-review-denied")
++      ) {
++        this.emit("approval", {
++          callId,
++          decision: details.approvalReviewOutcome === "approved" ? "approved" : "denied",
++          by: "classifier",
++          scope: details.approvalReviewOutcome === "approved" ? "once" : undefined,
++          native: {
++            approvalReviewOutcome: details.approvalReviewOutcome,
++            failureKind: details.failureKind,
++            approvalReviews: details.approvalReviews,
++          },
++          ts: undefined,
++        });
++      }
++      this.approval(details, callId);
++    }
++    const result = this.emit("tool_result", {
++      callId,
++      status,
++      content: secret ? undefined : content(message.content),
++      truncated:
++        secret ||
++        details.persistedDetailsTruncated === true ||
++        message.truncated === true ||
++        undefined,
++      durationMs: number(details.durationMs),
++      exec: secret
++        ? undefined
++        : {
++            exitCode: number(details.exitCode),
++            signal: string(details.exitSignal),
++            output: string(details.aggregated),
++            cwd:
++              string(details.cwd) && this.cwd
++                ? exportPath(String(details.cwd), this.cwd)
++                : typeof details.cwd === "string" && /^(?:\/|[A-Za-z]:[\\/])/.test(details.cwd)
++                  ? details.cwd
++                  : undefined,
++          },
++      _meta: secret
++        ? undefined
++        : meta({
++            details: message.details,
++            toolCallId: callId === undefined ? nativeCallId : undefined,
++            nested: nested || undefined,
++            approvalSnapshot: this.approvals.find((row) => row.approval_id === details.approvalId),
++          }),
++    });
++    if (secret) {
++      this.losses.add("secrets");
++    }
++    if (details.persistedDetailsTruncated || message.truncated) {
++      this.losses.add("tool_output");
++    }
++    if (details.openclawSyntheticMissingToolResult) {
++      this.losses.add("tool_output");
++      this.emit("gap", {
++        reason: "not_recorded",
++        detail: "Native harness synthesized a missing tool result.",
++      });
++    }
++    if (callId && this.callCounts.get(callId) === 1 && !secret) {
++      const call = this.calls.get(callId)?.[0];
++      if (call) {
++        this.fileChange(call, details, status);
++      }
++    }
++    return result;
++  }
++
++  shell(message: JsonObject, entryId: string) {
++    const id = `shell-${entryId}`;
++    this.call(
++      { id, name: "bashExecution", arguments: { command: message.command } },
++      undefined,
++      "user",
++    );
++    this.emit("tool_result", {
++      callId: id,
++      status: message.cancelled ? "cancelled" : "unknown",
++      content: message.excludeFromContext ? undefined : content(message.output),
++      truncated: message.truncated === true || undefined,
++      exec: {
++        command: message.command,
++        output: string(message.output),
++        exitCode: number(message.exitCode),
++      },
++    });
++    if (message.truncated) {
++      this.losses.add("tool_output");
++    }
++  }
++
++  private fileChange(call: AsrRecord, details: JsonObject, status: string) {
++    if (
++      !["write", "edit"].includes(String(call.name)) ||
++      details.changed !== true ||
++      status !== "completed"
++    ) {
++      return;
++    }
++    const input = object(call.input);
++    const target = string(input.path) ?? string(input.file_path);
++    if (!target) {
++      return;
++    }
++    this.emit("file_change", {
++      callId: call.callId,
++      path: exportPath(target, this.cwd),
++      status: "applied",
++      op:
++        call.name === "edit" || details.created === false
++          ? "modify"
++          : details.created === true
++            ? "add"
++            : "unknown",
++      patch: string(details.patch),
++      // The write owner verifies persisted bytes against this exact input.
++      after:
++        call.name === "write" && typeof input.content === "string"
++          ? { text: input.content }
++          : undefined,
++    });
++  }
++}
+diff --git a/src/sessions/agent-session-export.types.ts b/src/sessions/agent-session-export.types.ts
+new file mode 100644
+index 00000000000..c7a1c36e436
+--- /dev/null
++++ b/src/sessions/agent-session-export.types.ts
+@@ -0,0 +1,59 @@
++import type { Selectable } from "kysely";
++import type { DB as AgentDB } from "../state/openclaw-agent-db.generated.js";
++import type { DB as StateDB } from "../state/openclaw-state-db.generated.js";
++
++// ASR is an extensible wire format. Unknown native JSON is narrowed at the codec
++// boundary; it is never treated as executable input or a native TypeScript model.
++export type JsonObject = Record<string, unknown>;
++export type AsrRecord = JsonObject & { type: string; id: string };
++export type ExportEvent = { seq: number; event?: JsonObject };
++export type ExportWindow = Selectable<AgentDB["session_windows"]>;
++export type ExportConversation = Selectable<AgentDB["conversations"]> & { role?: string };
++export type ExportApproval = Pick<
++  Selectable<StateDB["operator_approvals"]>,
++  | "approval_id"
++  | "kind"
++  | "cursor_id"
++  | "source_session_id"
++  | "source_run_id"
++  | "source_tool_call_id"
++  | "status"
++  | "decision"
++  | "terminal_reason"
++  | "presentation_json"
++  | "created_at_ms"
++  | "expires_at_ms"
++  | "resolved_at_ms"
++  | "resolver_kind"
++  | "resolver_id"
++  | "consumed_at_ms"
++  | "consumed_by"
++>;
++export type ExportEvidence = {
++  approvals: ExportApproval[];
++  skills: Selectable<StateDB["skill_workshop_changes"]>[];
++  deliveries: Selectable<AgentDB["conversation_deliveries"]>[];
++  queue: Selectable<StateDB["delivery_queue_entries"]>[];
++  reactions: Selectable<AgentDB["session_reactions"]>[];
++  cron: Selectable<StateDB["cron_jobs"]>[];
++  receipts: Selectable<StateDB["cron_run_receipts"]>[];
++  heartbeat: Selectable<AgentDB["heartbeat_outcomes"]>[];
++  audit: Selectable<StateDB["audit_events"]>[];
++  bindings: Selectable<StateDB["plugin_state_entries"]>[];
++  heartbeatJobs: { jobId: string; since: number }[];
++  sharedStateAvailable: boolean;
++};
++export type WindowExportSource = {
++  agentId: string;
++  window: ExportWindow;
++  node?: JsonObject;
++  events: ExportEvent[];
++  conversations: ExportConversation[];
++  evidence: ExportEvidence;
++  // Only the known ancestor's IDs qualify as copies. No text matching.
++  ancestor?: { sessionId: string; eventIds: Set<string> };
++  inputRuns: Map<string, string>;
++  runOwners: Map<string, string | null>;
++  leafId?: string;
++  cold: boolean;
++};

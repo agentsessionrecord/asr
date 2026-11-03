@@ -1,0 +1,52 @@
+{
+  "fields": [
+    "session_id",
+    "cwd",
+    "tool_name",
+    "tool_input",
+    "tool_response",
+    "prompt"
+  ],
+  "kinds": {
+    "read_file": "read",
+    "execute_bash": "execute",
+    "execute_pwsh": "execute",
+    "grep_search": "search",
+    "fs_write": "edit",
+    "fs_append": "edit",
+    "str_replace": "edit",
+    "delete_file": "delete"
+  },
+  "secret_tools": [],
+  "shell_tools": [
+    "execute_bash",
+    "execute_pwsh"
+  ],
+  "agent_tools": [],
+  "new_session_sources": [],
+  "post_status": "unknown",
+  "agent": "kiro",
+  "events": {
+    "SessionStart": "SessionStart",
+    "UserPromptSubmit": "UserPromptSubmit",
+    "PreToolUse": "PreToolUse",
+    "PostToolUse": "PostToolUse",
+    "Stop": "Stop",
+    "SessionEnd": "SessionEnd",
+    "PostFileCreate": "PostFileCreate",
+    "PostFileSave": "PostFileSave",
+    "PostFileDelete": "PostFileDelete",
+    "PreTaskExec": "PreTaskExec",
+    "PostTaskExec": "PostTaskExec"
+  },
+  "session_start_is_new": true,
+  "observations": [
+    "tool_name",
+    "tool_input"
+  ],
+  "missing": [
+    "call_ids",
+    "tool_outcome_status",
+    "final_model_facing_output"
+  ]
+}

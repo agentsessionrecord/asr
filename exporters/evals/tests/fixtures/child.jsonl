@@ -1,0 +1,3 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"child","producer":{"name":"synthetic-export","version":"1.0","method":"native"},"parent":{"session":"com.example.agent:synthetic%20space:eval%3A7","kind":"subagent","callId":"spawn-1","copiedThrough":"inherited"},"startedAt":"2026-10-31T12:00:21Z","endedAt":"2026-10-31T12:00:25Z"}
+{"type":"inference","id":"inherited","model":{"id":"example-served"},"usage":{"inputTokens":9999,"outputTokens":9999}}
+{"type":"inference","id":"child-call","ts":"2026-10-31T12:00:24Z","durationMs":1000,"model":{"requested":"example-child"},"usage":{"inputTokens":5,"outputTokens":2},"cost":{"amount":0.01,"currency":"USD"}}

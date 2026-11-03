@@ -1,0 +1,101 @@
+{
+  "resourceLogs": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "codex-cli"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "0.163.0"
+            }
+          }
+        ]
+      },
+      "scopeLogs": [
+        {
+          "scope": {
+            "name": "codex_otel"
+          },
+          "logRecords": [
+            {
+              "timeUnixNano": "1793448000000000001",
+              "attributes": [
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "codex.tool_decision"
+                  }
+                },
+                {
+                  "key": "conversation.id",
+                  "value": {
+                    "stringValue": "synthetic-session"
+                  }
+                },
+                {
+                  "key": "call_id",
+                  "value": {
+                    "stringValue": "c1"
+                  }
+                },
+                {
+                  "key": "decision",
+                  "value": {
+                    "stringValue": "abort"
+                  }
+                },
+                {
+                  "key": "source",
+                  "value": {
+                    "stringValue": "User"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1793448000000000001",
+              "attributes": [
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "codex.tool_decision"
+                  }
+                },
+                {
+                  "key": "conversation.id",
+                  "value": {
+                    "stringValue": "synthetic-session"
+                  }
+                },
+                {
+                  "key": "call_id",
+                  "value": {
+                    "stringValue": "c1"
+                  }
+                },
+                {
+                  "key": "decision",
+                  "value": {
+                    "stringValue": "approved"
+                  }
+                },
+                {
+                  "key": "source",
+                  "value": {
+                    "stringValue": "AutomatedReviewer"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+// Cloudflare Workers deployment of the exported site. deploy.mjs prepares .export/ first.
+{
+  "name": "agent-session-record",
+  "main": "cloudflare/worker.js",
+  "compatibility_date": "2026-10-19",
+  "workers_dev": false,
+  "assets": {
+    "directory": ".export",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    // The worker must see navigation requests before an HTML asset answers them.
+    "run_worker_first": true
+  },
+  "routes": [
+    { "pattern": "agentsessionrecord.org", "custom_domain": true },
+    { "pattern": "www.agentsessionrecord.org", "custom_domain": true }
+  ]
+}

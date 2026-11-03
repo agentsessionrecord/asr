@@ -1,0 +1,5 @@
+# Service runtime tested with Python 3.12.
+arize-phoenix==12.23.0
+arize-phoenix-evals==2.7.0
+pandas==2.3.3
+graphql-core==3.2.6

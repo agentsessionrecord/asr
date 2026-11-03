@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentsessionrecord.org/schema/v0/annotation.schema.json",
+  "title": "Agent Session Record 0.1 annotation",
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "annotation"
+    },
+    "id": {
+      "$ref": "https://agentsessionrecord.org/schema/v0/agent-session.schema.json#/$defs/RecordId"
+    },
+    "session": {
+      "$ref": "https://agentsessionrecord.org/schema/v0/agent-session.schema.json#/$defs/SessionRef"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt]",
+      "x-asr": "ASR-062"
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "data": {},
+    "supersedes": {
+      "$ref": "https://agentsessionrecord.org/schema/v0/agent-session.schema.json#/$defs/RecordId"
+    }
+  },
+  "required": [
+    "type",
+    "id",
+    "session",
+    "kind",
+    "at",
+    "source",
+    "data"
+  ],
+  "x-asr": "ASR-062",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "summary"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "model": {}
+            },
+            "required": [
+              "text"
+            ]
+          }
+        },
+        "x-asr": "ASR-063"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "outcome"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string"
+              },
+              "commit": {
+                "$ref": "https://agentsessionrecord.org/schema/v0/agent-session.schema.json#/$defs/Commit"
+              },
+              "revertedBy": {
+                "$ref": "https://agentsessionrecord.org/schema/v0/agent-session.schema.json#/$defs/Commit"
+              },
+              "pr": {
+                "$ref": "https://agentsessionrecord.org/schema/v0/agent-session.schema.json#/$defs/PullRequest"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "x-asr": "ASR-063"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "test"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string"
+              },
+              "commit": {
+                "$ref": "https://agentsessionrecord.org/schema/v0/agent-session.schema.json#/$defs/Commit"
+              },
+              "name": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "x-asr": "ASR-063"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "vcs"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "https://agentsessionrecord.org/schema/v0/agent-session.schema.json#/$defs/Vcs"
+          }
+        },
+        "x-asr": "ASR-063"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "title"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "title"
+            ]
+          }
+        },
+        "x-asr": "ASR-063"
+      }
+    }
+  ]
+}

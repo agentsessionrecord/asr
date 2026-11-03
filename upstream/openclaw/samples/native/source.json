@@ -1,0 +1,129 @@
+{
+  "agentId": "main",
+  "window": {
+    "session_id": "synthetic-refresh",
+    "session_key": "agent:main:synthetic",
+    "agent_harness_id": "openclaw",
+    "started_at": "2026-10-31T12:00:00Z"
+  },
+  "node": {
+    "permissionMode": null,
+    "thinkingLevel": null
+  },
+  "events": [
+    {
+      "seq": 0,
+      "event": {
+        "type": "session",
+        "id": "header",
+        "cwd": "/work/repo",
+        "timestamp": "2026-10-31T12:00:00Z"
+      }
+    },
+    {
+      "seq": 1,
+      "event": {
+        "type": "thinking_level_change",
+        "id": "set",
+        "thinkingLevel": "high",
+        "timestamp": "2026-10-31T12:00:01Z"
+      }
+    },
+    {
+      "seq": 2,
+      "event": {
+        "type": "thinking_level_change",
+        "id": "clear",
+        "thinkingLevel": null,
+        "timestamp": "2026-10-31T12:00:02Z"
+      }
+    },
+    {
+      "seq": 3,
+      "event": {
+        "type": "message",
+        "id": "request",
+        "message": {
+          "role": "assistant",
+          "provider": "example",
+          "responseId": "inference-without-model",
+          "usage": {
+            "input": 9007199254740993,
+            "output": 0
+          },
+          "content": [
+            {
+              "type": "toolCall",
+              "id": "c",
+              "name": "read",
+              "arguments": {
+                "counter": 9007199254740993
+              }
+            }
+          ]
+        },
+        "timestamp": "2026-10-31T12:00:03Z"
+      }
+    },
+    {
+      "seq": 4,
+      "event": {
+        "type": "message",
+        "id": "pending",
+        "message": {
+          "role": "toolResult",
+          "toolCallId": "c",
+          "details": {
+            "status": "running",
+            "durationMs": 7
+          }
+        },
+        "timestamp": "2026-10-31T12:00:04Z"
+      }
+    },
+    {
+      "seq": 5,
+      "event": {
+        "type": "message",
+        "id": "notice",
+        "message": {
+          "role": "user",
+          "content": "Synthetic notice."
+        },
+        "timestamp": "2026-10-31T12:00:05Z"
+      }
+    },
+    {
+      "seq": 6,
+      "event": {
+        "type": "message",
+        "id": "result",
+        "message": {
+          "role": "toolResult",
+          "toolCallId": "c",
+          "isError": false,
+          "content": "Synthetic result."
+        },
+        "timestamp": "2026-10-31T12:00:06Z"
+      }
+    }
+  ],
+  "conversations": [],
+  "evidence": {
+    "approvals": [],
+    "skills": [],
+    "deliveries": [],
+    "queue": [],
+    "reactions": [],
+    "cron": [],
+    "receipts": [],
+    "heartbeat": [],
+    "audit": [],
+    "bindings": [],
+    "heartbeatJobs": [],
+    "sharedStateAvailable": true
+  },
+  "inputRuns": [],
+  "runOwners": [],
+  "cold": false
+}

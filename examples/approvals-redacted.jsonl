@@ -1,0 +1,15 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"audit-7","producer":{"name":"example-redactor","version":"1.0","method":"converter","source":"agent-session-record-0.1"},"user":{"id":"engineer-42","source":"configured"},"missing":["approvals","prompt_text"],"derivedFrom":{"sha256":"07bef1a3429a75c7ec699f6c131d0b8bad9d9b5769e2a065c0d479217067a686"}}
+{"type":"session_info","id":"settings","agentSettings":{"mode":"review","approval":{"ask":"on-request"},"sandbox":{"writableRoots":["/work/app"],"networkHosts":["packages.example.com"]},"externalSandbox":{"kind":"container","source":"environment","native":{"container":"build-7"}},"modelSettings":{"reasoningEffort":"high","temperature":0},"asks":"sometimes"},"tools":[{"name":"run_tests","description":"Run the project test command.","inputSchema":{"type":"object","properties":{"suite":{"type":"string"}}}}]}
+{"type":"message","id":"prompt","role":"user","author":"human","person":{"id":"engineer-42","source":"configured"},"origin":"scheduled","content":[],"_meta":{"com.example.agent":{"scheduleId":"daily-tests"}},"truncated":true}
+{"type":"inference","id":"model-call","model":{"requested":"example-model"}}
+{"type":"tool_call","id":"request-call-1","callId":"call-1","name":"run_tests"}
+{"type":"approval","id":"result:approval:1","callId":"call-1","decision":"approved","by":"policy","scope":"session","native":{"grant":"tests"}}
+{"type":"approval","id":"result:approval:2","callId":"call-1","decision":"approved","by":"user","scope":"once","person":{"id":"reviewer-9","source":"configured"},"subject":"sandbox-escape"}
+{"type":"tool_result","id":"result","callId":"call-1","status":"completed"}
+{"type":"session_info","id":"policy-change","agentSettings":{"mode":"batch","approval":"deny-without-asking","modelSettings":{"reasoningEffort":"low"},"asks":"never"}}
+{"type":"session_info","id":"sandbox-change","agentSettings":{"sandbox":true}}
+{"type":"message","id":"followup","role":"user","author":"human","person":{"id":"reviewer-9","source":"configured"},"origin":"external","content":[{"type":"text","text":"Check the release script too."}]}
+{"type":"tool_call","id":"request-call-2","callId":"call-2","name":"run_tests"}
+{"type":"approval","id":"denied:approval:1","callId":"call-2","decision":"denied","by":"fallback"}
+{"type":"tool_result","id":"denied","callId":"call-2","status":"denied"}
+{"type":"session_info","id":"boundary-cleared","agentSettings":{"externalSandbox":{},"modelSettings":{}}}

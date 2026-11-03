@@ -1,0 +1,4 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"run-1","producer":{"name":"example-export","version":"1","method":"native"}}
+{"type":"message","id":"message","role":"user","content":[],"inferenceId":"model"}
+{"type":"inference","id":"model","model":{"requested":"example-model"}}
+{"type":"message","id":"m2","role":"user","content":[],"inferenceId":"missing"}

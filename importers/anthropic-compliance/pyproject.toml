@@ -1,0 +1,17 @@
+[project]
+name = "asr-anthropic-compliance"
+version = "0.1.0"
+description = "Import saved Anthropic Compliance API local session pages"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["asr-importer-core"]
+
+[project.scripts]
+asr-import-anthropic-compliance = "asr_anthropic_compliance.__main__:main"
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+asr-importer-core = { workspace = true }

@@ -1,0 +1,16 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-007",
+    "code": "schema.maxLength",
+    "line": 2,
+    "pointer": "/id"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-007",
+    "code": "schema.pattern",
+    "line": 3,
+    "pointer": "/id"
+  }
+]

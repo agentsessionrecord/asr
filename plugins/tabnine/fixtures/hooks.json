@@ -1,0 +1,122 @@
+[
+  {
+    "event": "SessionStart",
+    "payload": {
+      "hook_event_name": "SessionStart",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "timestamp": "2026-11-01T12:00:00Z",
+      "source": "startup"
+    }
+  },
+  {
+    "event": "BeforeAgent",
+    "payload": {
+      "hook_event_name": "BeforeAgent",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "timestamp": "2026-11-01T12:00:00Z",
+      "prompt": "Run the synthetic check."
+    }
+  },
+  {
+    "event": "BeforeToolSelection",
+    "payload": {
+      "hook_event_name": "BeforeToolSelection",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "timestamp": "2026-11-01T12:00:00Z"
+    }
+  },
+  {
+    "event": "BeforeModel",
+    "payload": {
+      "hook_event_name": "BeforeModel",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "timestamp": "2026-11-01T12:00:00Z"
+    }
+  },
+  {
+    "event": "BeforeTool",
+    "payload": {
+      "hook_event_name": "BeforeTool",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "timestamp": "2026-11-01T12:00:00Z",
+      "tool_name": "run_shell_command",
+      "tool_input": {
+        "command": "printf requested"
+      }
+    }
+  },
+  {
+    "event": "Notification",
+    "payload": {
+      "hook_event_name": "Notification",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "timestamp": "2026-11-01T12:00:00Z",
+      "notification_type": "ToolPermission",
+      "message": "Synthetic permission request."
+    }
+  },
+  {
+    "event": "AfterTool",
+    "payload": {
+      "hook_event_name": "AfterTool",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "timestamp": "2026-11-01T12:00:00Z",
+      "tool_name": "run_shell_command",
+      "tool_input": {
+        "command": "printf requested"
+      },
+      "tool_response": {
+        "llmContent": "effective\n",
+        "returnDisplay": "SYNTHETIC DISPLAY ONLY"
+      }
+    }
+  },
+  {
+    "event": "AfterModel",
+    "payload": {
+      "hook_event_name": "AfterModel",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "timestamp": "2026-11-01T12:00:00Z"
+    }
+  },
+  {
+    "event": "AfterAgent",
+    "payload": {
+      "hook_event_name": "AfterAgent",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "timestamp": "2026-11-01T12:00:00Z",
+      "prompt": "Run the synthetic check.",
+      "prompt_response": "Synthetic reply.",
+      "stop_hook_active": false
+    }
+  },
+  {
+    "event": "PreCompress",
+    "payload": {
+      "hook_event_name": "PreCompress",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "timestamp": "2026-11-01T12:00:00Z",
+      "trigger": "auto"
+    }
+  },
+  {
+    "event": "SessionEnd",
+    "payload": {
+      "hook_event_name": "SessionEnd",
+      "session_id": "synthetic-session",
+      "cwd": "/work/synthetic",
+      "timestamp": "2026-11-01T12:00:00Z",
+      "reason": "exit"
+    }
+  }
+]

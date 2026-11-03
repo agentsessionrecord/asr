@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-032",
+    "code": "identical-rewrite",
+    "line": 2,
+    "pointer": "/rewrites/0"
+  }
+]

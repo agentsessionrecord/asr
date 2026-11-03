@@ -1,0 +1,18 @@
+{
+  "name": "agent-session-record-site",
+  "private": true,
+  "type": "module",
+  "description": "Documentation website for the Agent Session Record (ASR) format, built with Mintlify.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs && cd .mint && mint dev --port 3000",
+    "check": "node build.mjs --strict && cd .mint && mint validate && mint broken-links",
+    "deploy": "node deploy.mjs"
+  },
+  "devDependencies": {
+    "github-slugger": "2.0.0",
+    "mint": "4.2.1125",
+    "wrangler": "4.152.0"
+  }
+}

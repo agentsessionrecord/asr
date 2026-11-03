@@ -1,0 +1,715 @@
+From 956b40cb78ca2c2542056f2db34eead395fbed2a Mon Sep 17 00:00:00 2001
+From: ASR contributors <contributors@agentsessionrecord.org>
+Date: Sun, 1 Nov 2026 12:54:12 -0500
+Subject: [PATCH] feat: add Agent Session Record transcript export
+
+---
+ .../transcript-export-modal.test.tsx          |  32 +++
+ scripts/check-translation-completeness.cjs    |   1 +
+ .../conversation/transcript-export-modal.tsx  |  42 ++-
+ src/hooks/use-tracking.ts                     |   4 +-
+ src/i18n/translation.json                     |  18 ++
+ .../transcript-export/agent-session.test.ts   | 172 ++++++++++++
+ src/utils/transcript-export/agent-session.ts  | 261 ++++++++++++++++++
+ src/utils/transcript-export/index.ts          |   2 +-
+ .../load-complete-events.test.ts              |  12 +
+ .../transcript-export/load-complete-events.ts |   6 +-
+ 10 files changed, 535 insertions(+), 15 deletions(-)
+ create mode 100644 src/utils/transcript-export/agent-session.test.ts
+ create mode 100644 src/utils/transcript-export/agent-session.ts
+
+diff --git a/__tests__/components/features/conversation/transcript-export-modal.test.tsx b/__tests__/components/features/conversation/transcript-export-modal.test.tsx
+index e17ff54..6d013bc 100644
+--- a/__tests__/components/features/conversation/transcript-export-modal.test.tsx
++++ b/__tests__/components/features/conversation/transcript-export-modal.test.tsx
+@@ -175,6 +175,38 @@ function renderExportModal({
+ }
+
+ describe("transcript export modal", () => {
++  it("downloads ASR with native identity and disables presentation filters", async () => {
++    renderExportModal();
++    fireEvent.click(
++      screen.getByRole("radio", {
++        name: I18nKey.TRANSCRIPT_EXPORT$AGENT_SESSION,
++      }),
++    );
++    expect(
++      screen.getByRole("checkbox", {
++        name: I18nKey.TRANSCRIPT_EXPORT$INCLUDE_TOOL_DETAILS,
++      }),
++    ).toBeDisabled();
++    fireEvent.click(screen.getByTestId("confirm-transcript-export"));
++    await waitFor(() => expect(downloadBlobMock).toHaveBeenCalledOnce());
++    const [blob, filename] = downloadBlobMock.mock.calls[0] as [Blob, string];
++    expect(filename).toBe("conversation-conversation-1.jsonl");
++    expect(blob.type).toBe("application/vnd.agent-session+jsonl");
++    const records = (await readBlob(blob))
++      .trimEnd()
++      .split("\n")
++      .map((line) => JSON.parse(line));
++    expect(records[0].sessionId).toBe("conversation-1");
++    expect(records[0].producer.method).toBe("native");
++    expect(trackConversationExportedMock).toHaveBeenCalledWith("agent-session");
++    expect(loadCompleteTranscriptEventsMock).toHaveBeenCalledWith(
++      expect.any(Array),
++      expect.any(Function),
++      1,
++      true,
++    );
++  });
++
+   it("exports the current transcript as Markdown with accessible defaults", async () => {
+     const scenario = renderExportModal();
+     const markdownRadio = screen.getByRole("radio", {
+diff --git a/scripts/check-translation-completeness.cjs b/scripts/check-translation-completeness.cjs
+index 331890c..84999e4 100755
+--- a/scripts/check-translation-completeness.cjs
++++ b/scripts/check-translation-completeness.cjs
+@@ -13,6 +13,7 @@ const path = require('path');
+ // protocol/technical terms, placeholder-only format strings). Add a key here
+ // only when the English value is genuinely correct for all languages.
+ const IDENTICAL_VALUE_ALLOWLIST = new Set([
++  'TRANSCRIPT_EXPORT$AGENT_SESSION', // Name of the export format.
+   'ACTION_MESSAGE$ACP_TOOL',
+   'API$TAVILY_KEY_EXAMPLE',
+   'API$TVLY_KEY_EXAMPLE',
+diff --git a/src/components/features/conversation/transcript-export-modal.tsx b/src/components/features/conversation/transcript-export-modal.tsx
+index 0adaa24..a95a31e 100644
+--- a/src/components/features/conversation/transcript-export-modal.tsx
++++ b/src/components/features/conversation/transcript-export-modal.tsx
+@@ -21,6 +21,8 @@ import EventService from "#/api/event-service/event-service.api";
+ import { loadCompleteTranscriptEvents } from "#/utils/transcript-export/load-complete-events";
+ import { displayErrorToast } from "#/utils/custom-toast-handlers";
+
++import { eventsToAgentSession } from "#/utils/transcript-export/agent-session";
++
+ const TRANSCRIPT_FORMAT_RADIO_NAME = "transcript-export-format";
+
+ interface TranscriptExportModalProps {
+@@ -83,7 +85,8 @@ export function TranscriptExportModal({
+
+       const eventStore = useEventStore.getState();
+       const loadedEvents =
+-        eventStore.loadedConversationId === conversationId
++        eventStore.loadedConversationId === conversationId &&
++        format !== "agent-session"
+           ? eventStore.events
+           : [];
+       const events = await loadCompleteTranscriptEvents(
+@@ -96,6 +99,7 @@ export function TranscriptExportModal({
+             searchOptions,
+           ),
+         expectedEventCount,
++        ...(format === "agent-session" ? [true] : []),
+       );
+       if (isCancelledRef.current) return;
+
+@@ -106,13 +110,20 @@ export function TranscriptExportModal({
+         model,
+       };
+       const isMarkdown = format === "markdown";
+-      const content = isMarkdown
+-        ? eventsToMarkdown(events, options)
+-        : eventsToHtml(events, options);
+-      const extension = isMarkdown ? "md" : "html";
+-      const mimeType = isMarkdown
+-        ? "text/markdown;charset=utf-8"
+-        : "text/html;charset=utf-8";
++      const content =
++        format === "agent-session"
++          ? eventsToAgentSession(events, conversationId)
++          : isMarkdown
++            ? eventsToMarkdown(events, options)
++            : eventsToHtml(events, options);
++      const extension =
++        format === "agent-session" ? "jsonl" : isMarkdown ? "md" : "html";
++      const mimeType =
++        format === "agent-session"
++          ? "application/vnd.agent-session+jsonl"
++          : isMarkdown
++            ? "text/markdown;charset=utf-8"
++            : "text/html;charset=utf-8";
+
+       downloadBlob(
+         new Blob([content], { type: mimeType }),
+@@ -177,13 +188,24 @@ export function TranscriptExportModal({
+             />
+             {t(I18nKey.TRANSCRIPT_EXPORT$HTML)}
+           </label>
++          <label className="flex cursor-pointer items-center gap-3 rounded-md border border-border px-3 py-2 text-sm text-contrast">
++            <input
++              type="radio"
++              name={TRANSCRIPT_FORMAT_RADIO_NAME}
++              value="agent-session"
++              disabled={isExporting}
++              checked={format === "agent-session"}
++              onChange={() => setFormat("agent-session")}
++            />
++            {t(I18nKey.TRANSCRIPT_EXPORT$AGENT_SESSION)}
++          </label>
+         </fieldset>
+
+         <div className="flex w-full flex-col gap-3 text-sm text-contrast">
+           <label className="flex cursor-pointer items-center gap-3">
+             <input
+               type="checkbox"
+-              disabled={isExporting}
++              disabled={isExporting || format === "agent-session"}
+               checked={includeToolDetails}
+               onChange={(event) => setIncludeToolDetails(event.target.checked)}
+             />
+@@ -192,7 +214,7 @@ export function TranscriptExportModal({
+           <label className="flex cursor-pointer items-center gap-3">
+             <input
+               type="checkbox"
+-              disabled={isExporting}
++              disabled={isExporting || format === "agent-session"}
+               checked={includeTimestamps}
+               onChange={(event) => setIncludeTimestamps(event.target.checked)}
+             />
+diff --git a/src/hooks/use-tracking.ts b/src/hooks/use-tracking.ts
+index 03a94dc..bf96e78 100644
+--- a/src/hooks/use-tracking.ts
++++ b/src/hooks/use-tracking.ts
+@@ -274,7 +274,9 @@ export const useTracking = () => {
+     track("download_trajectory_button_clicked");
+   };
+
+-  const trackConversationExported = (format: "markdown" | "html") => {
++  const trackConversationExported = (
++    format: "markdown" | "html" | "agent-session",
++  ) => {
+     track("conversation_exported", { format });
+   };
+
+diff --git a/src/i18n/translation.json b/src/i18n/translation.json
+index 0c04b81..d3c9c6a 100644
+--- a/src/i18n/translation.json
++++ b/src/i18n/translation.json
+@@ -15407,6 +15407,24 @@
+     "ca": "Document Markdown (.md)",
+     "id": "Dokumen Markdown (.md)"
+   },
++  "TRANSCRIPT_EXPORT$AGENT_SESSION": {
++    "en": "Agent Session Record (.jsonl)",
++    "ja": "Agent Session Record (.jsonl)",
++    "zh-CN": "Agent Session Record (.jsonl)",
++    "zh-TW": "Agent Session Record (.jsonl)",
++    "ko-KR": "Agent Session Record (.jsonl)",
++    "no": "Agent Session Record (.jsonl)",
++    "it": "Agent Session Record (.jsonl)",
++    "pt": "Agent Session Record (.jsonl)",
++    "es": "Agent Session Record (.jsonl)",
++    "ar": "Agent Session Record (.jsonl)",
++    "fr": "Agent Session Record (.jsonl)",
++    "tr": "Agent Session Record (.jsonl)",
++    "de": "Agent Session Record (.jsonl)",
++    "uk": "Agent Session Record (.jsonl)",
++    "ca": "Agent Session Record (.jsonl)",
++    "id": "Agent Session Record (.jsonl)"
++  },
+   "TRANSCRIPT_EXPORT$HTML": {
+     "en": "Standalone web page (.html)",
+     "ja": "スタンドアロン Web ページ（.html）",
+diff --git a/src/utils/transcript-export/agent-session.test.ts b/src/utils/transcript-export/agent-session.test.ts
+new file mode 100644
+index 0000000..1aa203f
+--- /dev/null
++++ b/src/utils/transcript-export/agent-session.test.ts
+@@ -0,0 +1,172 @@
++import { describe, expect, it } from "vitest";
++import type { OpenHandsEvent } from "#/types/agent-server/core";
++import { eventsToAgentSession } from "./agent-session";
++
++const event = (fields: Record<string, unknown>) =>
++  fields as unknown as OpenHandsEvent;
++const parse = (events: OpenHandsEvent[]) =>
++  eventsToAgentSession(events, "synthetic-session")
++    .trimEnd()
++    .split("\n")
++    .map((line) => JSON.parse(line));
++
++describe("Agent Session Record export", () => {
++  it("preserves timezone-free native timestamps without inventing an offset", () => {
++    const records = parse([
++      event({
++        id: "naive",
++        kind: "MessageEvent",
++        timestamp: "2026-10-31T12:00:00.123456",
++        source: "user",
++        llm_message: { role: "user", content: [] },
++      }),
++    ]);
++    expect(records[1].ts).toBeUndefined();
++    expect(records[1]._meta["dev.openhands"].nativeTimestamp).toBe(
++      "2026-10-31T12:00:00.123456",
++    );
++    expect(records[0].missing).toContain("timestamps");
++  });
++
++  it("keeps source order and exact text without claiming human authorship", () => {
++    const records = parse([
++      event({
++        id: "header",
++        kind: "MessageEvent",
++        timestamp: "2026-10-31T12:00:02Z",
++        source: "user",
++        llm_message: {
++          role: "user",
++          content: [{ type: "text", text: " exact\n" }],
++        },
++      }),
++      event({
++        id: "reply",
++        kind: "MessageEvent",
++        timestamp: "2026-10-31T12:00:01Z",
++        source: "agent",
++        llm_message: {
++          role: "assistant",
++          content: [{ type: "text", text: "done" }],
++        },
++      }),
++    ]);
++    expect(records.slice(1).map((record) => record.id)).toEqual([
++      "header",
++      "reply",
++    ]);
++    expect(records[1].content[0].text).toBe(" exact\n");
++    expect(records[1].author).toBeUndefined();
++    expect(records[0].endedAt).toBeUndefined();
++  });
++
++  it("folds results at completion and records explicit rejection", () => {
++    const records = parse([
++      event({
++        id: "call",
++        kind: "ActionEvent",
++        source: "agent",
++        tool_name: "echo",
++        tool_call_id: "tool-1",
++        action: { kind: "MCPToolAction", text: "hello" },
++        thought: [],
++      }),
++      event({
++        id: "old",
++        kind: "ObservationEvent",
++        source: "environment",
++        action_id: "call",
++        tool_call_id: "tool-1",
++        observation: {
++          kind: "MCPToolObservation",
++          content: [{ type: "text", text: "partial" }],
++          is_error: false,
++        },
++      }),
++      event({
++        id: "notice",
++        kind: "MessageEvent",
++        llm_message: { role: "user", content: [] },
++      }),
++      event({
++        id: "final",
++        kind: "UserRejectObservation",
++        source: "environment",
++        action_id: "call",
++        tool_call_id: "tool-1",
++        rejection_reason: "Synthetic refusal",
++      }),
++    ]);
++    expect(records.map((record) => record.type)).toEqual([
++      "session",
++      "tool_call",
++      "message",
++      "approval",
++      "tool_result",
++    ]);
++    expect(records.at(-1).status).toBe("denied");
++    expect(records.at(-2).by).toBeUndefined();
++    expect(records.at(-1).id).toBe("final");
++  });
++
++  it("excludes credentials, media and opaque state with declared losses", () => {
++    const records = parse([
++      event({
++        id: "secret",
++        kind: "MessageEvent",
++        llm_message: {
++          role: "assistant",
++          content: [
++            { type: "text", text: "password=synthetic-secret" },
++            { type: "image", image_urls: ["https://example.invalid/private"] },
++          ],
++          thinking_blocks: [{ type: "redacted_thinking", data: "opaque" }],
++        },
++      }),
++    ]);
++    const stream = JSON.stringify(records);
++    expect(stream).not.toContain("synthetic-secret");
++    expect(stream).not.toContain("opaque");
++    expect(stream).not.toContain("example.invalid");
++    expect(records[1].truncated).toBe(true);
++    expect(records[0].missing).toContain("secrets");
++  });
++
++  it("rejects native integers whose exact bytes JavaScript has lost", () => {
++    expect(() =>
++      parse([
++        event({
++          id: "large",
++          kind: "ActionEvent",
++          tool_call_id: "tool",
++          tool_name: "echo",
++          source: "agent",
++          action: {
++            kind: "MCPToolAction",
++            number: Number.MAX_SAFE_INTEGER + 1,
++          },
++        }),
++      ]),
++    ).toThrow("exact JSON range");
++  });
++
++  it("keeps absent success unknown and produces deterministic IDs", () => {
++    const events = [
++      event({
++        id: "observation",
++        kind: "ObservationEvent",
++        source: "environment",
++        action_id: "call",
++        tool_call_id: "tool",
++        observation: {
++          kind: "MCPToolObservation",
++          content: [{ type: "text", text: "exit 0" }],
++        },
++      }),
++    ];
++    expect(parse(events).at(-1).status).toBe("unknown");
++    expect(eventsToAgentSession(events, "synthetic-session")).toBe(
++      eventsToAgentSession(events, "synthetic-session"),
++    );
++  });
++});
+diff --git a/src/utils/transcript-export/agent-session.ts b/src/utils/transcript-export/agent-session.ts
+new file mode 100644
+index 0000000..769a5e9
+--- /dev/null
++++ b/src/utils/transcript-export/agent-session.ts
+@@ -0,0 +1,261 @@
++import type { OpenHandsEvent } from "#/types/agent-server/core";
++import {
++  isActionEvent,
++  isMessageEvent,
++  isObservationEvent,
++  isUserRejectObservation,
++  isSystemPromptEvent,
++} from "#/types/agent-server/type-guards";
++
++import { REQUEST_SECRET_TOOL_NAME } from "#/constants/secret-request";
++
++type JsonRecord = Record<string, unknown>;
++const SECRET =
++  /bearer\s+\S+|sk-[\w-]{12,}|(?:api[_-]?key|password|token)["']?\s*[:=]\s*["']?[^\s,}]+/gi;
++
++function safe(value: unknown): unknown {
++  if (typeof value === "string") return value.replace(SECRET, "[REDACTED]");
++  if (
++    typeof value === "number" &&
++    !Number.isSafeInteger(value) &&
++    Number.isInteger(value)
++  ) {
++    // JavaScript has already lost the original bytes. Reject instead of rounding.
++    throw new Error("Native integer exceeds the exact JSON range");
++  }
++  if (Array.isArray(value)) return value.map(safe);
++  if (value && typeof value === "object") {
++    return Object.fromEntries(
++      Object.entries(value).map(([key, item]) => [
++        key,
++        /secret|password|token|api.?key|authorization/i.test(key)
++          ? "[REDACTED]"
++          : safe(item),
++      ]),
++    );
++  }
++  return value;
++}
++
++function contentParts(content: unknown): {
++  parts: JsonRecord[];
++  lost: boolean;
++} {
++  const parts: JsonRecord[] = [];
++  let lost = false;
++  for (const part of Array.isArray(content) ? content : []) {
++    if (part?.type === "text" && typeof part.text === "string") {
++      parts.push({ type: "text", text: part.text });
++    } else {
++      lost = true;
++    }
++  }
++  return { parts, lost };
++}
++
++/** Export persisted events in their supplied source order, before UI folding. */
++export function eventsToAgentSession(
++  events: readonly OpenHandsEvent[],
++  sessionId: string,
++): string {
++  if (!sessionId) throw new Error("Missing native conversation identity");
++  const reserved = new Set(events.map((event) => event.id));
++  const used = new Set<string>();
++  const identity = (
++    position: number,
++    kind: string,
++    native?: string,
++  ): string => {
++    let id =
++      native &&
++      native.length <= 256 &&
++      ![...native].some(
++        (character) =>
++          character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
++      )
++        ? native
++        : `asr:${position}:${kind}`;
++    while (used.has(id) || (id !== native && reserved.has(id)))
++      id = `asr:${id}`;
++    if (id.length > 256)
++      throw new Error("Repeated or oversized native event identity");
++    used.add(id);
++    return id;
++  };
++  const missing = new Set([
++    "usage",
++    "model",
++    "agent_settings",
++    "approvals",
++    "tools",
++    "file_changes",
++    "commits",
++    "copies",
++    "subagents",
++    "media",
++    "message_author",
++    "inference_settings",
++    "event_order",
++    "instructions",
++    "exit_codes",
++    "provider_state",
++    "reasoning",
++  ]);
++  const records: JsonRecord[] = [
++    {
++      type: "session",
++      id: identity(-1, "header"),
++      formatVersion: "0.1",
++      agent: { name: "openhands" },
++      sessionId,
++      producer: {
++        name: "openhands-agent-canvas",
++        version: "1.34.0",
++        method: "native",
++        source: "agent-server-events",
++      },
++    },
++  ];
++  // A result update occupies its final source position, with that event's time.
++  const secretCalls = new Set(
++    events
++      .filter(isActionEvent)
++      .filter((event) => event.tool_name === REQUEST_SECRET_TOOL_NAME)
++      .map((event) => event.tool_call_id),
++  );
++  const lastResult = new Map<string, number>();
++  events.forEach((event, index) => {
++    if (isObservationEvent(event) || isUserRejectObservation(event))
++      lastResult.set(event.tool_call_id, index);
++  });
++  events.forEach((event, index) => {
++    const envelope: JsonRecord = { id: identity(index, "event", event.id) };
++    const timestamp =
++      event.timestamp &&
++      /(?:Z|[+-]\d{2}:\d{2})$/i.test(event.timestamp) &&
++      Number.isFinite(Date.parse(event.timestamp))
++        ? event.timestamp
++        : undefined;
++    if (timestamp) envelope.ts = timestamp;
++    else {
++      missing.add("timestamps");
++      if (event.timestamp)
++        envelope._meta = {
++          "dev.openhands": { nativeTimestamp: event.timestamp },
++        };
++    }
++    if (isMessageEvent(event)) {
++      if (event.llm_message.role === "tool") {
++        missing.add("tool_output");
++        records.push({ ...envelope, type: "gap", reason: "not_recorded" });
++        return;
++      }
++      const { parts, lost } = contentParts(event.llm_message.content);
++      records.push({
++        ...envelope,
++        type: "message",
++        role: event.llm_message.role,
++        content: parts,
++        ...(lost ? { truncated: true } : {}),
++      });
++      if (lost) missing.add("content");
++    } else if (isSystemPromptEvent(event)) {
++      const { parts, lost } = contentParts([event.system_prompt]);
++      records.push({
++        ...envelope,
++        type: "message",
++        role: "system",
++        origin: "instructions",
++        author: "harness",
++        content: parts,
++        ...(lost ? { truncated: true } : {}),
++      });
++      if (lost) missing.add("content");
++    } else if (isActionEvent(event)) {
++      if (event.thought?.length)
++        records.push({
++          id: identity(index, "thought"),
++          ...(timestamp ? { ts: timestamp } : {}),
++          type: "message",
++          role: "assistant",
++          author: "model",
++          content: contentParts(event.thought).parts,
++        });
++      records.push({
++        ...envelope,
++        type: "tool_call",
++        callId: event.tool_call_id,
++        name: event.tool_name,
++        ...(event.action ? { input: event.action } : {}),
++        ...(event.source === "agent" ? { requestedBy: "model" } : {}),
++      });
++    } else if (isUserRejectObservation(event)) {
++      if (lastResult.get(event.tool_call_id) !== index) return;
++      // This is a positioned rejection observation, not proof of an answerer.
++      records.push({
++        id: identity(index, "approval"),
++        ...(timestamp ? { ts: timestamp } : {}),
++        type: "approval",
++        decision: "denied",
++        callId: event.tool_call_id,
++        native: { rejection_reason: event.rejection_reason },
++      });
++      records.push({
++        ...envelope,
++        type: "tool_result",
++        callId: event.tool_call_id,
++        status: "denied",
++        content: [{ type: "text", text: event.rejection_reason }],
++      });
++    } else if (isObservationEvent(event)) {
++      if (lastResult.get(event.tool_call_id) !== index) return;
++      const observation = event.observation;
++      const { parts, lost } = contentParts(
++        "content" in observation ? observation.content : [],
++      );
++      const status =
++        "is_error" in observation && typeof observation.is_error === "boolean"
++          ? observation.is_error
++            ? "failed"
++            : "completed"
++          : "unknown";
++      records.push({
++        ...envelope,
++        type: "tool_result",
++        callId: event.tool_call_id,
++        status,
++        content: parts,
++        ...(lost ? { truncated: true } : {}),
++      });
++      if (lost || !("content" in observation)) missing.add("tool_output");
++    } else {
++      // Keep the source position without copying settings, secrets or signatures.
++      records.push({
++        ...envelope,
++        type: "gap",
++        reason: "not_recorded",
++        detail: "Native event has no ASR mapping.",
++      });
++      missing.add("native_events");
++    }
++  });
++  for (const record of records) {
++    if (typeof record.callId === "string" && secretCalls.has(record.callId)) {
++      delete record.input;
++      delete record.content;
++      record.truncated = true;
++      missing.add("secrets");
++    }
++    for (const field of ["content", "input", "native"]) {
++      if (!(field in record)) continue;
++      const value = safe(record[field]);
++      if (JSON.stringify(value) !== JSON.stringify(record[field])) {
++        record[field] = value;
++        record.truncated = true;
++        missing.add("secrets");
++      }
++    }
++  }
++  records[0].missing = [...missing].sort();
++  return records.map((record) => JSON.stringify(record)).join("\n") + "\n";
++}
+diff --git a/src/utils/transcript-export/index.ts b/src/utils/transcript-export/index.ts
+index 8624533..3cb3a58 100644
+--- a/src/utils/transcript-export/index.ts
++++ b/src/utils/transcript-export/index.ts
+@@ -38,7 +38,7 @@ import {
+ import i18n from "#/i18n";
+ import { I18nKey } from "#/i18n/declaration";
+
+-export type TranscriptExportFormat = "markdown" | "html";
++export type TranscriptExportFormat = "markdown" | "html" | "agent-session";
+
+ export interface TranscriptExportOptions {
+   includeToolDetails: boolean;
+diff --git a/src/utils/transcript-export/load-complete-events.test.ts b/src/utils/transcript-export/load-complete-events.test.ts
+index e9df1fc..bcccc2a 100644
+--- a/src/utils/transcript-export/load-complete-events.test.ts
++++ b/src/utils/transcript-export/load-complete-events.test.ts
+@@ -149,3 +149,15 @@ describe("loadCompleteTranscriptEvents", () => {
+     ).rejects.toThrow("Transcript history is incomplete");
+   });
+ });
++
++it("retains server order when ASR requests source ordering", async () => {
++  const first = { ...makeMessage(1), timestamp: "2026-10-31T12:00:02Z" };
++  const second = { ...makeMessage(2), timestamp: "2026-10-31T12:00:01Z" };
++  const search = vi
++    .fn()
++    .mockResolvedValue({ items: [second, first], next_page_id: null });
++  expect(await loadCompleteTranscriptEvents([], search, 2, true)).toEqual([
++    first,
++    second,
++  ]);
++});
+diff --git a/src/utils/transcript-export/load-complete-events.ts b/src/utils/transcript-export/load-complete-events.ts
+index 185dc97..54396be 100644
+--- a/src/utils/transcript-export/load-complete-events.ts
++++ b/src/utils/transcript-export/load-complete-events.ts
+@@ -34,6 +34,7 @@ export const loadCompleteTranscriptEvents = async (
+   loadedEvents: OpenHandsEvent[],
+   searchEvents: SearchTranscriptEvents,
+   expectedEventCount?: number,
++  preserveSourceOrder = false,
+ ): Promise<OpenHandsEvent[]> => {
+   const persistedDescending: OpenHandsEvent[] = [];
+   const fetchedEventIds = new Set<string>();
+@@ -147,9 +148,8 @@ export const loadCompleteTranscriptEvents = async (
+   });
+   // Array.prototype.sort is stable, so equal-timestamp events keep the causal
+   // order returned by the server/store rather than being reordered by id.
+-  const completeEvents = [...idLessEvents, ...eventsById.values()].sort(
+-    compareEventTimestamps,
+-  );
++  const completeEvents = [...idLessEvents, ...eventsById.values()];
++  if (!preserveSourceOrder) completeEvents.sort(compareEventTimestamps);
+   if (
+     expectedEventCount !== undefined &&
+     fetchedEventIds.size + idLessPersisted < expectedEventCount

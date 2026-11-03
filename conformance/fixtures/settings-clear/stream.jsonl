@@ -1,0 +1,4 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"live-7","producer":{"name":"example-recorder","version":"1.0","method":"recorder","source":"example-hooks"}}
+{"type":"session_info","id":"set","agentSettings":{"mode":"plan","asks":"sometimes","externalSandbox":{"kind":"vm"},"modelSettings":{"temperature":0,"reasoningEffort":"high"}}}
+{"type":"session_info","id":"clear","agentSettings":{"mode":null,"approval":null,"sandbox":null,"asks":null,"externalSandbox":null,"modelSettings":{"reasoningEffort":null}}}
+{"type":"session_info","id":"clear-model","agentSettings":{"modelSettings":null}}

@@ -1,0 +1,8 @@
+{"timestamp":1793361600.0,"message":{"type":"TurnBegin","payload":{"user_input":"Exact\r\n"}}}
+{"timestamp":1793361601.0,"message":{"type":"ContentPart","payload":{"type":"think","think":"Check the fixture.","encrypted":"SYNTHETIC-OPAQUE"}}}
+{"timestamp":1793361602.0,"message":{"type":"ToolCall","payload":{"type":"function","id":"call-1","function":{"name":"read","arguments":"{\"path\":\"fixture.txt\"}"},"extras":null}}}
+{"timestamp":1793361603.0,"message":{"type":"ApprovalRequest","payload":{"id":"approval-1","tool_call_id":"call-1","sender":"read","action":"read","description":"Read synthetic fixture","source_kind":null,"source_id":null,"agent_id":null,"subagent_type":null,"source_description":null,"display":[]}}}
+{"timestamp":1793361604.0,"message":{"type":"ApprovalResponse","payload":{"request_id":"approval-1","response":"approve_for_session","feedback":""}}}
+{"timestamp":1793361605.0,"message":{"type":"ToolResult","payload":{"tool_call_id":"call-1","return_value":{"is_error":false,"output":"Synthetic fixture.\n","message":"","display":[],"extras":null}}}}
+{"timestamp":1793361606.0,"message":{"type":"ContentPart","payload":{"type":"text","text":"SYNTHETIC-OK"}}}
+{"timestamp":1793361607.0,"message":{"type":"TurnEnd","payload":{}}}

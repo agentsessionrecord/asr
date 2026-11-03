@@ -1,0 +1,44 @@
+---
+title: "Import other sources"
+description: "Convert vendor exports, approval telemetry and Entire checkpoints into ASR."
+---
+
+Use an importer when the source is a vendor export, approval telemetry or a
+checkpoint store. Obtain the source separately. These tools do not fetch account
+history. Their READMEs give the supported source profile and command.
+
+| Tool README | Live-test status |
+| --- | --- |
+| [Anthropic Compliance transcript importer](https://github.com/agentsessionrecord/asr/blob/main/importers/anthropic-compliance/README.md) | `not-live-tested` |
+| [Entire checkpoint importer](https://github.com/agentsessionrecord/asr/blob/main/importers/entire/README.md) | `partial` |
+| [GitHub Copilot usage importer](https://github.com/agentsessionrecord/asr/blob/main/importers/copilot/README.md) | `not-live-tested` |
+| [OpenAI Codex compliance log importer](https://github.com/agentsessionrecord/asr/blob/main/importers/openai-codex-logs/README.md) | `not-live-tested` |
+| [Telemetry approval importer](https://github.com/agentsessionrecord/asr/blob/main/importers/telemetry-approvals/README.md) | `partial` |
+
+## What the sources establish
+
+Anthropic transcript export can preserve available messages and tools. Codex
+compliance logs use documented and synthetic field profiles without a live
+Enterprise export. Copilot usage records provide API evidence and do not promise
+full chat history. Unsupported or missing content remains declared as loss.
+
+The telemetry importer joins explicit approval events to supplied session
+records. A successful tool does not imply approval. Its host run predates the
+latest join fixes. Current fixes have synthetic regression coverage. Codex can
+omit refusal events, so decision counts do not establish completeness.
+
+Entire reads checkpoint and session evidence from local Git data. Its qualifying
+run used the released 0.12.2 CLI with scripted synthetic hook input. That tests
+the checkpoint writer without claiming a fresh agent run.
+
+## Shared library
+
+| Tool README | Live-test status |
+| --- | --- |
+| [Vendor importer core](https://github.com/agentsessionrecord/asr/blob/main/importers/vendor-core/README.md) | `not-applicable` |
+
+The shared core preserves exact native values, excludes recognized credentials
+and writes new private ASR files. It does not run recorded commands or fetch
+recorded links. Its pattern filter cannot identify every secret. Ambiguous
+native joins remain unresolved. Validate and review derived files before use.
+The three vendor API importers remain `not-live-tested`.

@@ -1,0 +1,29 @@
+[package]
+name = "asr-collect"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+asr-core = { path = "../asr-core" }
+asr-convert = { path = "../asr-convert" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tempfile.workspace = true
+rusqlite.workspace = true
+clap.workspace = true
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+fs2 = "0.4"
+notify = "8.2"
+tiny_http = "0.12"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+object_store = { version = "0.12", features = ["aws", "gcp", "azure"] }
+tokio = { version = "1", features = ["rt-multi-thread"] }
+jsonschema = { version = "0.29", default-features = false }
+uuid = { version = "1", features = ["v4"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

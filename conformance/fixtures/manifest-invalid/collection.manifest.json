@@ -1,0 +1,22 @@
+{
+  "$schema": "https://agentsessionrecord.org/schema/v0/manifest.schema.json",
+  "collector": {
+    "name": "example-collector",
+    "version": "1.0"
+  },
+  "machine": "workstation-42",
+  "window": {
+    "start": "2026-10-30T18:00:00Z",
+    "end": "2026-10-30T19:00:00Z"
+  },
+  "previousManifest": {
+    "sha256": "bad"
+  },
+  "entries": [
+    {
+      "status": "failed",
+      "receivedAt": "2026-10-30T18:00:00Z",
+      "uploader": "u"
+    }
+  ]
+}

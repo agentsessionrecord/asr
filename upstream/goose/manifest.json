@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "agent": "goose",
+  "base": "090dedb7625c8aadb9bb05d68028fd00f36b429e",
+  "head": "33d74d5d10c3ecfa4d905a53e9a4f589b3f6ab1e",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "33d74d5d10c3ecfa4d905a53e9a4f589b3f6ab1e",
+      "sha256": "d0c441efa1b1cb19b53c0caf114c533ae73f38660781aa637e91d9f78fd1e2af"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "--test",
+      "check.test.mjs"
+    ]
+  ],
+  "provenance": {
+    "repository": "https://github.com/block/goose",
+    "base": "090dedb7625c8aadb9bb05d68028fd00f36b429e",
+    "commit": "33d74d5d10c3ecfa4d905a53e9a4f589b3f6ab1e",
+    "patch": "patches/0001-native-agent-session-export.patch",
+    "patchSha256": "d0c441efa1b1cb19b53c0caf114c533ae73f38660781aa637e91d9f78fd1e2af"
+  },
+  "files": {
+    ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
+    "PROPOSAL.md": "6ff1319ac562280ce7b593c7cda87264b6a98b61ba6b9f36853e9232cdb6b08c",
+    "README.md": "864724acbdc081f87122d6b8cb53464a109a0bd8bb29adb15f57ae7a77d92d6a",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "check.test.mjs": "dfbbc5ae855eec050e941077646b26632581e123ab6fb01aed46daa52e0bd0a8",
+    "live-test.recipe.yaml": "3a211ecc7f30cb8f07054f26640de25b8276fc96b202795459de5686042e5556",
+    "patches/0001-native-agent-session-export.patch": "d0c441efa1b1cb19b53c0caf114c533ae73f38660781aa637e91d9f78fd1e2af",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "21875bb9346c22269a24aabb2d24f12e505421acc2cd74a931d2c7d302f1a2df",
+    "samples/native/native.json": "4f11f31725059df737a52b04261974b42fdd095dc3794dfe9e0433a7060e5d18"
+  }
+}

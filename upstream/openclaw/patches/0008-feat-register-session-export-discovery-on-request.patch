@@ -1,0 +1,173 @@
+From f9e3a0aae50713a47a3db75a8f029d6dc2fbbaa9 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 16:26:17 -0500
+Subject: [PATCH 8/8] feat: register session export discovery on request
+
+---
+ .../register.status-health-sessions.test.ts   |  2 +
+ .../register.status-health-sessions.ts        |  1 +
+ src/commands/sessions-export.ts               | 17 +++++++
+ src/sessions/agent-session-discovery.ts       | 50 +++++++++++++++++++
+ src/sessions/agent-session-export.test.ts     | 15 ++++++
+ 5 files changed, 85 insertions(+)
+ create mode 100644 src/sessions/agent-session-discovery.ts
+
+diff --git a/src/cli/program/register.status-health-sessions.test.ts b/src/cli/program/register.status-health-sessions.test.ts
+index 1a0361f2f93..c7d1362400a 100644
+--- a/src/cli/program/register.status-health-sessions.test.ts
++++ b/src/cli/program/register.status-health-sessions.test.ts
+@@ -231,11 +231,13 @@ it("dispatches ASR export selectors and inherited agent selection", async () =>
+     key,
+     "--out",
+     "/tmp/asr-example",
++    "--write-discovery",
+   ]);
+   expectOptions(mocks.exportAsr, {
+     agent: "main",
+     format: "agent-session",
+     sessionKey: key,
+     out: "/tmp/asr-example",
++    writeDiscovery: true,
+   });
+ });
+diff --git a/src/cli/program/register.status-health-sessions.ts b/src/cli/program/register.status-health-sessions.ts
+index beaed988d43..a37db59d962 100644
+--- a/src/cli/program/register.status-health-sessions.ts
++++ b/src/cli/program/register.status-health-sessions.ts
+@@ -396,6 +396,7 @@ export function registerStatusHealthSessionsCommands(program: Command) {
+     .option("--agent <id>", "Agent id to export")
+     .option("--all-agents", "Export every configured agent", false)
+     .option("--store <path>", "Session store selector path")
++    .option("--write-discovery", "Register this export source in agent-sessions discovery", false)
+     .action(
+       localSessionsAction(
+         "export",
+diff --git a/src/commands/sessions-export.ts b/src/commands/sessions-export.ts
+index eb3bb099770..229ff2ade7e 100644
+--- a/src/commands/sessions-export.ts
++++ b/src/commands/sessions-export.ts
+@@ -2,6 +2,7 @@ import { throwExpectedCliError } from "../cli/failure-output.js";
+ import { captureRuntimeConfigAsyncReader } from "../config/config.js";
+ import { resolveSqliteTargetFromSessionStorePath } from "../config/sessions/session-sqlite-target.js";
+ import { writeRuntimeJson, type RuntimeEnv } from "../runtime.js";
++import { writeAgentSessionDiscovery } from "../sessions/agent-session-discovery.js";
+ import { convertAgentSession, exportAgentSessionBundle } from "../sessions/agent-session-export.js";
+ import { readAgentSessionExport } from "../sessions/agent-session-export.source.js";
+ import type { AsrRecord } from "../sessions/agent-session-export.types.js";
+@@ -18,6 +19,7 @@ type SessionsExportOptions = {
+   store?: string;
+   agent?: string;
+   allAgents?: boolean;
++  writeDiscovery?: boolean;
+ };
+ 
+ export async function sessionsExportCommand(
+@@ -76,4 +78,19 @@ export async function sessionsExportCommand(
+       `Exported ${result.sessions} windows (${result.records} records) to ${result.output}`,
+     );
+   }
++  if (opts.writeDiscovery) {
++    writeAgentSessionDiscovery({
++      nativePaths: selections.map((s) => s.path),
++      exportCommand: [
++        "openclaw",
++        "sessions",
++        "export",
++        "--format",
++        "agent-session",
++        ...(opts.agent ? ["--agent", opts.agent] : []),
++        ...(opts.allAgents ? ["--all-agents"] : []),
++        ...(opts.store ? ["--store", opts.store] : []),
++      ],
++    });
++  }
+ }
+diff --git a/src/sessions/agent-session-discovery.ts b/src/sessions/agent-session-discovery.ts
+new file mode 100644
+index 00000000000..f554c87d7cc
+--- /dev/null
++++ b/src/sessions/agent-session-discovery.ts
+@@ -0,0 +1,50 @@
++import { randomUUID } from "node:crypto";
++import fs from "node:fs";
++import os from "node:os";
++import path from "node:path";
++
++export function writeAgentSessionDiscovery(options: {
++  nativePaths: string[];
++  exportCommand?: string[];
++  env?: NodeJS.ProcessEnv;
++  platform?: NodeJS.Platform;
++}): string {
++  const env = options.env ?? process.env;
++  const config =
++    (options.platform ?? process.platform) === "win32" ? env.APPDATA : env.XDG_CONFIG_HOME;
++  const directory = path.join(
++    config || path.join(env.HOME || os.homedir(), ".config"),
++    "agent-sessions",
++    "sources",
++  );
++  fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
++  const destination = path.join(directory, "openclaw.json");
++  const temporary = path.join(directory, `.openclaw-${randomUUID()}.tmp`);
++  try {
++    fs.writeFileSync(
++      temporary,
++      `${JSON.stringify(
++        {
++          agent: "openclaw",
++          exportCommand: options.exportCommand ?? [
++            "openclaw",
++            "sessions",
++            "export",
++            "--format",
++            "agent-session",
++          ],
++          nativePaths: options.nativePaths,
++          formatVersions: ["0.1"],
++          supportsDeletionHook: false,
++        },
++        null,
++        2,
++      )}\n`,
++      { flag: "wx", mode: 0o600 },
++    );
++    fs.renameSync(temporary, destination);
++  } finally {
++    fs.rmSync(temporary, { force: true });
++  }
++  return destination;
++}
+diff --git a/src/sessions/agent-session-export.test.ts b/src/sessions/agent-session-export.test.ts
+index f609f9737b2..440826f7511 100644
+--- a/src/sessions/agent-session-export.test.ts
++++ b/src/sessions/agent-session-export.test.ts
+@@ -15,6 +15,7 @@ import {
+   drainSessionStateForTest,
+   useSessionStoreTempDirs,
+ } from "../test-utils/session-state-cleanup.js";
++import { writeAgentSessionDiscovery } from "./agent-session-discovery.js";
+ import {
+   convertAgentSession as nativeConvert,
+   exportAgentSessionBundle,
+@@ -516,6 +517,20 @@ describe("native Agent Session export", () => {
+     ]);
+   });
+ 
++  it("writes discovery to the configured private source directory", () => {
++    const root = dirs.make();
++    const file = writeAgentSessionDiscovery({
++      env: { XDG_CONFIG_HOME: root },
++      platform: "linux",
++      nativePaths: ["/example/agent.sqlite"],
++    });
++    expect(JSON.parse(fs.readFileSync(file, "utf8"))).toMatchObject({
++      agent: "openclaw",
++      formatVersions: ["0.1"],
++      supportsDeletionHook: false,
++    });
++  });
++
+   it("keeps unknown-model calls, completion positions and explicit setting clears", async () => {
+     const { source } = await fixture();
+     const native = [

@@ -1,0 +1,47 @@
+{
+  "sessionId": "auggie-sample",
+  "parentSessionId": "parent:one",
+  "createdAt": "2026-10-31T12:00:00Z",
+  "workspaceRoot": "/work/app",
+  "chatHistory": [
+    {
+      "exchange": {
+        "request_id": "exchange-1",
+        "request_message": "  Inspect the file.\n",
+        "response_nodes": [
+          {
+            "type": 0,
+            "text_node": {
+              "content": "First\n"
+            }
+          },
+          {
+            "type": 0,
+            "textNode": {
+              "content": "Second"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-10-31T11:00:00Z",
+      "exchange": {
+        "requestMessage": "",
+        "responseText": "Done."
+      }
+    },
+    {
+      "exchange": {
+        "response_nodes": [
+          {
+            "type": 71,
+            "text_node": {
+              "content": "Unknown node retained as vendor evidence"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

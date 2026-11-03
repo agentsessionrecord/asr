@@ -1,0 +1,270 @@
+From 1370c8db2f68066fe583c7ce7bceeb055c2804a7 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:28 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ Cargo.lock                                    |   1 +
+ crates/persistence/Cargo.toml                 |   4 +-
+ .../examples/export_agent_session.rs          |  38 ++++++
+ crates/persistence/src/agent_session.rs       | 114 ++++++++++++++++++
+ crates/persistence/src/agent_session_tests.rs |  45 +++++++
+ crates/persistence/src/lib.rs                 |   1 +
+ 6 files changed, 202 insertions(+), 1 deletion(-)
+ create mode 100644 crates/persistence/examples/export_agent_session.rs
+ create mode 100644 crates/persistence/src/agent_session.rs
+ create mode 100644 crates/persistence/src/agent_session_tests.rs
+
+diff --git a/Cargo.lock b/Cargo.lock
+index ec03eb4..99daaec 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -10084,6 +10084,7 @@ dependencies = [
+  "chrono",
+  "diesel",
+  "diesel_migrations",
++ "prost",
+  "serde",
+  "serde_json",
+  "warp_multi_agent_api",
+diff --git a/crates/persistence/Cargo.toml b/crates/persistence/Cargo.toml
+index 4dd84a2..1a39c18 100644
+--- a/crates/persistence/Cargo.toml
++++ b/crates/persistence/Cargo.toml
+@@ -21,7 +21,9 @@ diesel = { workspace = true, features = [
+ diesel_migrations = "2.2.0"
+ ai_types.workspace = true
+ serde.workspace = true
++serde_json.workspace = true
+ warp_multi_agent_api.workspace = true
+ 
+ [dev-dependencies]
+-serde_json.workspace = true
++diesel = { workspace = true, features = ["sqlite"] }
++prost.workspace = true
+diff --git a/crates/persistence/examples/export_agent_session.rs b/crates/persistence/examples/export_agent_session.rs
+new file mode 100644
+index 0000000..44f13cb
+--- /dev/null
++++ b/crates/persistence/examples/export_agent_session.rs
+@@ -0,0 +1,38 @@
++use std::{env, error::Error, io};
++
++use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SqliteConnection};
++use persistence::{
++    model::{AgentConversation, AgentConversationRecord, AgentTaskRecord},
++    schema::{agent_conversations, agent_tasks},
++};
++use prost::Message;
++
++fn main() -> Result<(), Box<dyn Error>> {
++    let mut arguments = env::args().skip(1);
++    if arguments.next().as_deref() != Some("--format")
++        || arguments.next().as_deref() != Some("agent-session")
++    {
++        return Err("use --format agent-session DATABASE CONVERSATION_ID".into());
++    }
++    let database = arguments
++        .next()
++        .ok_or("usage: export_agent_session --format agent-session DATABASE CONVERSATION_ID")?;
++    let id = arguments.next().ok_or("conversation ID is required")?;
++    let mut connection = SqliteConnection::establish(&format!("file:{database}?mode=ro"))?;
++    let conversation = agent_conversations::table
++        .filter(agent_conversations::conversation_id.eq(&id))
++        .first::<AgentConversationRecord>(&mut connection)?;
++    let tasks = agent_tasks::table
++        .filter(agent_tasks::conversation_id.eq(&id))
++        .order(agent_tasks::id.asc())
++        .load::<AgentTaskRecord>(&mut connection)?
++        .into_iter()
++        .map(|row| warp_multi_agent_api::Task::decode(row.task.as_slice()))
++        .collect::<Result<Vec<_>, _>>()?;
++    AgentConversation {
++        conversation,
++        tasks,
++    }
++    .write_agent_session(io::stdout().lock())?;
++    Ok(())
++}
+diff --git a/crates/persistence/src/agent_session.rs b/crates/persistence/src/agent_session.rs
+new file mode 100644
+index 0000000..404fb85
+--- /dev/null
++++ b/crates/persistence/src/agent_session.rs
+@@ -0,0 +1,114 @@
++use std::collections::HashSet;
++use std::io::{self, Write};
++
++use chrono::{DateTime, Utc};
++use serde_json::json;
++use warp_multi_agent_api::message::Message;
++
++use crate::model::{AgentConversation, api_task_initial_working_directory};
++
++impl AgentConversation {
++    /// Writes the retained text of a single-task conversation as Agent Session Record JSON Lines.
++    pub fn write_agent_session(&self, mut output: impl Write) -> io::Result<()> {
++        if self.conversation.conversation_id.is_empty() || self.tasks.len() != 1 {
++            return Err(io::Error::new(
++                io::ErrorKind::InvalidInput,
++                "export requires a conversation ID and exactly one task",
++            ));
++        }
++        let task = &self.tasks[0];
++        let mut header = json!({"type":"session", "id":"header", "formatVersion":"0.1",
++            "agent":{"name":"warp"}, "sessionId":self.conversation.conversation_id,
++            "producer":{"name":"warp-agent-session", "version":"0.1.0", "method":"native", "source":"warp-agent-task-protobuf"},
++            "missing":["tool_calls", "tool_output", "usage", "model", "approvals", "agent_settings", "tools", "file_changes", "commits", "subagents", "copies", "context", "provider_state"]});
++        if let Some(cwd) = api_task_initial_working_directory(task)
++            .filter(|cwd| std::path::Path::new(cwd).is_absolute())
++        {
++            header["cwd"] = json!(cwd);
++        }
++        if task
++            .messages
++            .iter()
++            .any(|message| message.timestamp.is_none())
++        {
++            header["missing"]
++                .as_array_mut()
++                .expect("array")
++                .push(json!("timestamps"));
++        }
++        let mut records = vec![header];
++        let native_ids: Vec<&str> = task
++            .messages
++            .iter()
++            .map(|message| message.id.as_str())
++            .collect();
++        let mut reserved: HashSet<String> = native_ids.iter().map(|id| (*id).to_owned()).collect();
++        reserved.insert("header".into());
++        for (position, message) in task.messages.iter().enumerate() {
++            let id = if !message.id.is_empty()
++                && message.id != "header"
++                && message.id.chars().count() <= 256
++                && !message.id.chars().any(char::is_control)
++                && native_ids.iter().filter(|id| **id == message.id).count() == 1
++            {
++                message.id.clone()
++            } else {
++                let mut suffix = position;
++                loop {
++                    let id = format!("asr-{suffix}");
++                    if reserved.insert(id.clone()) {
++                        break id;
++                    }
++                    suffix += 1;
++                }
++            };
++            let mut record = match message.message.as_ref() {
++                Some(Message::UserQuery(query)) => {
++                    json!({"type":"message", "id":id, "role":"user", "content":[{"type":"text", "text":query.query}]})
++                }
++                Some(Message::AgentOutput(text)) => {
++                    json!({"type":"message", "id":id, "role":"assistant", "author":"model", "content":[{"type":"text", "text":text.text}]})
++                }
++                Some(Message::AgentReasoning(reasoning)) => {
++                    json!({"type":"message", "id":id, "role":"assistant", "author":"model", "content":[asr_reasoning(&reasoning.reasoning, false)]})
++                }
++                _ => {
++                    json!({"type":"gap", "id":id, "reason":"not_recorded", "count":1, "detail":"This native message type is outside the text export."})
++                }
++            };
++            if let Some(timestamp) = &message.timestamp {
++                if let Some(time) = u32::try_from(timestamp.nanos)
++                    .ok()
++                    .and_then(|nanos| DateTime::<Utc>::from_timestamp(timestamp.seconds, nanos))
++                {
++                    record["ts"] = json!(time.to_rfc3339());
++                } else {
++                    return Err(io::Error::new(
++                        io::ErrorKind::InvalidData,
++                        "invalid native timestamp",
++                    ));
++                }
++            }
++            records.push(record);
++        }
++        for record in records {
++            serde_json::to_writer(&mut output, &record)?;
++            output.write_all(b"\n")?;
++        }
++        Ok(())
++    }
++}
++
++#[cfg(test)]
++#[path = "agent_session_tests.rs"]
++mod tests;
++
++fn asr_reasoning(text: &str, summary: bool) -> serde_json::Value {
++    if text.is_empty() {
++        serde_json::json!({"type":"reasoning", "visibility":"omitted"})
++    } else if summary {
++        serde_json::json!({"type":"reasoning", "visibility":"summary", "summary":[text]})
++    } else {
++        serde_json::json!({"type":"reasoning", "text":text})
++    }
++}
+diff --git a/crates/persistence/src/agent_session_tests.rs b/crates/persistence/src/agent_session_tests.rs
+new file mode 100644
+index 0000000..f60d0a6
+--- /dev/null
++++ b/crates/persistence/src/agent_session_tests.rs
+@@ -0,0 +1,45 @@
++use super::*;
++use warp_multi_agent_api::{Task, message};
++
++#[test]
++fn native_export_preserves_text_and_marks_unsupported_messages() {
++    let mut conversation = AgentConversation::default();
++    conversation.conversation.conversation_id = "synthetic-warp".into();
++    conversation.tasks.push(Task {
++        id: "task-1".into(),
++        messages: vec![
++            warp_multi_agent_api::Message {
++                id: "prompt".into(),
++                message: Some(Message::UserQuery(message::UserQuery {
++                    query: "Hello\n".into(),
++                    ..Default::default()
++                })),
++                ..Default::default()
++            },
++            warp_multi_agent_api::Message {
++                id: "unknown".into(),
++                ..Default::default()
++            },
++        ],
++        ..Default::default()
++    });
++    let mut output = Vec::new();
++    conversation.write_agent_session(&mut output).unwrap();
++    let records: Vec<serde_json::Value> = std::str::from_utf8(&output)
++        .unwrap()
++        .lines()
++        .map(|line| serde_json::from_str(line).unwrap())
++        .collect();
++    assert_eq!(records[1]["content"][0]["text"], "Hello\n");
++    assert_eq!(records[1]["id"], "prompt");
++    assert_eq!(records[2]["type"], "gap");
++    assert!(records[0].get("endedAt").is_none());
++}
++
++#[test]
++fn native_export_rejects_missing_tasks_without_writing_a_header() {
++    let fixture = AgentConversation::default();
++    let mut output = Vec::new();
++    assert!(fixture.write_agent_session(&mut output).is_err());
++    assert!(output.is_empty());
++}
+diff --git a/crates/persistence/src/lib.rs b/crates/persistence/src/lib.rs
+index e40ceb2..57f207a 100644
+--- a/crates/persistence/src/lib.rs
++++ b/crates/persistence/src/lib.rs
+@@ -1,3 +1,4 @@
++mod agent_session;
+ pub mod model;
+ pub mod schema;
+ 
+
+base-commit: 89de3f5c9945eeee277e713f111d707d39857dff

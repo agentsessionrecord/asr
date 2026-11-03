@@ -1,0 +1,401 @@
+From 2e2c8b883594ea07a8fbef5559917f7a98c5372b Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:27 -0500
+Subject: [PATCH] feat: export native sessions with accurate reasoning content
+
+---
+ .../session-log-export/README.i18n.yaml       |   3 +
+ .../session-log-export/README.md              |   8 ++
+ .../session-log-export/README.zh.md           |   8 ++
+ .../session-log-export/src/agent-session.ts   | 123 ++++++++++++++++++
+ .../session-log-export/src/index.ts           |  42 +++++-
+ .../session-log-export/src/routes.ts          |   3 +
+ .../tests/agent-session.spec.ts               |  29 +++++
+ .../tests/loader-composition.host.spec.ts     |  32 ++++-
+ .../session-log-export/tsconfig.host.json     |   1 +
+ 9 files changed, 245 insertions(+), 4 deletions(-)
+ create mode 100644 packages/session-query/session-log-export/src/agent-session.ts
+ create mode 100644 packages/session-query/session-log-export/tests/agent-session.spec.ts
+
+diff --git a/packages/session-query/session-log-export/README.i18n.yaml b/packages/session-query/session-log-export/README.i18n.yaml
+index b4cbc029..3a387dad 100644
+--- a/packages/session-query/session-log-export/README.i18n.yaml
++++ b/packages/session-query/session-log-export/README.i18n.yaml
+@@ -20,6 +20,9 @@
+ /deepseek-ai-dsh-session-log-export/use-this-package/copy-session-as-markdown:
+   en: 55c163a4ae5b8d5d
+   zh: c1dac154ed1fa56d
++/deepseek-ai-dsh-session-log-export/use-this-package/agent-session-record-export:
++  en: e53459257b20ad78
++  zh: 2d3bc152051d97bd
+ /deepseek-ai-dsh-session-log-export/use-this-package/when-to-choose-it:
+   en: 4011f686afd24f09
+   zh: 2710b9995c80ba1f
+diff --git a/packages/session-query/session-log-export/README.md b/packages/session-query/session-log-export/README.md
+index 58cf4006..d54574af 100644
+--- a/packages/session-query/session-log-export/README.md
++++ b/packages/session-query/session-log-export/README.md
+@@ -37,6 +37,14 @@ The clipboard is one browser-wide destination, so this plugin instance runs one
+ 
+ When `ui-message-feedback` is mounted, the same menu also offers `Feedback`, which opens its existing Session feedback dialog. Opening or dismissing that form does not export the Session or submit feedback. The feedback row follows the feedback plugin's availability; both export actions remain available independently.
+ 
++### Agent Session Record export
++
++Authenticated clients can request `GET /api/session.agent-session?sessionId=<id>` to download `agent-session.jsonl`. `HEAD` performs the same session read without returning the body. The route returns 400 for invalid queries, 404 for missing sessions and a sanitized 500 for read failures.
++
++The native exporter reads a complete committed snapshot through `sessionQuery.readSession`. It preserves text, readable reasoning, system and developer instructions, tool calls, final tool results and title observations. Inherited prefixes become a gap because their original ASR record identities are unavailable. Attachments, opaque provider state, unsettled attempts, approvals and inference accounting are declared missing. No model turn runs and no session data changes. The complete JSON Lines body is buffered in memory.
++
++Backend callers can also use the pure `formatAgentSession(session, events, inheritedEventCount)` formatter. Pass the selected native header and its ordered logical events. The inherited event count excludes the shared prefix from repeated credit.
++
+ ### When to choose it
+ 
+ Choose it for a Web deployment that needs user-facing session export: a readable Markdown transcript for copying and a ZIP archive for downloading, or for a backend caller that already holds a complete committed logical event snapshot and needs the same Markdown conversion. Avoid it when a Host path write is needed: the browser operations keep their result in the browser, and the conversion utility performs no IO. The logs are serialized from persistence read handles, so any mounted backend is supported.
+diff --git a/packages/session-query/session-log-export/README.zh.md b/packages/session-query/session-log-export/README.zh.md
+index 01df0787..ceebc533 100644
+--- a/packages/session-query/session-log-export/README.zh.md
++++ b/packages/session-query/session-log-export/README.zh.md
+@@ -37,6 +37,14 @@ kind: "package-reference"
+ 
+ 挂载 `ui-message-feedback` 时，同一菜单还提供“反馈”，打开已有的 Session 反馈弹窗。打开或关闭该弹窗不会导出 Session 或提交反馈。反馈入口随反馈插件的可用状态显示；两个导出操作保持独立可用。
+ 
++### Agent Session Record 导出
++
++经过认证的客户端可以请求 `GET /api/session.agent-session?sessionId=<id>`，下载 `agent-session.jsonl`。`HEAD` 执行相同的会话读取，但不返回正文。查询无效时返回 400，会话不存在时返回 404，读取失败时返回经过清理的 500。
++
++原生导出器通过 `sessionQuery.readSession` 读取完整的已提交快照。它保留文本、可读推理、system 与 developer 指令、工具调用、最终工具结果和标题观察。继承前缀缺少原始 ASR 记录身份，因此表示为 gap。附件、不透明的 provider 状态、未稳定的尝试、审批和推理计量会声明为缺失。不运行模型轮次，也不修改会话数据。完整的 JSON Lines 正文缓冲在内存中。
++
++后端调用方也可以使用纯 `formatAgentSession(session, events, inheritedEventCount)` 格式化器。传入选中的原生 Header 及其按序排列的逻辑事件。继承事件数量用于避免重复计入共享前缀。
++
+ ### 何时选择
+ 
+ 为需要面向用户的会话导出——复制可读的 Markdown 记录与下载 ZIP 归档——的 Web 部署选择它，也适用于已经持有完整已提交逻辑事件快照并需要相同 Markdown 转换的后端调用方。仅需 Host 路径写入时避免使用：浏览器操作把结果留在浏览器中，转换工具不执行 IO。日志从持久化读句柄序列化而来，因此任何已挂载后端都受支持。
+diff --git a/packages/session-query/session-log-export/src/agent-session.ts b/packages/session-query/session-log-export/src/agent-session.ts
+new file mode 100644
+index 00000000..29433a17
+--- /dev/null
++++ b/packages/session-query/session-log-export/src/agent-session.ts
+@@ -0,0 +1,123 @@
++/** Native ASR projection of a detached, validated Session log observation. */
++import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
++
++type Row = Record<string, unknown>
++
++/**
++ * Export original events in source order without loading an Agent or provider.
++ * @param session - Header from the same query observation as the events.
++ * @param events - Complete validated logical log, including inherited events.
++ * @param inheritedEventCount - Number of copied prefix events to exclude from credit.
++ * @returns One complete ASR JSON Lines stream.
++ */
++export function formatAgentSession(
++  session: SessionHeader,
++  events: readonly SessionEvent[],
++  inheritedEventCount: number,
++): string {
++  if (!session.id || !Number.isSafeInteger(inheritedEventCount)
++    || inheritedEventCount < 0 || inheritedEventCount > events.length) {
++    throw new Error('Invalid Session observation')
++  }
++  const header: Row = {
++    type: 'session', id: 'header', formatVersion: '0.1',
++    agent: { name: 'deepseek-harness' }, sessionId: session.id,
++    producer: { name: 'deepseek-harness-asr', version: '1', method: 'native', source: 'session-query-log' },
++    missing: ['copies', 'usage', 'model', 'approvals', 'agent_settings', 'tools',
++      'file_changes', 'commits', 'subagents', 'media', 'native_events', 'message_author', 'reasoning'],
++  }
++  const rows: Row[] = [header]
++  if (session.cwd !== undefined) header['cwd'] = session.cwd
++  const startedAt = timestamp(session.createdAt)
++  if (startedAt !== undefined) header['startedAt'] = startedAt
++  if (inheritedEventCount > 0) rows.push({
++    type: 'gap', id: 'inherited', reason: 'not_recorded', count: inheritedEventCount,
++    detail: 'Fork-inherited events are excluded because their original ASR record identities are unavailable.',
++  })
++  const results = new Map<string, number>()
++  for (const event of events.slice(inheritedEventCount)) {
++    let row: Row | undefined
++    switch (event.type) {
++      case 'user/message':
++        row = { type: 'message', role: 'user', content: parts(event.data.content) }
++        if (event.data.source.kind !== 'user') Object.assign(row, { author: 'harness', origin: 'injected' })
++        break
++      case 'system/message':
++      case 'developer/message':
++        row = { type: 'message', role: event.data.message.role, author: 'harness', origin: 'instructions',
++          content: parts(event.data.message.content) }
++        break
++      case 'assistant/message':
++        row = { type: 'message', role: 'assistant', author: 'model', content: parts(event.data.message.content) }
++        if (event.data.interrupted) row['truncated'] = true
++        break
++      case 'tool/call':
++        row = { type: 'tool_call', callId: event.data.callId, name: event.data.name,
++          ...argumentsValue(event.data.arguments), requestedBy: 'model' }
++        break
++      case 'tool/result': {
++        const message = event.data.message
++        const callId = message.source.callId
++        const previous = results.get(callId)
++        if (previous !== undefined) rows[previous] = { type: 'session_info', id: rows[previous]?.['id'], missing: ['tool_result_updates'] }
++        results.set(callId, rows.length)
++        row = { type: 'tool_result', callId, status: message.isError ? 'failed' : 'completed', content: parts(message.content) }
++        break
++      }
++      case 'assistant/attempt':
++        row = { type: 'gap', reason: 'not_recorded', detail: 'An unsettled model attempt is not normalized.' }
++        break
++      case 'session/title':
++        row = { type: 'session_info', title: event.data.title }
++        break
++      default:
++        // SessionEventMap is merge-extensible. Unknown event payloads stay private.
++        break
++    }
++    if (row !== undefined) {
++      const content = event.type === 'user/message' ? event.data.content
++        : event.type === 'assistant/message' || event.type === 'system/message' || event.type === 'developer/message' || event.type === 'tool/result'
++          ? event.data.message.content : undefined
++      if (content?.some(part => part.type !== 'text' && part.type !== 'reasoning')) row['truncated'] = true
++      row['id'] = `event-${event.seq}`
++      const ts = timestamp(event.time)
++      if (ts !== undefined) row['ts'] = ts
++      rows.push(row)
++    }
++  }
++  return `${rows.map(row => JSON.stringify(row)).join('\n')}\n`
++}
++
++function argumentsValue(text: string): Row {
++  try {
++    return { input: JSON.parse(text, (_key: string, value: unknown, context?: { source: string }) => {
++      if (typeof value === 'number' && Number.isInteger(value) && !Number.isSafeInteger(value)) {
++        if (context === undefined) throw new Error('Lossless JSON parsing is unavailable')
++        return context.source
++      }
++      return value
++    }) as unknown }
++  } catch {
++    return { inputText: text }
++  }
++}
++
++function parts(content: readonly { type: string; text?: string }[]): Row[] {
++  return content.flatMap((part) => {
++    if (part.type === 'text') return [{ type: 'text', text: part.text }]
++    if (part.type === 'reasoning') return [asrReasoning(part.text, false)]
++    return []
++  })
++}
++
++function timestamp(value: number): string | undefined {
++  if (!Number.isSafeInteger(value)) return undefined
++  const date = new Date(value)
++  return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
++}
++
++function asrReasoning(text: unknown, summary = false): { type: string; visibility?: string; text?: string; summary?: string[] } {
++  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
++  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
++  return { type: "reasoning", text };
++}
+diff --git a/packages/session-query/session-log-export/src/index.ts b/packages/session-query/session-log-export/src/index.ts
+index 5fe99dce..69f2a053 100644
+--- a/packages/session-query/session-log-export/src/index.ts
++++ b/packages/session-query/session-log-export/src/index.ts
+@@ -18,7 +18,8 @@ import {
+   type SessionLogExportReady,
+ } from './archive.ts'
+ import { formatSessionMarkdown } from './markdown.ts'
+-import { SESSION_LOG_EXPORT_PATH, SESSION_MARKDOWN_EXPORT_PATH } from './routes.ts'
++import { formatAgentSession } from './agent-session.ts'
++import { SESSION_AGENT_RECORD_PATH, SESSION_LOG_EXPORT_PATH, SESSION_MARKDOWN_EXPORT_PATH } from './routes.ts'
+ 
+ export {
+   DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
+@@ -38,6 +39,7 @@ export type {
+   SessionLogZipEntry,
+ } from './archive.ts'
+ export { formatSessionMarkdown } from './markdown.ts'
++export { formatAgentSession } from './agent-session.ts'
+ 
+ export const name = 'session-log-download'
+ export const inject = ['commands', 'connection']
+@@ -101,6 +103,17 @@ export function apply(ctx: Context, config: Config = {}): void {
+       return new Response(null, { status: response.status, headers: response.headers })
+     },
+   })
++  connectionOf(ctx).fetch.register({
++    path: SESSION_AGENT_RECORD_PATH,
++    methods: ['GET', 'HEAD'],
++    requestBody: 'buffered',
++    fetch: async (request) => {
++      const response = await sessionAgentRecordResponse(ctx, request)
++      if (request.method === 'GET') return response
++      await response.body?.cancel()
++      return new Response(null, { status: response.status, headers: response.headers })
++    },
++  })
+   connectionOf(ctx).fetch.register({
+     path: SESSION_MARKDOWN_EXPORT_PATH,
+     methods: ['GET', 'HEAD'],
+@@ -114,6 +127,33 @@ export function apply(ctx: Context, config: Config = {}): void {
+   })
+ }
+ 
++/**
++ * Read one detached native snapshot through the authenticated Host connection.
++ * @param context - Host context carrying the session-query service.
++ * @param request - Request with a required sessionId query parameter.
++ * @returns A JSON Lines download, or an opaque preparation failure.
++ */
++async function sessionAgentRecordResponse(context: Context, request: Request): Promise<Response> {
++  const value = new URL(request.url).searchParams.get('sessionId')
++  if (!value) return new Response('missing or invalid sessionId query parameter', { status: 400 })
++  const query = context.get('sessionQuery')
++  if (!query) return new Response('session export is unavailable', { status: 500 })
++  try {
++    request.signal.throwIfAborted()
++    const snapshot = await query.readSession(brandString<SessionId>(value))
++    request.signal.throwIfAborted()
++    return new Response(formatAgentSession(snapshot.session, snapshot.events, snapshot.inheritedEventCount), {
++      headers: { 'content-type': 'application/x-ndjson; charset=utf-8',
++        'content-disposition': 'attachment; filename="agent-session.jsonl"', 'cache-control': 'no-store' },
++    })
++  } catch (error: unknown) {
++    request.signal.throwIfAborted()
++    return new Response(isSessionNotFound(error) ? 'session not found' : 'session export failed', {
++      status: isSessionNotFound(error) ? 404 : 500,
++    })
++  }
++}
++
+ function connectionOf(ctx: Context): SessionLogConnection {
+   return Reflect.get(ctx, 'connection') as SessionLogConnection
+ }
+diff --git a/packages/session-query/session-log-export/src/routes.ts b/packages/session-query/session-log-export/src/routes.ts
+index 9df92244..64d12538 100644
+--- a/packages/session-query/session-log-export/src/routes.ts
++++ b/packages/session-query/session-log-export/src/routes.ts
+@@ -15,3 +15,6 @@ export const SESSION_MARKDOWN_EXPORT_PATH = '/api/session.markdown'
+ 
+ /** Browser-relative form of {@link SESSION_MARKDOWN_EXPORT_PATH}. */
+ export const SESSION_MARKDOWN_EXPORT_ROUTE = SESSION_MARKDOWN_EXPORT_PATH.slice(1)
++
++/** Authenticated native Agent Session Record download route. */
++export const SESSION_AGENT_RECORD_PATH = '/api/session.agent-session'
+diff --git a/packages/session-query/session-log-export/tests/agent-session.spec.ts b/packages/session-query/session-log-export/tests/agent-session.spec.ts
+new file mode 100644
+index 00000000..feeb6356
+--- /dev/null
++++ b/packages/session-query/session-log-export/tests/agent-session.spec.ts
+@@ -0,0 +1,29 @@
++import { describe, expect, it } from 'vitest'
++import { Session, SessionId } from '@deepseek-ai/dsh-session'
++import { createUserMessage, createToolResultMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
++import { formatAgentSession } from '../src/agent-session.ts'
++
++describe('native Agent Session Record export', () => {
++  it('preserves exact text, final results, large arguments and unknown author', () => {
++    const session = Session.create(SessionId('synthetic'))
++    session.append('user/message', createUserMessage({ source: { kind: 'user' },
++      content: [{ type: 'text', text: 'Exact\r\n' }] }), { surfaceOp: 'append' })
++    session.append('tool/call', { turn: 1, step: 1, callId: ToolCallId('c'), name: 'read', arguments: '{"n":9007199254740993}' })
++    for (const text of ['old', 'new\n']) session.append('tool/result', {
++      turn: 1, step: 1, message: createToolResultMessage({ callId: ToolCallId('c'), content: [{ type: 'text', text }], isError: false }),
++    }, { surfaceOp: 'append' })
++    const source = session.snapshotEvents()
++    const output = formatAgentSession(session.header, source, 0)
++    const rows = output.trimEnd().split('\n').map(line => JSON.parse(line) as Record<string, unknown>)
++    expect(rows[1]?.['content']).toEqual([{ type: 'text', text: 'Exact\r\n' }])
++    expect(rows[1]?.['author']).toBeUndefined()
++    expect(rows.find(row => row['type'] === 'tool_call')?.['input']).toEqual({ n: '9007199254740993' })
++    expect(rows.filter(row => row['type'] === 'tool_result')).toHaveLength(1)
++    expect(rows.at(-1)?.['content']).toEqual([{ type: 'text', text: 'new\n' }])
++    expect(formatAgentSession(session.header, source, 0)).toBe(output)
++    const copied = formatAgentSession(session.header, source, source.length)
++    expect(copied).not.toContain('Exact')
++    expect(JSON.parse(copied.trimEnd().split('\n')[1] ?? '{}') as unknown).toMatchObject({ count: source.length })
++    expect(() => formatAgentSession(session.header, source, -1)).toThrow()
++  })
++})
+diff --git a/packages/session-query/session-log-export/tests/loader-composition.host.spec.ts b/packages/session-query/session-log-export/tests/loader-composition.host.spec.ts
+index f8dcba31..126ce81d 100644
+--- a/packages/session-query/session-log-export/tests/loader-composition.host.spec.ts
++++ b/packages/session-query/session-log-export/tests/loader-composition.host.spec.ts
+@@ -10,6 +10,16 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
+ import CommandRuntime from '@deepseek-ai/dsh-commands'
+ import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+ import * as SessionLogDownload from '@deepseek-ai/dsh-session-log-export'
++import SessionQueryEngine from '@deepseek-ai/dsh-session-query'
++import { HostConnectionService } from '@deepseek-ai/dsh-client-connection'
++import type { BrowserAuth } from '@deepseek-ai/dsh-client-connection/src/browser-auth.ts'
++import { createUserMessage } from '@deepseek-ai/dsh-llm'
++
++// Search storage is outside this test. The real base service owns exact reads.
++class ExportQuery extends SessionQueryEngine {
++  searchSessions(): never { throw new Error('Search is not used by export') }
++  searchEvents(): never { throw new Error('Search is not used by export') }
++}
+ 
+ let root: string | undefined
+ let context: Context | undefined
+@@ -28,20 +38,20 @@ describe('session-log-download real Loader composition', () => {
+     await writeFile(configPath, [
+       "- name: '@deepseek-ai/dsh-session'",
+       "- name: '@deepseek-ai/dsh-commands'",
++      "- name: 'export-query'",
+       "- name: '@deepseek-ai/dsh-session-log-export'",
+       '',
+     ].join('\n'))
+ 
+     context = new Context()
+     context.baseUrl = pathToFileURL(root).href + '/'
+-    context.provide('connection', {
+-      fetch: { register: () => () => Promise.resolve() },
+-    } as never)
++    const connection = new HostConnectionService(context, [], {} as BrowserAuth)
+     await context.plugin(Loader)
+     context.loader.builtins.include = Include
+     const modules = new Map<string, unknown>([
+       ['@deepseek-ai/dsh-session', SessionStore],
+       ['@deepseek-ai/dsh-commands', CommandRuntime],
++      ['export-query', ExportQuery],
+       ['@deepseek-ai/dsh-session-log-export', SessionLogDownload],
+     ])
+     context.loader.internal = {
+@@ -68,5 +78,21 @@ describe('session-log-download real Loader composition', () => {
+     expect(execution?.result).toEqual({ kind: 'success', text: 'Session log download requested.' })
+     expect(session.snapshotEvents().map(event => event.type)).toEqual(['command/run', 'command/done'])
+     expect(session.deriveMessages()).toEqual([])
++    session.append('turn/start', { turn: 1 })
++    session.append('user/message', createUserMessage({
++      content: [{ type: 'text', text: 'Exact\r\n' }], source: { kind: 'user' },
++    }), { surfaceOp: 'append' })
++    session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
++    const shared = connection.createSharedFetchHandler('/api')
++    const url = 'http://host/api/session.agent-session?sessionId=loader-session-export'
++    const response = await shared.fetch(new Request(url), connection.browserPeer)
++    expect(response.status).toBe(200)
++    const rows = (await response.text()).trimEnd().split('\n').map(line => JSON.parse(line) as Record<string, unknown>)
++    expect(rows[0]?.['producer']).toMatchObject({ method: 'native' })
++    expect(rows.find(row => row['type'] === 'message')?.['content']).toEqual([{ type: 'text', text: 'Exact\r\n' }])
++    const head = await shared.fetch(new Request(url, { method: 'HEAD' }), connection.browserPeer)
++    expect(head.body).toBeNull()
++    await context.fiber.dispose()
++    expect((await shared.fetch(new Request(url), connection.browserPeer)).status).toBe(404)
+   })
+ })
+diff --git a/packages/session-query/session-log-export/tsconfig.host.json b/packages/session-query/session-log-export/tsconfig.host.json
+index cfcb54a3..d6f0f912 100644
+--- a/packages/session-query/session-log-export/tsconfig.host.json
++++ b/packages/session-query/session-log-export/tsconfig.host.json
+@@ -6,6 +6,7 @@
+     "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo"
+   },
+   "files": [
++    "src/agent-session.ts",
+     "src/archive.ts",
+     "src/index.ts",
+     "src/markdown.ts",
+
+base-commit: ce7073d51254c26cd63b22a60835b8f948deb447

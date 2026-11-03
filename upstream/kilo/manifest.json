@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "agent": "kilo",
+  "base": "0a9faeff69fff8712da184ee5188bb7985c6f057",
+  "head": "2f432a05f4260a0357259dc025722a656b55e3bb",
+  "patches": [
+    {
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "2f432a05f4260a0357259dc025722a656b55e3bb",
+      "sha256": "1f5a93c8ffb7d7e531e4e1bea705bbd86f30a5327876e2c3994564cbee1a5340"
+    }
+  ],
+  "checks": [
+    [
+      "node",
+      "--test",
+      "../opencode/check.test.mjs"
+    ]
+  ],
+  "provenance": {
+    "repository": "https://github.com/Kilo-Org/kilocode",
+    "base": "0a9faeff69fff8712da184ee5188bb7985c6f057",
+    "commit": "2f432a05f4260a0357259dc025722a656b55e3bb",
+    "patch": "patches/0001-native-agent-session-export.patch",
+    "patchSha256": "1f5a93c8ffb7d7e531e4e1bea705bbd86f30a5327876e2c3994564cbee1a5340",
+    "module": "packages/opencode/src/kilocode/agent-session.ts",
+    "fixture": "packages/opencode/test/kilocode/fixtures/agent-session/native.json",
+    "test": "packages/opencode/test/kilocode/agent-session.test.ts"
+  },
+  "files": {
+    ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
+    "PROPOSAL.md": "1c40b06a6efe98431040e10fd4362264e2d793a76c6d98767e7ea9f743b67948",
+    "README.md": "ae89c87078ad165fbad513027b5496dfac22e857b9055b721291d54c4cc20259",
+    "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "patches/0001-native-agent-session-export.patch": "1f5a93c8ffb7d7e531e4e1bea705bbd86f30a5327876e2c3994564cbee1a5340",
+    "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "samples/asr/session.jsonl": "eedb645046ce1e13b0c0038968303c14d49ea8694f0ddbccfd57580ad167c534",
+    "samples/native/native.json": "c1df978ee61623e8e551b401696da37eca2e593cbd4d226917be180118ccde0c"
+  }
+}

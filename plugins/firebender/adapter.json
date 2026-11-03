@@ -1,0 +1,78 @@
+{
+  "fields": [
+    "cwd",
+    "model",
+    "tool_name",
+    "tool_input",
+    "tool_use_id",
+    "reason",
+    "agent_id",
+    "last_assistant_message"
+  ],
+  "kinds": {
+    "Shell": "execute",
+    "Read": "read",
+    "Write": "edit",
+    "Grep": "search",
+    "Delete": "delete",
+    "Task": "other"
+  },
+  "secret_tools": [],
+  "shell_tools": [
+    "Shell"
+  ],
+  "agent_tools": [],
+  "new_session_sources": [],
+  "post_status": "completed",
+  "agent": "firebender",
+  "events": {
+    "sessionStart": "SessionStart",
+    "sessionEnd": "SessionEnd",
+    "subagentStart": "SubagentStart",
+    "subagentStop": "SubagentStop",
+    "preToolUse": "PreToolUse",
+    "postToolUse": "PostToolUse",
+    "beforeShellExecution": "beforeShellExecution",
+    "afterShellExecution": "afterShellExecution",
+    "afterMCPExecution": "afterMCPExecution",
+    "afterFileEdit": "afterFileEdit",
+    "preCompact": "PreCompact",
+    "stop": "Stop"
+  },
+  "rename": {
+    "conversation_id": "session_id",
+    "generation_id": "prompt_id",
+    "firebender_version": "agent_version",
+    "tool_output": "tool_response",
+    "duration": "duration_ms",
+    "composer_mode": "agent_type"
+  },
+  "child_ids": true,
+  "observations": [
+    "command",
+    "output",
+    "duration",
+    "result_json",
+    "tool_input",
+    "tool_name",
+    "file_path",
+    "edits",
+    "agent_type",
+    "status",
+    "final_status",
+    "is_background_agent",
+    "trigger",
+    "context_usage_percent",
+    "context_tokens",
+    "context_window_size",
+    "message_count",
+    "messages_to_compact",
+    "is_first_compaction",
+    "loop_count"
+  ],
+  "missing": [
+    "fail_closed_hook_events",
+    "session_start_time",
+    "final_model_facing_output"
+  ]
+}

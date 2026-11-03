@@ -1,0 +1,9 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-017",
+    "code": "schema.pattern",
+    "line": 2,
+    "pointer": "/content/0/type"
+  }
+]

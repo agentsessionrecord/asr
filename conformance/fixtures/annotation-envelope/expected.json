@@ -1,0 +1,23 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-011",
+    "code": "schema.pattern",
+    "line": 1,
+    "pointer": "/session"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-007",
+    "code": "duplicate-id",
+    "line": 2,
+    "pointer": "/id"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-062",
+    "code": "schema.format",
+    "line": 2,
+    "pointer": "/at"
+  }
+]

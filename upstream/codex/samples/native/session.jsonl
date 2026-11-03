@@ -1,0 +1,9 @@
+{"type":"session_meta","timestamp":"2026-10-31T12:00:00Z","payload":{"id":"019a3c2e-7b1f-7d40-9e2a-5c8b1d3f6e70","timestamp":"2026-10-31T12:00:00Z","cwd":"/work/repo","cli_version":"0.163.0","source":"cli"}}
+{"type":"turn_context","timestamp":"2026-10-31T12:00:00Z","payload":{"turn_id":"t1","model":"synthetic-alias","effort":"high","approval_policy":"never"}}
+{"type":"response_item","timestamp":"2026-10-31T12:00:00Z","payload":{"type":"function_call","id":"request","call_id":"c","name":"lookup","arguments":"{\"counter\":9007199254740993}"}}
+{"type":"event_msg","timestamp":"2026-10-31T12:00:01Z","payload":{"type":"item_completed","item":{"type":"McpToolCall","id":"c","tool":"lookup","arguments":{"counter":18446744073709551617},"status":"completed"}}}
+{"type":"response_item","timestamp":"2026-10-31T12:00:02Z","payload":{"type":"message","id":"notice","role":"user","content":"Synthetic notice."}}
+{"type":"response_item","timestamp":"2026-10-31T12:00:03Z","payload":{"type":"function_call_output","call_id":"c","output":"Synthetic result."}}
+{"type":"turn_context","timestamp":"2026-10-31T12:00:04Z","payload":{"turn_id":"t2","effort":null,"service_tier":null,"approval_policy":null}}
+{"type":"token_usage_record","timestamp":"2026-10-31T12:00:05Z","payload":{"turn_id":"t2","response_id":"inference-without-model","usage":{"input_tokens":9007199254740993,"output_tokens":0}}}
+{"type":"response_item","timestamp":"2026-10-31T12:00:06Z","payload":{"type":"message","id":"attachments","role":"user","content":[{"type":"document","name":"notes.pdf"},{"type":"input_text","text":"Read these notes."},{"type":"refusal","refusal":"Synthetic refusal."}]}}
