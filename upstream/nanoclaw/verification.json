@@ -1,0 +1,11 @@
+{
+  "date": "2026-11-03",
+  "sourceBase": "f7440e85f8b2a75b17fc9a08f0cc6aacf723a1e2",
+  "status": "blocked",
+  "reason": "The consolidated project verification lease timed out after 300 seconds while queued for heavy build admission. Earlier focused leases were cancelled after remaining queued.",
+  "liveTest": "not-run-for-refreshed-source",
+  "nativeSample": "expected synthetic fixture, runtime reproduction not completed for refreshed source",
+  "projectCheckStatus": "not-run",
+  "packageCheckStatus": "The combined check.mjs and reproduce.mjs lease timed out after 120 seconds while queued.",
+  "sourceCommitStatus": "amendment lease timed out after 120 seconds while queued. No hook bypass. Staged draft and standalone skill are preserved."
+}

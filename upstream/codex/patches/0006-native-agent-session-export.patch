@@ -1,0 +1,260 @@
+From b87b460c5dee927a7bb4c82a2e0ce0bc2125d350 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Tue, 3 Nov 2026 14:25:19 -0500
+Subject: [PATCH] Extend transcript export with a structured local format
+
+---
+ codex-rs/Cargo.lock                           |  1 +
+ codex-rs/session-export/src/export.rs         | 13 ++++++--
+ codex-rs/session-export/src/lib.rs            | 32 +++++++++++++++++++
+ codex-rs/session-export/src/tests.rs          | 29 +++++++++++++++++
+ codex-rs/tui/Cargo.toml                       |  1 +
+ codex-rs/tui/src/app/transcript_export.rs     | 20 ++++++++++++
+ codex-rs/tui/src/app_event.rs                 |  1 +
+ codex-rs/tui/src/chatwidget/slash_dispatch.rs | 25 ++++++++++++---
+ .../tests/copy_export_picker_tests.rs         | 12 +++++++
+ 9 files changed, 127 insertions(+), 7 deletions(-)
+
+diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
+index ee3a5128b8..61c02f2f66 100644
+--- a/codex-rs/Cargo.lock
++++ b/codex-rs/Cargo.lock
+@@ -5139,6 +5139,7 @@ dependencies = [
+  "codex-protocol-test-support",
+  "codex-realtime-webrtc",
+  "codex-rollout",
++ "codex-session-export",
+  "codex-sandboxing",
+  "codex-shell-command",
+  "codex-state",
+diff --git a/codex-rs/session-export/src/export.rs b/codex-rs/session-export/src/export.rs
+index 1bd7aaf0af..58598799c1 100644
+--- a/codex-rs/session-export/src/export.rs
++++ b/codex-rs/session-export/src/export.rs
+@@ -35,7 +35,16 @@ pub(crate) struct Stats {
+     pub elapsed_seconds: f64,
+ }
+ 
+-pub(crate) fn run(home: &Path, args: &ExportArgs, mut state: Snapshot) -> anyhow::Result<Stats> {
++pub(crate) fn run(home: &Path, args: &ExportArgs, state: Snapshot) -> anyhow::Result<Stats> {
++    run_to(home, args, state, &mut std::io::stdout().lock())
++}
++
++pub(crate) fn run_to(
++    home: &Path,
++    args: &ExportArgs,
++    mut state: Snapshot,
++    stream: &mut dyn Write,
++) -> anyhow::Result<Stats> {
+     let started = Instant::now();
+     ensure!(args.max_line_bytes > 0, "--max-line-bytes must be positive");
+     let inventory = source::inventory(home, args.max_line_bytes, &state.threads)?;
+@@ -157,7 +166,7 @@ pub(crate) fn run(home: &Path, args: &ExportArgs, mut state: Snapshot) -> anyhow
+             }
+             entries.push(json!({"agent":"codex","sessionId":id,"status":"present","path":relative,"digest":{"alg":"sha256","value":digest},"recordCount":records}));
+         } else {
+-            std::io::copy(&mut completed.reopen()?, &mut std::io::stdout().lock())?;
++            std::io::copy(&mut completed.reopen()?, stream)?;
+             if !annotations.is_empty() {
+                 eprintln!("later metadata requires --out for annotation sidecars");
+             }
+diff --git a/codex-rs/session-export/src/lib.rs b/codex-rs/session-export/src/lib.rs
+index 6de4a80e39..43b4e20202 100644
+--- a/codex-rs/session-export/src/lib.rs
++++ b/codex-rs/session-export/src/lib.rs
+@@ -83,5 +83,37 @@ impl SessionsCommand {
+     }
+ }
+ 
++/// Export one persisted thread to a new private file for the TUI export command.
++/// Existing files remain untouched, including when conversion fails.
++pub async fn export_thread_to_file(
++    home: PathBuf,
++    sqlite_home: PathBuf,
++    thread: ThreadId,
++    output: PathBuf,
++) -> anyhow::Result<()> {
++    let state = state::Snapshot::read(&sqlite_home).await?;
++    tokio::task::spawn_blocking(move || {
++        let parent = output
++            .parent()
++            .filter(|path| !path.as_os_str().is_empty())
++            .unwrap_or(std::path::Path::new("."));
++        let mut staged = tempfile::NamedTempFile::new_in(parent)?;
++        let args = ExportArgs {
++            format: "agent-session".into(),
++            thread: Some(thread),
++            all: false,
++            out: None,
++            codex_home: Some(home.clone()),
++            sqlite_home: Some(sqlite_home),
++            max_line_bytes: 67_108_864,
++        };
++        export::run_to(&home, &args, state, &mut staged)?;
++        staged.as_file().sync_all()?;
++        staged.persist_noclobber(output)?;
++        anyhow::Ok(())
++    })
++    .await?
++}
++
+ #[cfg(test)]
+ mod tests;
+diff --git a/codex-rs/session-export/src/tests.rs b/codex-rs/session-export/src/tests.rs
+index ecfde86b60..d230619bb5 100644
+--- a/codex-rs/session-export/src/tests.rs
++++ b/codex-rs/session-export/src/tests.rs
+@@ -890,3 +890,32 @@ fn unresolved_native_tool_removals_do_not_leave_stale_offered_tools() {
+     ]);
+     assert!(!records.iter().any(|r| r.get("tools").is_some()));
+ }
++
++#[tokio::test]
++async fn tui_file_export_is_private_and_never_overwrites() {
++    let home = tempfile::tempdir().unwrap();
++    rollout(home.path(), false);
++    let path = home.path().join("session.jsonl");
++    let thread = codex_protocol::ThreadId::from_string(THREAD).unwrap();
++    crate::export_thread_to_file(home.path().into(), home.path().into(), thread, path.clone())
++        .await
++        .unwrap();
++    let bytes = fs::read(&path).unwrap();
++    let header: Value =
++        serde_json::from_slice(bytes.split(|byte| *byte == b'\n').next().unwrap()).unwrap();
++    assert_eq!(header["sessionId"], THREAD);
++    assert!(
++        crate::export_thread_to_file(home.path().into(), home.path().into(), thread, path.clone())
++            .await
++            .is_err()
++    );
++    assert_eq!(fs::read(&path).unwrap(), bytes);
++    #[cfg(unix)]
++    {
++        use std::os::unix::fs::PermissionsExt;
++        assert_eq!(
++            fs::metadata(path).unwrap().permissions().mode() & 0o777,
++            0o600
++        );
++    }
++}
+diff --git a/codex-rs/tui/Cargo.toml b/codex-rs/tui/Cargo.toml
+index 47968b8694..aee602a5dc 100644
+--- a/codex-rs/tui/Cargo.toml
++++ b/codex-rs/tui/Cargo.toml
+@@ -59,6 +59,7 @@ codex-protocol = { workspace = true }
+ codex-realtime-webrtc = { workspace = true }
+ futures = { workspace = true }
+ codex-rollout = { workspace = true }
++codex-session-export = { workspace = true }
+ codex-sandboxing = { workspace = true }
+ codex-shell-command = { workspace = true }
+ codex-state = { workspace = true }
+diff --git a/codex-rs/tui/src/app/transcript_export.rs b/codex-rs/tui/src/app/transcript_export.rs
+index 00775bba50..8d2194ec2c 100644
+--- a/codex-rs/tui/src/app/transcript_export.rs
++++ b/codex-rs/tui/src/app/transcript_export.rs
+@@ -39,6 +39,23 @@ impl App {
+             .chat_widget
+             .thread_id()
+             .ok_or_else(|| "No active conversation to export.".to_string())?;
++        if let TranscriptExportDestination::AgentSessionFile(path) = &destination {
++            if self.app_server_target.uses_remote_workspace() {
++                return Err("Structured export requires local persisted session history.".into());
++            }
++            let path = self.chat_widget.config_ref().cwd.join(path);
++            codex_session_export::export_thread_to_file(
++                self.config.codex_home.to_path_buf(),
++                self.config.sqlite.home().to_path_buf(),
++                thread_id,
++                path.to_path_buf(),
++            )
++            .await
++            .map_err(|error| error.to_string())?;
++            self.chat_widget
++                .add_info_message(format!("Saved conversation to {}", path.display()), None);
++            return Ok(());
++        }
+         let visibility = if self.config.show_raw_agent_reasoning {
+             RawReasoningVisibility::Visible
+         } else {
+@@ -54,6 +71,9 @@ impl App {
+         .await?;
+         let markdown = render_markdown_transcript(&cells)?;
+         match destination {
++            TranscriptExportDestination::AgentSessionFile(_) => {
++                unreachable!("handled before Markdown rendering")
++            }
+             TranscriptExportDestination::Clipboard => {
+                 let result = tui.copy_transcript_selection(
+                     &markdown,
+diff --git a/codex-rs/tui/src/app_event.rs b/codex-rs/tui/src/app_event.rs
+index 3444d65bd0..2c8af0f476 100644
+--- a/codex-rs/tui/src/app_event.rs
++++ b/codex-rs/tui/src/app_event.rs
+@@ -259,6 +259,7 @@ pub(crate) enum KeymapCaptureMode {
+ pub(crate) enum TranscriptExportDestination {
+     Clipboard,
+     File(PathBuf),
++    AgentSessionFile(PathBuf),
+ }
+ 
+ /// Deliver a generated title to its originating automatic rename or editable prompt.
+diff --git a/codex-rs/tui/src/chatwidget/slash_dispatch.rs b/codex-rs/tui/src/chatwidget/slash_dispatch.rs
+index 2774779fa6..2db581770e 100644
+--- a/codex-rs/tui/src/chatwidget/slash_dispatch.rs
++++ b/codex-rs/tui/src/chatwidget/slash_dispatch.rs
+@@ -828,11 +828,26 @@ impl ChatWidget {
+             SlashCommand::Permissions => self.select_permission_profile(trimmed),
+             SlashCommand::Export => {
+                 self.set_queue_autosend_suppressed(/*suppressed*/ true);
+-                self.app_event_tx.send(AppEvent::ExportTranscript {
+-                    destination: crate::app_event::TranscriptExportDestination::File(
+-                        PathBuf::from(trimmed),
+-                    ),
+-                });
++                let destination = if let Some(path) =
++                    trimmed.strip_prefix("--format agent-session ")
++                {
++                    if path.trim().is_empty() {
++                        self.add_error_message("Usage: /export --format agent-session PATH".into());
++                        self.set_queue_autosend_suppressed(false);
++                        return;
++                    }
++                    crate::app_event::TranscriptExportDestination::AgentSessionFile(PathBuf::from(
++                        path.trim(),
++                    ))
++                } else if trimmed.starts_with("--format") {
++                    self.add_error_message("Usage: /export --format agent-session PATH".into());
++                    self.set_queue_autosend_suppressed(false);
++                    return;
++                } else {
++                    crate::app_event::TranscriptExportDestination::File(PathBuf::from(trimmed))
++                };
++                self.app_event_tx
++                    .send(AppEvent::ExportTranscript { destination });
+             }
+             SlashCommand::Cd => self.request_working_directory_change(trimmed),
+             SlashCommand::Pwd => {
+diff --git a/codex-rs/tui/src/chatwidget/tests/copy_export_picker_tests.rs b/codex-rs/tui/src/chatwidget/tests/copy_export_picker_tests.rs
+index 4c2cab5b58..a07fc50076 100644
+--- a/codex-rs/tui/src/chatwidget/tests/copy_export_picker_tests.rs
++++ b/codex-rs/tui/src/chatwidget/tests/copy_export_picker_tests.rs
+@@ -168,3 +168,15 @@ async fn completed_copy_source_survives_replay_and_stream_consolidation() {
+         assert_eq!(retained.as_deref(), Some(source));
+     }
+ }
++
++#[tokio::test]
++async fn structured_export_uses_the_existing_export_command() {
++    let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(None).await;
++    chat.handle_slash_command_with_args_dispatch(
++        SlashCommand::Export,
++        "--format agent-session record.jsonl".into(),
++        Vec::new(),
++    );
++    assert!(std::iter::from_fn(|| rx.try_recv().ok()).any(|event| matches!(event,
++        AppEvent::ExportTranscript { destination: TranscriptExportDestination::AgentSessionFile(path) } if path == PathBuf::from("record.jsonl"))));
++}
+-- 
+2.43.0
+

@@ -1,12 +1,12 @@
-From 956b40cb78ca2c2542056f2db34eead395fbed2a Mon Sep 17 00:00:00 2001
+From 1d0b4552feed1eeb635f04b1fdac02d02e7f6fd3 Mon Sep 17 00:00:00 2001
 From: ASR contributors <contributors@agentsessionrecord.org>
 Date: Sun, 1 Nov 2026 12:54:12 -0500
-Subject: [PATCH] feat: add Agent Session Record transcript export
+Subject: [PATCH] feat(transcript-export): add Agent Session Record format
 
 ---
  .../transcript-export-modal.test.tsx          |  32 +++
  scripts/check-translation-completeness.cjs    |   1 +
- .../conversation/transcript-export-modal.tsx  |  42 ++-
+ .../conversation/transcript-export-modal.tsx  |  45 ++-
  src/hooks/use-tracking.ts                     |   4 +-
  src/i18n/translation.json                     |  18 ++
  .../transcript-export/agent-session.test.ts   | 172 ++++++++++++
@@ -14,7 +14,7 @@ Subject: [PATCH] feat: add Agent Session Record transcript export
  src/utils/transcript-export/index.ts          |   2 +-
  .../load-complete-events.test.ts              |  12 +
  .../transcript-export/load-complete-events.ts |   6 +-
- 10 files changed, 535 insertions(+), 15 deletions(-)
+ 10 files changed, 536 insertions(+), 17 deletions(-)
  create mode 100644 src/utils/transcript-export/agent-session.test.ts
  create mode 100644 src/utils/transcript-export/agent-session.ts
 
@@ -24,7 +24,7 @@ index e17ff54..6d013bc 100644
 +++ b/__tests__/components/features/conversation/transcript-export-modal.test.tsx
 @@ -175,6 +175,38 @@ function renderExportModal({
  }
-
+ 
  describe("transcript export modal", () => {
 +  it("downloads ASR with native identity and disables presentation filters", async () => {
 +    renderExportModal();
@@ -62,7 +62,7 @@ index e17ff54..6d013bc 100644
      const scenario = renderExportModal();
      const markdownRadio = screen.getByRole("radio", {
 diff --git a/scripts/check-translation-completeness.cjs b/scripts/check-translation-completeness.cjs
-index 331890c..84999e4 100755
+index 823d541..e97c1ff 100755
 --- a/scripts/check-translation-completeness.cjs
 +++ b/scripts/check-translation-completeness.cjs
 @@ -13,6 +13,7 @@ const path = require('path');
@@ -74,20 +74,30 @@ index 331890c..84999e4 100755
    'API$TAVILY_KEY_EXAMPLE',
    'API$TVLY_KEY_EXAMPLE',
 diff --git a/src/components/features/conversation/transcript-export-modal.tsx b/src/components/features/conversation/transcript-export-modal.tsx
-index 0adaa24..a95a31e 100644
+index 0adaa24..03ce96a 100644
 --- a/src/components/features/conversation/transcript-export-modal.tsx
 +++ b/src/components/features/conversation/transcript-export-modal.tsx
 @@ -21,6 +21,8 @@ import EventService from "#/api/event-service/event-service.api";
  import { loadCompleteTranscriptEvents } from "#/utils/transcript-export/load-complete-events";
  import { displayErrorToast } from "#/utils/custom-toast-handlers";
-
+ 
 +import { eventsToAgentSession } from "#/utils/transcript-export/agent-session";
 +
  const TRANSCRIPT_FORMAT_RADIO_NAME = "transcript-export-format";
-
+ 
  interface TranscriptExportModalProps {
-@@ -83,7 +85,8 @@ export function TranscriptExportModal({
-
+@@ -42,8 +44,7 @@ export function TranscriptExportModal({
+ }: TranscriptExportModalProps) {
+   const { t } = useTranslation("openhands");
+   const { trackConversationExported } = useTracking();
+-  const [format, setFormat] =
+-    React.useState<TranscriptExportFormat>("markdown");
++  const [format, setFormat] = React.useState<TranscriptExportFormat>("markdown");
+   const [includeToolDetails, setIncludeToolDetails] = React.useState(true);
+   const [includeTimestamps, setIncludeTimestamps] = React.useState(true);
+   const [isExporting, setIsExporting] = React.useState(false);
+@@ -83,7 +84,8 @@ export function TranscriptExportModal({
+ 
        const eventStore = useEventStore.getState();
        const loadedEvents =
 -        eventStore.loadedConversationId === conversationId
@@ -96,15 +106,15 @@ index 0adaa24..a95a31e 100644
            ? eventStore.events
            : [];
        const events = await loadCompleteTranscriptEvents(
-@@ -96,6 +99,7 @@ export function TranscriptExportModal({
+@@ -96,6 +98,7 @@ export function TranscriptExportModal({
              searchOptions,
            ),
          expectedEventCount,
-+        ...(format === "agent-session" ? [true] : []),
++        format === "agent-session",
        );
        if (isCancelledRef.current) return;
-
-@@ -106,13 +110,20 @@ export function TranscriptExportModal({
+ 
+@@ -106,13 +109,20 @@ export function TranscriptExportModal({
          model,
        };
        const isMarkdown = format === "markdown";
@@ -129,10 +139,10 @@ index 0adaa24..a95a31e 100644
 +          : isMarkdown
 +            ? "text/markdown;charset=utf-8"
 +            : "text/html;charset=utf-8";
-
+ 
        downloadBlob(
          new Blob([content], { type: mimeType }),
-@@ -177,13 +188,24 @@ export function TranscriptExportModal({
+@@ -177,13 +187,24 @@ export function TranscriptExportModal({
              />
              {t(I18nKey.TRANSCRIPT_EXPORT$HTML)}
            </label>
@@ -148,7 +158,7 @@ index 0adaa24..a95a31e 100644
 +            {t(I18nKey.TRANSCRIPT_EXPORT$AGENT_SESSION)}
 +          </label>
          </fieldset>
-
+ 
          <div className="flex w-full flex-col gap-3 text-sm text-contrast">
            <label className="flex cursor-pointer items-center gap-3">
              <input
@@ -158,7 +168,7 @@ index 0adaa24..a95a31e 100644
                checked={includeToolDetails}
                onChange={(event) => setIncludeToolDetails(event.target.checked)}
              />
-@@ -192,7 +214,7 @@ export function TranscriptExportModal({
+@@ -192,7 +213,7 @@ export function TranscriptExportModal({
            <label className="flex cursor-pointer items-center gap-3">
              <input
                type="checkbox"
@@ -174,19 +184,19 @@ index 03a94dc..bf96e78 100644
 @@ -274,7 +274,9 @@ export const useTracking = () => {
      track("download_trajectory_button_clicked");
    };
-
+ 
 -  const trackConversationExported = (format: "markdown" | "html") => {
 +  const trackConversationExported = (
 +    format: "markdown" | "html" | "agent-session",
 +  ) => {
      track("conversation_exported", { format });
    };
-
+ 
 diff --git a/src/i18n/translation.json b/src/i18n/translation.json
-index 0c04b81..d3c9c6a 100644
+index 7f35147..00946b5 100644
 --- a/src/i18n/translation.json
 +++ b/src/i18n/translation.json
-@@ -15407,6 +15407,24 @@
+@@ -15587,6 +15587,24 @@
      "ca": "Document Markdown (.md)",
      "id": "Dokumen Markdown (.md)"
    },
@@ -391,7 +401,7 @@ index 0000000..1aa203f
 +});
 diff --git a/src/utils/transcript-export/agent-session.ts b/src/utils/transcript-export/agent-session.ts
 new file mode 100644
-index 0000000..769a5e9
+index 0000000..3e3c8a2
 --- /dev/null
 +++ b/src/utils/transcript-export/agent-session.ts
 @@ -0,0 +1,261 @@
@@ -507,7 +517,7 @@ index 0000000..769a5e9
 +      sessionId,
 +      producer: {
 +        name: "openhands-agent-canvas",
-+        version: "1.34.0",
++        version: "1.35.0",
 +        method: "native",
 +        source: "agent-server-events",
 +      },
@@ -663,10 +673,10 @@ index 8624533..3cb3a58 100644
 @@ -38,7 +38,7 @@ import {
  import i18n from "#/i18n";
  import { I18nKey } from "#/i18n/declaration";
-
+ 
 -export type TranscriptExportFormat = "markdown" | "html";
 +export type TranscriptExportFormat = "markdown" | "html" | "agent-session";
-
+ 
  export interface TranscriptExportOptions {
    includeToolDetails: boolean;
 diff --git a/src/utils/transcript-export/load-complete-events.test.ts b/src/utils/transcript-export/load-complete-events.test.ts
@@ -713,3 +723,6 @@ index 185dc97..54396be 100644
    if (
      expectedEventCount !== undefined &&
      fetchedEventIds.size + idLessPersisted < expectedEventCount
+-- 
+2.43.0
+

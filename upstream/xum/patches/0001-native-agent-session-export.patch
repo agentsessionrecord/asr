@@ -1,0 +1,391 @@
+From 4dfb5620b8dece95c20475647acf3853d277f550 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:33:28 -0500
+Subject: [PATCH] feat: export Xum chat segments as ASR
+
+---
+ src/cli/agentSessionExport.test.ts | 108 ++++++++++++++++
+ src/cli/agentSessionExport.ts      | 192 +++++++++++++++++++++++++++++
+ src/cli/index.ts                   |  14 ++-
+ src/cli/sessions.ts                |  23 ++++
+ 4 files changed, 336 insertions(+), 1 deletion(-)
+ create mode 100644 src/cli/agentSessionExport.test.ts
+ create mode 100644 src/cli/agentSessionExport.ts
+ create mode 100644 src/cli/sessions.ts
+
+diff --git a/src/cli/agentSessionExport.test.ts b/src/cli/agentSessionExport.test.ts
+new file mode 100644
+index 0000000..2869fc2
+--- /dev/null
++++ b/src/cli/agentSessionExport.test.ts
+@@ -0,0 +1,108 @@
++import { describe, expect, test } from "bun:test";
++import { exportAgentSession } from "./agentSessionExport";
++
++describe("native ASR segment export", () => {
++  test("preserves text and final tool snapshots without inventing inference", () => {
++    const source =
++      [
++        { id: "u", role: "user", parts: [{ type: "text", text: "Exact\r\n" }] },
++        {
++          id: "a",
++          role: "assistant",
++          parts: [
++            {
++              type: "dynamic-tool",
++              toolCallId: "c",
++              toolName: "read",
++              input: { path: "fixture.txt" },
++              state: "input-available",
++            },
++          ],
++        },
++        {
++          id: "b",
++          role: "assistant",
++          parts: [
++            {
++              type: "dynamic-tool",
++              toolCallId: "c",
++              toolName: "read",
++              input: { path: "fixture.txt" },
++              output: "done\n",
++              state: "output-available",
++            },
++          ],
++          metadata: { providerMetadata: { signature: "DO-NOT-COPY" } },
++        },
++      ]
++        .map((row) => JSON.stringify(row))
++        .join("\n") + "\n";
++    const output = exportAgentSession("synthetic", source);
++    const rows = output
++      .trimEnd()
++      .split("\n")
++      .map((line) => JSON.parse(line));
++    expect(rows[2].content[0].text).toBe("Exact\r\n");
++    expect(rows.filter((row) => row.type === "tool_call")).toHaveLength(1);
++    expect(rows.filter((row) => row.type === "tool_result")[0].status).toBe("unknown");
++    expect(rows.some((row) => row.type === "inference")).toBe(false);
++    expect(output).not.toContain("DO-NOT-COPY");
++    expect(exportAgentSession("synthetic", source)).toBe(output);
++  });
++
++  test("replaces snapshots by native identity and preserves distinct history sequences", () => {
++    const source =
++      [
++        {
++          id: "same",
++          role: "assistant",
++          metadata: { historySequence: 1 },
++          parts: [{ type: "text", text: "draft" }],
++        },
++        {
++          id: "same",
++          role: "assistant",
++          metadata: { historySequence: 2 },
++          parts: [{ type: "text", text: "separate" }],
++        },
++        {
++          id: "same",
++          role: "assistant",
++          metadata: { historySequence: 1 },
++          parts: [{ type: "text", text: "final" }],
++        },
++        { id: "header", role: "user", parts: [{ type: "text", text: "collision" }] },
++      ]
++        .map((row) => JSON.stringify(row))
++        .join("\n") + "\n";
++    const rows = exportAgentSession("synthetic", source)
++      .trimEnd()
++      .split("\n")
++      .map((line) => JSON.parse(line));
++    expect(rows.filter((row) => row.type === "message").map((row) => row.content[0].text)).toEqual([
++      "separate",
++      "final",
++      "collision",
++    ]);
++    expect(new Set(rows.map((row) => row.id)).size).toBe(rows.length);
++  });
++
++  test("marks corruption and incomplete tails at their position", () => {
++    const rows = exportAgentSession("synthetic", "bad\n{")
++      .trimEnd()
++      .split("\n")
++      .map((line) => JSON.parse(line));
++    expect(rows.slice(2).map((row) => row.reason)).toEqual(["unparseable", "unparseable"]);
++    expect(() => exportAgentSession("", "")).toThrow();
++  });
++});
++
++
++test("removes credential fields from tool data and marks the loss", () => {
++  const source = JSON.stringify({ id: "a", role: "assistant", parts: [{ type: "dynamic-tool", toolCallId: "c", toolName: "read", input: { credentials: "synthetic-excluded-value", path: "fixture" }, state: "output-available", output: { password: "synthetic-excluded-value", text: "done" } }] }) + "\n";
++  const output = exportAgentSession("synthetic", source);
++  expect(output).not.toContain("synthetic-excluded-value");
++  const rows = output.trimEnd().split("\n").map(line => JSON.parse(line));
++  expect(rows.find(row => row.type === "tool_call").truncated).toBe(true);
++  expect(rows.find(row => row.type === "tool_result")._meta["com.coder.xum"].output).toEqual({ text: "done" });
++});
+diff --git a/src/cli/agentSessionExport.ts b/src/cli/agentSessionExport.ts
+new file mode 100644
+index 0000000..e14aa45
+--- /dev/null
++++ b/src/cli/agentSessionExport.ts
+@@ -0,0 +1,192 @@
++/** Offline export of one explicitly selected native chat.jsonl segment. */
++import type { MuxMessage } from "@/common/types/message";
++import { MuxMessageSchema } from "@/common/orpc/schemas/message";
++
++type Row = Record<string, unknown>;
++
++function clean(value: unknown): unknown {
++  if (typeof value === "string") return value.replace(/\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g, "[redacted]");
++  if (Array.isArray(value)) return value.map(clean);
++  if (value !== null && typeof value === "object") return Object.fromEntries(Object.entries(value).filter(([key]) => !/^(?:api[_-]?key|authorization|password|access[_-]?token|refresh[_-]?token|credentials|signature|thinkingSignature)$/i.test(key)).map(([key, item]) => [key, clean(item)]));
++  return value;
++}
++
++/** Export the selected segment without reading configuration, archives, or providers. */
++export function exportAgentSession(sessionId: string, source: string): string {
++  if (!sessionId) throw new Error("A native session ID is required");
++  const rows: Row[] = [
++    {
++      type: "session",
++      id: "header",
++      formatVersion: "0.1",
++      agent: { name: "xum" },
++      sessionId,
++      producer: {
++        name: "xum-asr-export",
++        version: "1",
++        method: "native",
++        source: "chat-jsonl-segment",
++      },
++      missing: [
++        "history",
++        "copies",
++        "usage",
++        "model",
++        "agent_settings",
++        "tools",
++        "approvals",
++        "file_changes",
++        "commits",
++        "subagents",
++        "media",
++        "native_metadata",
++        "message_author",
++        "reasoning",
++        "timestamps",
++        "tool_status",
++        "snapshot_updates",
++        "redacted_fields",
++      ],
++    },
++    {
++      type: "gap",
++      id: "segment-prefix",
++      reason: "not_recorded",
++      detail:
++        "Only the selected history segment is exported. Archived epochs and partial files are not read.",
++    },
++  ];
++  const calls = new Map<string, number>();
++  const results = new Map<string, number>();
++  const lines = source.split("\n");
++  if (lines.at(-1) === "") lines.pop();
++  const snapshots: Array<MuxMessage | undefined> = [];
++  const lastSnapshot = new Map<string, number>();
++  const identity = (message: MuxMessage): string =>
++    JSON.stringify([message.id, message.metadata?.historySequence ?? null]);
++  for (const [lineIndex, line] of lines.entries()) {
++    let value: unknown;
++    try {
++      if (lineIndex === lines.length - 1 && !source.endsWith("\n"))
++        throw new Error("Incomplete tail");
++      value = JSON.parse(line, (_key: string, item: unknown, context?: { source: string }) => {
++        if (typeof item === "number" && Number.isInteger(item) && !Number.isSafeInteger(item)) {
++          if (!context) throw new Error("Lossless JSON parsing is unavailable");
++          return context.source;
++        }
++        return item;
++      }) as unknown;
++    } catch {
++      snapshots.push(undefined);
++      continue;
++    }
++    const parsed = MuxMessageSchema.safeParse(value);
++    if (!parsed.success) {
++      snapshots.push(undefined);
++      continue;
++    }
++    snapshots.push(parsed.data);
++    lastSnapshot.set(identity(parsed.data), lineIndex);
++  }
++  const reserved = new Set([
++    "header",
++    "segment-prefix",
++    ...snapshots.flatMap((message) => (message ? [message.id] : [])),
++  ]);
++  const used = new Set(["header", "segment-prefix"]);
++  const allocate = (preferred: string, native = false): string => {
++    let id =
++      preferred.length > 240 ||
++      [...preferred].some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)
++        ? `derived-${used.size}`
++        : preferred;
++    while (!id || used.has(id) || (!native && reserved.has(id))) id = `derived-${id || "record"}`;
++    used.add(id);
++    return id;
++  };
++  for (const [lineIndex, message] of snapshots.entries()) {
++    if (!message) {
++      rows.push({
++        type: "gap",
++        id: allocate(`line-${lineIndex}`),
++        reason: "unparseable",
++        count: 1,
++      });
++      continue;
++    }
++    // History rewrites replace a full message, keyed by ID and sequence.
++    if (lastSnapshot.get(identity(message)) !== lineIndex) continue;
++    for (const [partIndex, nativePart] of message.parts.entries()) {
++      const part = clean(nativePart) as typeof nativePart;
++      const redacted = JSON.stringify(part) !== JSON.stringify(nativePart);
++      const append = (row: Row): void => {
++        rows.push({
++          id:
++            partIndex === 0
++              ? allocate(message.id, true)
++              : allocate(`line-${lineIndex}-part-${partIndex}`),
++          ...row,
++          ...(redacted ? { truncated: true } : {}),
++        });
++      };
++      if (part.type === "text" || part.type === "reasoning") {
++        append({
++          type: "message",
++          role: message.role,
++          content: [
++            part.type === "text"
++              ? { type: "text", text: part.text }
++              : asrReasoning(part.text, false),
++          ],
++        });
++      } else if (part.type === "dynamic-tool") {
++        const previousCall = calls.get(part.toolCallId);
++        if (previousCall !== undefined)
++          rows[previousCall] = {
++            type: "session_info",
++            id: rows[previousCall]?.id,
++            missing: ["tool_call_updates"],
++          };
++        calls.set(part.toolCallId, rows.length);
++        append({
++          type: "tool_call",
++          callId: part.toolCallId,
++          name: part.toolName,
++          ...(part.input === undefined ? {} : { input: part.input }),
++        });
++        if (part.state === "output-available" || part.state === "output-redacted") {
++          const previousResult = results.get(part.toolCallId);
++          if (previousResult !== undefined)
++            rows[previousResult] = {
++              type: "session_info",
++              id: rows[previousResult]?.id,
++              missing: ["tool_result_updates"],
++            };
++          results.set(part.toolCallId, rows.length);
++          // Native UI output is tool-specific and does not guarantee an execution status.
++          append({
++            type: "tool_result",
++            callId: part.toolCallId,
++            status: "unknown",
++            ...(part.state === "output-available"
++              ? { _meta: { "com.coder.xum": { output: part.output } } }
++              : { truncated: true }),
++          });
++        }
++      } else {
++        append({
++          type: "gap",
++          reason: "not_recorded",
++          detail: "This native content part is not normalized.",
++        });
++      }
++    }
++  }
++  return `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`;
++}
++
++function asrReasoning(text: unknown, summary = false): { type: string; visibility?: string; text?: string; summary?: string[] } {
++  if (typeof text !== "string" || text.length === 0) return { type: "reasoning", visibility: "omitted" };
++  if (summary) return { type: "reasoning", visibility: "summary", summary: [text] };
++  return { type: "reasoning", text };
++}
+diff --git a/src/cli/index.ts b/src/cli/index.ts
+index 0ccb3ea..105e508 100644
+--- a/src/cli/index.ts
++++ b/src/cli/index.ts
+@@ -66,7 +66,18 @@ function startCli(): void {
+ 
+   // Route known subcommands to their dedicated entry points (each has its own Commander instance)
+ 
+-  if (subcommand === "run") {
++  if (subcommand === "sessions") {
++    process.argv.splice(env.firstArgIndex, 1);
++    // eslint-disable-next-line @typescript-eslint/no-require-imports
++    const sessions = require("./sessions") as { main: () => Promise<number> };
++    void sessions
++      .main()
++      .then(exitAfterStdoutFlush)
++      .catch((error: unknown) => {
++        console.error(error instanceof Error ? error.message : String(error));
++        process.exit(1);
++      });
++  } else if (subcommand === "run") {
+     if (!isCommandAvailable("run", env)) {
+       console.error("The 'run' command is only available via the CLI (bun xum run).");
+       console.error("It is not bundled in Electron.");
+@@ -181,6 +192,7 @@ function startCli(): void {
+     program.command("server").description("Start the HTTP/WebSocket ORPC server");
+     program.command("acp").description("ACP stdio interface for editor integration");
+     program.command("api").description("Interact with the xum API via a running server");
++    program.command("sessions").description("Export an explicit native history segment");
+     if (isCommandAvailable("desktop", env)) {
+       program
+         .command("desktop")
+diff --git a/src/cli/sessions.ts b/src/cli/sessions.ts
+new file mode 100644
+index 0000000..71f664f
+--- /dev/null
++++ b/src/cli/sessions.ts
+@@ -0,0 +1,23 @@
++/** Explicit offline native-session export. No provider settings are loaded. */
++import { readFileSync, writeFileSync } from "node:fs";
++import { Command } from "commander";
++import { exportAgentSession } from "./agentSessionExport";
++import { getParseOptions } from "./argv";
++
++export async function main(): Promise<number> {
++  const command = new Command().name("xum sessions");
++  command
++    .command("export")
++    .requiredOption("--session <id>", "Native session ID")
++    .requiredOption("--source <file>", "Selected native chat.jsonl segment")
++    .option("--format <format>", "Export format", "agent-session")
++    .option("--output <file>", "Exclusive private output file, otherwise stdout")
++    .action((options: { session: string; source: string; format: string; output?: string }) => {
++      if (options.format !== "agent-session") throw new Error("Unsupported export format");
++      const stream = exportAgentSession(options.session, readFileSync(options.source, "utf8"));
++      if (options.output) writeFileSync(options.output, stream, { mode: 0o600, flag: "wx" });
++      else process.stdout.write(stream);
++    });
++  await command.parseAsync(process.argv, getParseOptions());
++  return 0;
++}
+-- 
+2.43.0
+

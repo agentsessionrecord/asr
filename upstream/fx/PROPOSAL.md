@@ -1,42 +1,37 @@
-# fx native export
+# fx native ASR export
 
-Export a saved session in an open format that search and code history tools can read. The export keeps the source facts available for later review.
+Export a retained fx session as ASR so users can read it in other session tools.
+The command adds `fx sessions export --format agent-session --session ID` to the
+existing sessions command table. It reads the existing session store and writes
+JSON Lines to standard output. It adds no persistence or dependencies.
 
-Applies to `vercel-labs/fx` at `e10e517357560f050f408723165326867e1ef932`. Requires Zig 0.17.0.
+The session module owns a typed `render` function over `DurableSessionState`.
+It preserves retained text, runtime context, tool steps, raw argument text and
+result status. Compacted history and unavailable interrupted calls become gaps.
+It does not infer model calls or usage from session totals. Approvals, settings,
+timestamps and sidecar payloads remain declared losses.
 
-The patch adds a native sessions export command.
+The command shares the existing session adapter with conversion and import.
+The OpenCode import proposal in [#1551](https://github.com/vercel-labs/fx/pull/1551)
+turns tool calls into text summaries. Those summaries stay text on export.
+Native fx tool steps keep their structured call and result mapping.
 
-```bash
-fx sessions export --format agent-session --session ID > session.jsonl
+The owner remains the session module, with CLI argument handling in the existing
+CLI surface. JSON Lines is the only new format. Focused session tests own mapping
+coverage. Existing session end-to-end tests own command behavior. Build with the
+CI-pinned Zig 0.17.0 and run `zig build test-agent-session`, format checks and the
+native fixture reproduction. Exact-head Linux and macOS CI remains required.
+
+## Docs
+
+Add this command to the sessions manual:
+
+```sh
+fx sessions export --format agent-session --session ID > session.asr.jsonl
 ```
 
-The export reads durable session state through the native session adapter. It
-records retained user and assistant text, runtime context, tool steps, raw tool
-arguments, results, steering boundaries and interrupted assistant text.
-Compaction summaries have a gap for removed history. Sidecar output and image
-omissions mark results as truncated. An active interrupted call outside the
-retained steps becomes a gap. Duplicate result IDs reject the buffered export.
+The file contains retained session facts and explicit gaps. It is not a restorable
+fx session and does not contain complete compacted history. Review it before sharing.
 
-Provider replay state, recovery checkpoints, images, model identity, usage,
-approvals, settings and timestamps are excluded. The header lists these losses.
-No human authorship or end time is inferred.
-
-Two focused Zig tests and a debug build passed. The freshly built binary
-exported the upstream synthetic session fixture at
-`tests/fixtures/v1-sessions/plain/sessions/cb1PK0RGxCmY`.
-The fixture is copied here, with its native event file named `events.native`.
-It is renamed to `events.jsonl` only inside the temporary reproduction directory.
-A live inference test was skipped because native provider auth accepts an
-environment variable name rather than a private key file. The required
-file-only provider key rule could not be met without an unrelated auth change.
-
-To reproduce the packaged sample from an already patched checkout, run:
-
-```bash
-python3 upstream/fx/reproduce.py /path/to/patched/checkout
-```
-
-The reproduction uses temporary native fixture files, compares the exported
-records with the packaged sample and runs the ASR validator. It does not start
-inference. The package check runs in repository CI without fetching or compiling
-the upstream project.
+Source: [https://github.com/vercel-labs/fx](https://github.com/vercel-labs/fx).
+Base: `e7a69e5cf7da1dace751cfe9038b7a4448e84bcc`.

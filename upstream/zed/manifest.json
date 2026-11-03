@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "agent": "zed",
-  "base": "14b7b0ef3764d62a85070c8b5ccea105a2ad3235",
-  "head": "91e0792c5cb0cb44a8e18c772534be11ad1f05ea",
+  "base": "57dfd54adebb6d4a62cd1c42d397acb667a71c0a",
+  "head": "3cc21573f2f5a2fadfaeea9828da8f0f0e639364",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "91e0792c5cb0cb44a8e18c772534be11ad1f05ea",
-      "sha256": "4758de82992dd70209352b592d5992517b3538fd7208b84e8e6c19345fd00c37"
+      "commit": "3cc21573f2f5a2fadfaeea9828da8f0f0e639364",
+      "sha256": "9048ff9aa7c4312cd36b27c5dcb894b75764e12bdf7269bbde704d333ad61705"
     }
   ],
   "checks": [
@@ -19,19 +19,36 @@
   ],
   "provenance": {
     "agent": "zed",
-    "base": "14b7b0ef3764d62a85070c8b5ccea105a2ad3235",
-    "commit": "91e0792c5cb0cb44a8e18c772534be11ad1f05ea",
+    "base": "57dfd54adebb6d4a62cd1c42d397acb667a71c0a",
+    "commit": "3cc21573f2f5a2fadfaeea9828da8f0f0e639364",
     "patch": "patches/0001-native-agent-session-export.patch",
-    "files": {}
+    "files": {
+      ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
+      "PROPOSAL.md": "8e45e77017f11298cc25aec86935e3c476a6e4142bbe8c5a6175d8a910a2c5ee",
+      "README.md": "143bfdf330acd3a6fbcf44aebcb5b6959ab1bbeb65d5b080bb09add7d2c3232f",
+      "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+      "contracts.mjs": "1c666da2c41f6cce31505efac9fbfc902b5cceb1149d43449519fec99c6183dd",
+      "evidence.json": "ce2cee6b85f90d7775293067a1b49b6bd6ccffa01d7cb91195c5744c1e9a8b02",
+      "patches/0001-native-agent-session-export.patch": "9048ff9aa7c4312cd36b27c5dcb894b75764e12bdf7269bbde704d333ad61705",
+      "refresh.json": "8d11f5b7b0e4d76f8f93b7556b22b94887f887c89f2f383367e3e921c0ce5477",
+      "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+      "reproduce.py": "3b95154417fab3fa1e90252fe90154250d9e23d21d8a9694685e56f003b47500",
+      "samples/asr/session.jsonl": "a78785b9ec042e8851e8e64575b2acdc4061ba9a573630a195b4cc762fe5beba",
+      "samples/native/thread.json": "b9a6e8a339cc2fddce0dda64c789525002b0d99037f03424b87dcb79ebf81aea"
+    },
+    "repository": "https://github.com/zed-industries/zed",
+    "head": "3cc21573f2f5a2fadfaeea9828da8f0f0e639364",
+    "branch": "codex/patch-rust"
   },
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
-    "PROPOSAL.md": "c1639bace8ebcb776d2484b4b11598911f6f2ac7050060ea1c048770fb873456",
-    "README.md": "5e8f7e0d6db89e52fa5f5965b9a9effffa84924a4f4e757e814992582aa2448a",
+    "PROPOSAL.md": "8e45e77017f11298cc25aec86935e3c476a6e4142bbe8c5a6175d8a910a2c5ee",
+    "README.md": "143bfdf330acd3a6fbcf44aebcb5b6959ab1bbeb65d5b080bb09add7d2c3232f",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "contracts.mjs": "1c666da2c41f6cce31505efac9fbfc902b5cceb1149d43449519fec99c6183dd",
-    "evidence.json": "eda043b633c3913ea2ea54691a4362135f2d82feb31d8185d93b650dbe302184",
-    "patches/0001-native-agent-session-export.patch": "4758de82992dd70209352b592d5992517b3538fd7208b84e8e6c19345fd00c37",
+    "evidence.json": "ce2cee6b85f90d7775293067a1b49b6bd6ccffa01d7cb91195c5744c1e9a8b02",
+    "patches/0001-native-agent-session-export.patch": "9048ff9aa7c4312cd36b27c5dcb894b75764e12bdf7269bbde704d333ad61705",
+    "refresh.json": "8d11f5b7b0e4d76f8f93b7556b22b94887f887c89f2f383367e3e921c0ce5477",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
     "reproduce.py": "3b95154417fab3fa1e90252fe90154250d9e23d21d8a9694685e56f003b47500",
     "samples/asr/session.jsonl": "a78785b9ec042e8851e8e64575b2acdc4061ba9a573630a195b4cc762fe5beba",

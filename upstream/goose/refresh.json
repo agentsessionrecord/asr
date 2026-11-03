@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-03",
+  "status": "blocked",
+  "repository": "https://github.com/aaif-goose/goose",
+  "base": "0aa212e61d43e35ee2875ca5aa23c28ebac882c7",
+  "head": "f6ea649b9a383ad821f4da9d92f93067ccf0a6df",
+  "nativeChecks": "Not run. Required build admission remained unavailable and queued attempts were cancelled. No current native compilation, tests, lint or fixture execution is certified.",
+  "blocker": "All 12 required build-governor slots are occupied by other sessions.",
+  "sampleStatus": "Retained synthetic sample. Native regeneration on this base is pending.",
+  "liveTestStatus": "not-live-tested",
+  "notes": "Local exploratory patch. Upstream submission requires a Ready issue. ASR import is separate work.",
+  "patchReplay": {
+    "method": "temporary Git index",
+    "result": "matches committed source tree",
+    "tree": "c2d1938f41fb57984e8916daf46495823c492c54"
+  },
+  "packageChecks": "Not run. The check.mjs and reproduce.mjs commands were queued, then cancelled because build admission remained unavailable.",
+  "validator": "Not rerun. The retained synthetic sample is unchanged. Historical validator results are not current validation."
+}

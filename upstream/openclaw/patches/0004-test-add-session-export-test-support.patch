@@ -1,7 +1,7 @@
-From 82c674b445fd1d220fdd79a34cb781a081b050cc Mon Sep 17 00:00:00 2001
+From 905d8674b0919edde2e522395fad7a61ead4adf2 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 16:26:17 -0500
-Subject: [PATCH 4/8] test: add synthetic session export fixtures
+Subject: [PATCH] test: add synthetic session export fixtures
 
 ---
  .../agent-session-export.test-support.ts      | 658 ++++++++++++++++++
@@ -672,3 +672,6 @@ index 00000000000..6e4b6b90eb5
 +  }
 +  return { agentId: "main", env, path: resolveOpenClawAgentSqlitePath({ agentId: "main", env }) };
 +}
+-- 
+2.43.0
+

@@ -16,5 +16,7 @@
     }
   },
   "liveTestStatus": "not-live-tested",
-  "liveTestNotes": "No account-backed app session was started. Native persistence tests and synthetic SQLite export passed."
+  "liveTestNotes": "No account-backed app session was started. Native persistence tests and synthetic SQLite export passed.",
+  "evidenceScope": "Historical evidence from before the 2026-11-03 refresh. It does not certify the refreshed source.",
+  "currentCodeLiveTest": "unverified"
 }

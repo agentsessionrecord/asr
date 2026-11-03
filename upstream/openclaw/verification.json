@@ -1,0 +1,105 @@
+{
+  "date": "2026-11-03",
+  "sourceBase": "05a73c2679f5c7bb660e5f391ee89dd5e618f565",
+  "status": "blocked",
+  "checks": [
+    {
+      "command": [
+        "node",
+        "scripts/run-vitest.mjs",
+        "src/sessions/agent-session-export.test.ts",
+        "src/cli/command-path-policy.test.ts",
+        "src/cli/program/register.status-health-sessions.test.ts"
+      ],
+      "exit": 2,
+      "error": null
+    },
+    {
+      "command": [
+        "pnpm",
+        "exec",
+        "oxlint",
+        "src/sessions/agent-session-export.ts",
+        "src/sessions/agent-session-export.json.ts",
+        "src/sessions/agent-session-export.transcript.ts",
+        "src/commands/sessions-export.ts"
+      ],
+      "exit": 1,
+      "error": null
+    },
+    {
+      "command": [
+        "pnpm",
+        "exec",
+        "tsgo",
+        "--noEmit"
+      ],
+      "exit": 1,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--test",
+        "{package}/plugin/transcript.test.mjs"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "{package}/plugin/check-entry.mjs",
+        "{checkout}"
+      ],
+      "exit": 1,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--import",
+        "./scripts/tsx.mjs",
+        "{package}/reproduce-native.mjs",
+        "{package}/samples/native/source.json",
+        "{scratch}/session.jsonl"
+      ],
+      "exit": 1,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "{package}/reproduce-plugin.mjs"
+      ],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "tools/validator/bin/asr-validate.js",
+        "--json",
+        "{package}/samples/asr/plugin.jsonl"
+      ],
+      "exit": 1,
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "tools/validator/bin/asr-validate.js",
+        "--json",
+        "{package}/samples/asr/session.jsonl"
+      ],
+      "exit": 1,
+      "error": null
+    }
+  ],
+  "validator": {
+    "status": "unavailable"
+  },
+  "liveTest": "not-run-for-refreshed-source",
+  "reason": "Plugin mapper tests and synthetic plugin export passed. Repository tests, lint, typecheck, SDK registration and secondary native export failed to start because required upstream dependencies are absent. Validator calls could not load ajv in the ASR checkout.",
+  "packageCheckStatus": "The combined check.mjs and reproduce.mjs lease timed out after 120 seconds while queued."
+}

@@ -1,16 +1,19 @@
-From 794e53e86087dd945473bb044a57ffeceda9ad50 Mon Sep 17 00:00:00 2001
+From ca3c5cac1c2324326f64f807eb33bc0c5d4265b3 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:27 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] feat(session): export Agent Session Record from session show
 
 ---
- internal/asr/export.go         | 153 +++++++++++++++++++++++++++++++++
- internal/asr/export_test.go    |  50 +++++++++++
- internal/cmd/session_export.go |  60 +++++++++++++
- 3 files changed, 263 insertions(+)
+ internal/asr/export.go              | 153 ++++++++++++++++++++++++++++
+ internal/asr/export_test.go         |  50 +++++++++
+ internal/cmd/session.go             |  28 ++++-
+ internal/cmd/session_export.go      |  49 +++++++++
+ internal/cmd/session_export_test.go |  54 ++++++++++
+ 5 files changed, 329 insertions(+), 5 deletions(-)
  create mode 100644 internal/asr/export.go
  create mode 100644 internal/asr/export_test.go
  create mode 100644 internal/cmd/session_export.go
+ create mode 100644 internal/cmd/session_export_test.go
 
 diff --git a/internal/asr/export.go b/internal/asr/export.go
 new file mode 100644
@@ -227,71 +230,185 @@ index 0000000..5b2f7d5
 +	require.Error(t, Export(&bytes.Buffer{}, session.Session{}, nil))
 +	require.Error(t, Export(&bytes.Buffer{}, session.Session{ID: "s"}, []message.Message{{SessionID: "other"}}))
 +}
+diff --git a/internal/cmd/session.go b/internal/cmd/session.go
+index 96757fd..cbbf3b8 100644
+--- a/internal/cmd/session.go
++++ b/internal/cmd/session.go
+@@ -17,6 +17,7 @@ import (
+ 	"charm.land/lipgloss/v2"
+ 	"github.com/charmbracelet/colorprofile"
+ 	"github.com/charmbracelet/crush/internal/agent/tools"
++	"github.com/charmbracelet/crush/internal/asr"
+ 	"github.com/charmbracelet/crush/internal/config"
+ 	"github.com/charmbracelet/crush/internal/db"
+ 	"github.com/charmbracelet/crush/internal/event"
+@@ -38,11 +39,13 @@ var sessionCmd = &cobra.Command{
+ }
+ 
+ var (
+-	sessionListJSON   bool
+-	sessionShowJSON   bool
+-	sessionLastJSON   bool
+-	sessionDeleteJSON bool
+-	sessionRenameJSON bool
++	sessionListJSON       bool
++	sessionShowJSON       bool
++	sessionShowFormat     string
++	sessionShowOutputPath string
++	sessionLastJSON       bool
++	sessionDeleteJSON     bool
++	sessionRenameJSON     bool
+ )
+ 
+ var sessionListCmd = &cobra.Command{
+@@ -88,6 +91,9 @@ var sessionRenameCmd = &cobra.Command{
+ func init() {
+ 	sessionListCmd.Flags().BoolVar(&sessionListJSON, "json", false, "output in JSON format")
+ 	sessionShowCmd.Flags().BoolVar(&sessionShowJSON, "json", false, "output in JSON format")
++	sessionShowCmd.Flags().StringVar(&sessionShowFormat, "format", "", "Export format: agent-session")
++	sessionShowCmd.Flags().StringVarP(&sessionShowOutputPath, "output", "o", "", "Write to a .json or .jsonl file")
++	sessionShowCmd.MarkFlagsMutuallyExclusive("json", "format")
+ 	sessionLastCmd.Flags().BoolVar(&sessionLastJSON, "json", false, "output in JSON format")
+ 	sessionDeleteCmd.Flags().BoolVar(&sessionDeleteJSON, "json", false, "output in JSON format")
+ 	sessionRenameCmd.Flags().BoolVar(&sessionRenameJSON, "json", false, "output in JSON format")
+@@ -263,6 +269,10 @@ func resolveSessionID(ctx context.Context, svc session.Service, id string) (sess
+ }
+ 
+ func runSessionShow(cmd *cobra.Command, args []string) error {
++	format, err := sessionShowExportFormat(sessionShowFormat, sessionShowOutputPath, sessionShowJSON)
++	if err != nil {
++		return err
++	}
+ 	event.SetNonInteractive(true)
+ 
+ 	ctx, svc, cleanup, err := sessionSetup(cmd)
+@@ -284,6 +294,14 @@ func runSessionShow(cmd *cobra.Command, args []string) error {
+ 	}
+ 
+ 	msgPtrs := messagePtrs(msgs)
++	if format != "" {
++		return writeSessionShow(cmd.OutOrStdout(), sessionShowOutputPath, func(w io.Writer) error {
++			if format == "agent-session" {
++				return asr.Export(w, sess, msgs)
++			}
++			return outputSessionJSON(w, sess, msgPtrs)
++		})
++	}
+ 	if sessionShowJSON {
+ 		return outputSessionJSON(cmd.OutOrStdout(), sess, msgPtrs)
+ 	}
 diff --git a/internal/cmd/session_export.go b/internal/cmd/session_export.go
 new file mode 100644
-index 0000000..1864d91
+index 0000000..107cf78
 --- /dev/null
 +++ b/internal/cmd/session_export.go
-@@ -0,0 +1,60 @@
+@@ -0,0 +1,49 @@
 +package cmd
 +
 +import (
-+	"crypto/sha256"
 +	"fmt"
++	"io"
 +	"os"
 +	"path/filepath"
-+
-+	"github.com/charmbracelet/crush/internal/asr"
-+	"github.com/spf13/cobra"
++	"strings"
 +)
 +
-+func init() {
-+	command := &cobra.Command{
-+		Use: "export", Short: "Export one session as Agent Session Record",
-+		Args: cobra.NoArgs,
-+		RunE: func(command *cobra.Command, _ []string) error {
-+			format, _ := command.Flags().GetString("format")
-+			id, _ := command.Flags().GetString("session")
-+			output, _ := command.Flags().GetString("output")
-+			if format != "agent-session" || id == "" {
-+				return fmt.Errorf("use --format agent-session and one --session")
-+			}
-+			context, services, cleanup, err := sessionSetup(command)
-+			if err != nil {
-+				return err
-+			}
-+			defer cleanup()
-+			sess, err := resolveSessionID(context, services.sessions, id)
-+			if err != nil {
-+				return err
-+			}
-+			messages, err := services.messages.List(context, sess.ID)
-+			if err != nil {
-+				return err
-+			}
-+			if output == "" {
-+				return asr.Export(command.OutOrStdout(), sess, messages)
-+			}
-+			if err := os.MkdirAll(output, 0o700); err != nil {
-+				return err
-+			}
-+			name := fmt.Sprintf("%x.jsonl", sha256.Sum256([]byte(sess.ID)))
-+			file, err := os.OpenFile(filepath.Join(output, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-+			if err != nil {
-+				return err
-+			}
-+			writeErr := asr.Export(file, sess, messages)
-+			closeErr := file.Close()
-+			if writeErr != nil {
-+				return writeErr
-+			}
-+			return closeErr
-+		},
++func sessionShowExportFormat(format, output string, jsonOutput bool) (string, error) {
++	if format != "" && format != "agent-session" {
++		return "", fmt.Errorf("unsupported export format: %s", format)
 +	}
-+	command.Flags().String("format", "agent-session", "Export format")
-+	command.Flags().String("session", "", "Native session ID or unique hash")
-+	command.Flags().String("output", "", "Output directory, otherwise stdout")
-+	sessionCmd.AddCommand(command)
++	if format != "" && jsonOutput {
++		return "", fmt.Errorf("--json and --format cannot be combined")
++	}
++	if jsonOutput {
++		return "json", nil
++	}
++	if format != "" || output == "" {
++		return format, nil
++	}
++	switch strings.ToLower(filepath.Ext(output)) {
++	case ".jsonl":
++		return "agent-session", nil
++	case ".json":
++		return "json", nil
++	default:
++		return "", fmt.Errorf("use a .jsonl or .json output path, or --format agent-session")
++	}
 +}
-
-base-commit: b576f95896704c88ed84b2f16c3c346d6c58cb42
++
++func writeSessionShow(stdout io.Writer, output string, write func(io.Writer) error) error {
++	if output == "" {
++		return write(stdout)
++	}
++	file, err := os.OpenFile(output, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
++	if err != nil {
++		return err
++	}
++	writeErr := write(file)
++	closeErr := file.Close()
++	if writeErr != nil {
++		_ = os.Remove(output)
++		return writeErr
++	}
++	return closeErr
++}
+diff --git a/internal/cmd/session_export_test.go b/internal/cmd/session_export_test.go
+new file mode 100644
+index 0000000..a5ba885
+--- /dev/null
++++ b/internal/cmd/session_export_test.go
+@@ -0,0 +1,54 @@
++package cmd
++
++import (
++	"bytes"
++	"errors"
++	"io"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/stretchr/testify/require"
++)
++
++func TestSessionShowExportFormat(t *testing.T) {
++	t.Parallel()
++	for _, tc := range []struct {
++		format, output string
++		json           bool
++		want           string
++		invalid        bool
++	}{
++		{want: ""}, {json: true, want: "json"}, {format: "agent-session", want: "agent-session"},
++		{output: "session.asr.jsonl", want: "agent-session"}, {output: "session.json", want: "json"},
++		{output: "session.txt", invalid: true}, {format: "other", invalid: true},
++		{format: "agent-session", json: true, invalid: true},
++	} {
++		got, err := sessionShowExportFormat(tc.format, tc.output, tc.json)
++		if tc.invalid {
++			require.Error(t, err)
++		} else {
++			require.NoError(t, err)
++			require.Equal(t, tc.want, got)
++		}
++	}
++}
++
++func TestSessionShowWritesPrivateFileWithoutClobbering(t *testing.T) {
++	t.Parallel()
++	var stdout bytes.Buffer
++	output := filepath.Join(t.TempDir(), "session.asr.jsonl")
++	write := func(w io.Writer) error { _, err := io.WriteString(w, "synthetic\n"); return err }
++	require.NoError(t, writeSessionShow(&stdout, output, write))
++	info, err := os.Stat(output)
++	require.NoError(t, err)
++	require.Equal(t, os.FileMode(0o600), info.Mode().Perm())
++	require.Empty(t, stdout.String())
++	require.Error(t, writeSessionShow(&stdout, output, write))
++	require.NoError(t, writeSessionShow(&stdout, "", write))
++	require.Equal(t, "synthetic\n", stdout.String())
++	failed := filepath.Join(t.TempDir(), "failed.jsonl")
++	require.Error(t, writeSessionShow(&stdout, failed, func(io.Writer) error { return errors.New("write failed") }))
++	_, err = os.Stat(failed)
++	require.True(t, os.IsNotExist(err))
++}

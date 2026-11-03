@@ -1,0 +1,3243 @@
+From 35d3e90eb233052dfe643d1e7c00297bdf42cffd Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:32:25 -0500
+Subject: [PATCH] Add offline session export crate with core mappings and tests
+
+---
+ codex-rs/Cargo.lock                           |  23 +
+ codex-rs/Cargo.toml                           |   2 +
+ codex-rs/session-export/BUILD.bazel           |   6 +
+ codex-rs/session-export/Cargo.toml            |  32 +
+ codex-rs/session-export/examples/export.rs    |  13 +
+ codex-rs/session-export/src/content.rs        | 270 ++++++++
+ codex-rs/session-export/src/export.rs         | 253 ++++++++
+ codex-rs/session-export/src/lib.rs            |  83 +++
+ codex-rs/session-export/src/mapping/events.rs | 171 +++++
+ codex-rs/session-export/src/mapping/mod.rs    | 308 +++++++++
+ .../session-export/src/mapping/responses.rs   | 179 ++++++
+ .../session-export/src/mapping/structure.rs   | 185 ++++++
+ codex-rs/session-export/src/mapping/tools.rs  | 243 ++++++++
+ codex-rs/session-export/src/source.rs         | 520 ++++++++++++++++
+ codex-rs/session-export/src/state.rs          | 124 ++++
+ codex-rs/session-export/src/stream.rs         |  87 +++
+ codex-rs/session-export/src/tests.rs          | 582 ++++++++++++++++++
+ 17 files changed, 3081 insertions(+)
+ create mode 100644 codex-rs/session-export/BUILD.bazel
+ create mode 100644 codex-rs/session-export/Cargo.toml
+ create mode 100644 codex-rs/session-export/examples/export.rs
+ create mode 100644 codex-rs/session-export/src/content.rs
+ create mode 100644 codex-rs/session-export/src/export.rs
+ create mode 100644 codex-rs/session-export/src/lib.rs
+ create mode 100644 codex-rs/session-export/src/mapping/events.rs
+ create mode 100644 codex-rs/session-export/src/mapping/mod.rs
+ create mode 100644 codex-rs/session-export/src/mapping/responses.rs
+ create mode 100644 codex-rs/session-export/src/mapping/structure.rs
+ create mode 100644 codex-rs/session-export/src/mapping/tools.rs
+ create mode 100644 codex-rs/session-export/src/source.rs
+ create mode 100644 codex-rs/session-export/src/state.rs
+ create mode 100644 codex-rs/session-export/src/stream.rs
+ create mode 100644 codex-rs/session-export/src/tests.rs
+
+diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
+index 4e0b6e98a4..5b03e52c77 100644
+--- a/codex-rs/Cargo.lock
++++ b/codex-rs/Cargo.lock
+@@ -4844,6 +4844,29 @@ dependencies = [
+  "tracing",
+ ]
+ 
++[[package]]
++name = "codex-session-export"
++version = "0.0.0"
++dependencies = [
++ "anyhow",
++ "chrono",
++ "clap",
++ "codex-protocol",
++ "codex-rollout",
++ "codex-state",
++ "codex-utils-absolute-path",
++ "codex-utils-home-dir",
++ "codex-utils-path-uri",
++ "pretty_assertions",
++ "serde",
++ "serde_json",
++ "sha2 0.10.9",
++ "sqlx",
++ "tempfile",
++ "tokio",
++ "zstd",
++]
++
+ [[package]]
+ name = "codex-shell-command"
+ version = "0.0.0"
+diff --git a/codex-rs/Cargo.toml b/codex-rs/Cargo.toml
+index 7453a47de5..4b8522943e 100644
+--- a/codex-rs/Cargo.toml
++++ b/codex-rs/Cargo.toml
+@@ -105,6 +105,7 @@ members = [
+     "protocol/tests/support",
+     "prompts",
+     "rollout",
++    "session-export",
+     "rollout-trace",
+     "rmcp-client",
+     "responses-api-proxy",
+@@ -180,6 +181,7 @@ license = "Apache-2.0"
+ 
+ [workspace.dependencies]
+ # Internal
++codex-session-export = { path = "session-export" }
+ codex-realtime-webrtc = { path = "realtime-webrtc" }
+ app_test_support = { path = "app-server/tests/common" }
+ codex-analytics = { path = "analytics" }
+diff --git a/codex-rs/session-export/BUILD.bazel b/codex-rs/session-export/BUILD.bazel
+new file mode 100644
+index 0000000000..1dd212846b
+--- /dev/null
++++ b/codex-rs/session-export/BUILD.bazel
+@@ -0,0 +1,6 @@
++load("//:defs.bzl", "codex_rust_crate")
++
++codex_rust_crate(
++    name = "session-export",
++    crate_name = "codex_session_export",
++)
+diff --git a/codex-rs/session-export/Cargo.toml b/codex-rs/session-export/Cargo.toml
+new file mode 100644
+index 0000000000..0f3f1500eb
+--- /dev/null
++++ b/codex-rs/session-export/Cargo.toml
+@@ -0,0 +1,32 @@
++[package]
++name = "codex-session-export"
++version.workspace = true
++edition.workspace = true
++license.workspace = true
++
++[lib]
++doctest = false
++
++[lints]
++workspace = true
++
++[dependencies]
++anyhow = { workspace = true }
++chrono = { workspace = true }
++clap = { workspace = true, features = ["derive", "env"] }
++codex-utils-home-dir = { workspace = true }
++codex-utils-path-uri = { workspace = true }
++codex-protocol = { workspace = true }
++codex-rollout = { workspace = true }
++codex-state = { workspace = true }
++codex-utils-absolute-path = { workspace = true }
++serde = { workspace = true }
++serde_json = { workspace = true, features = ["arbitrary_precision"] }
++sha2 = { workspace = true }
++sqlx = { workspace = true }
++tempfile = { workspace = true }
++tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
++
++[dev-dependencies]
++pretty_assertions = { workspace = true }
++zstd = { workspace = true }
+diff --git a/codex-rs/session-export/examples/export.rs b/codex-rs/session-export/examples/export.rs
+new file mode 100644
+index 0000000000..e52825367a
+--- /dev/null
++++ b/codex-rs/session-export/examples/export.rs
+@@ -0,0 +1,13 @@
++//! Small driver for profiling the same command used by the full Codex CLI.
++use clap::Parser;
++
++#[derive(Parser)]
++struct Cli {
++    #[command(flatten)]
++    sessions: codex_session_export::SessionsCommand,
++}
++
++#[tokio::main]
++async fn main() -> anyhow::Result<()> {
++    Cli::parse().sessions.run().await
++}
+diff --git a/codex-rs/session-export/src/content.rs b/codex-rs/session-export/src/content.rs
+new file mode 100644
+index 0000000000..2e750a012c
+--- /dev/null
++++ b/codex-rs/session-export/src/content.rs
+@@ -0,0 +1,270 @@
++use serde_json::Value;
++use serde_json::json;
++
++pub(crate) fn text(value: &str) -> Value {
++    json!({"type":"text","text":value})
++}
++
++pub(crate) fn parts(value: &Value, metadata: &Value) -> Vec<Value> {
++    if let Some(s) = value.as_str() {
++        return vec![text(s)];
++    }
++    value.as_array().into_iter().flatten().enumerate().map(|(i, p)| {
++        let mut part = match p["type"].as_str().unwrap_or_default() {
++            "input_text" | "output_text" | "text" | "Text" => {
++                let mut value = text(p["text"].as_str().unwrap_or_default());
++                let mut extra = p.clone();
++                if let Some(m) = extra.as_object_mut() {m.remove("text"); m.remove("type");}
++                if extra.as_object().is_some_and(|m| !m.is_empty()) { meta(&mut value, "content", extra); }
++                value
++            }
++            "input_image" | "image" if p["image_url"].is_string() => image_url(p["image_url"].as_str().unwrap_or_default()),
++            "local_image" | "local_audio" | "skill" | "mention" => json!({"type":"resource_link","uri":p["path"],"name":p["name"].as_str().unwrap_or(p["type"].as_str().unwrap_or("attachment"))}),
++            "encrypted_content" => json!({"type":"reasoning","visibility":"encrypted"}),
++            "refusal" => json!({"type":"refusal","text":p["refusal"].as_str().or(p["text"].as_str()).unwrap_or_default()}),
++            "image" | "audio" | "resource" | "resource_link" => p.clone(),
++            _ => json!({"type":"com.openai.codex/content","_meta":{"com.openai.codex":{"content":p}}}),
++        };
++        let kind = metadata["content_item_kinds"][i].as_str().unwrap_or_default();
++        let provenance = &metadata["content_item_metadata"][i]["provenance"];
++        let (author, origin) = match kind {
++            "user.text" | "user.image" | "user.audio" => (Some("human"), Some("prompt")),
++            "hooks.additional_context" => (Some("hook"),Some("injected")),
++            "multi_agent.subagent_notification" => (Some("agent"),Some("subagent_report")),
++            "multi_agent.inter_agent_message" | "multi_agent.inter_agent_completion_message" => (Some("agent"),Some("injected")),
++            "generic.developer_instructions" => (None,Some("injected")),
++            "memories.instructions" => (Some("harness"),Some("memory")),
++            "environments.environment_context" => (Some("harness"),Some("injected")),
++            s if s.ends_with(".instructions") => (Some("harness"),Some("instructions")),
++            _ => match provenance["type"].as_str() {
++                Some("user") => (Some("human"),Some("prompt")),
++                Some("harness") if provenance["hook"] == true => (Some("hook"),Some("injected")),
++                Some("harness" | "agents_md" | "skills") => (Some("harness"),Some("injected")),
++                Some("tool") => (Some("tool"),Some("injected")),
++                Some("developer_instructions") => (None,Some("injected")),
++                _ => (None,None),
++            }
++        };
++        if let Some(author) = author { part["author"] = author.into(); }
++        if let Some(origin) = origin { part["origin"] = origin.into(); }
++        if !kind.is_empty() { meta(&mut part,"contentKind",json!(kind)); }
++        if !provenance.is_null() { meta(&mut part,"provenance",provenance.clone()); }
++        part
++    }).collect()
++}
++
++pub(crate) fn image_url(url: &str) -> Value {
++    if let Some(data) = url.strip_prefix("data:")
++        && let Some((mime, data)) = data.split_once(";base64,")
++    {
++        return json!({"type":"image","mimeType":mime,"data":data});
++    }
++    json!({"type":"resource_link","uri":url,"name":"image"})
++}
++
++pub(crate) fn meta(record: &mut Value, name: &str, value: Value) {
++    if record.get("_meta").is_none() {
++        record["_meta"] = json!({});
++    }
++    if !record["_meta"]["com.openai.codex"].is_object() {
++        record["_meta"]["com.openai.codex"] = json!({});
++    }
++    record["_meta"]["com.openai.codex"][name] = value;
++}
++
++/// Exclude explicit credential fields and opaque provider state everywhere,
++/// including vendor data. Return (redacted secrets, omitted opaque state).
++pub(crate) fn strip_private(value: &mut Value) -> (bool, bool) {
++    let mut losses = (false, false);
++    match value {
++        Value::Object(o) => {
++            let encrypted = o.get("encrypted_content").is_some_and(|v| !v.is_null());
++            o.retain(|key, v| {
++                if matches!(
++                    key.as_str(),
++                    "encrypted_content" | "encrypted_function_args" | "signature"
++                ) {
++                    losses.1 |= !v.is_null();
++                    return false;
++                }
++                if matches!(
++                    key.to_ascii_lowercase().as_str(),
++                    "api_key"
++                        | "access_token"
++                        | "refresh_token"
++                        | "password"
++                        | "authorization"
++                        | "client_secret"
++                ) && v.is_string()
++                {
++                    losses.0 = true;
++                    return false;
++                }
++                true
++            });
++            if encrypted {
++                o.insert("_asr_encrypted_content".into(), true.into());
++            }
++            for child in o.values_mut() {
++                let nested = strip_private(child);
++                losses.0 |= nested.0;
++                losses.1 |= nested.1;
++            }
++        }
++        Value::Array(a) => {
++            for child in a {
++                let nested = strip_private(child);
++                losses.0 |= nested.0;
++                losses.1 |= nested.1;
++            }
++        }
++        Value::String(s) if matches!(s.trim_start().chars().next(), Some('{' | '[')) => {
++            // Encoded tool arguments are still records, not an escape hatch for
++            // known credential fields. Leave their exact bytes alone otherwise.
++            if let Ok(mut parsed) = serde_json::from_str::<Value>(s) {
++                losses = strip_private(&mut parsed);
++                if losses.0 || losses.1 {
++                    *s = parsed.to_string();
++                }
++            }
++        }
++        _ => {}
++    }
++    losses
++}
++
++pub(crate) fn collect_credentials(value: &Value, secrets: &mut Vec<String>) {
++    match value {
++        Value::Object(o) => {
++            for (key, child) in o {
++                if matches!(
++                    key.to_ascii_lowercase().as_str(),
++                    "api_key"
++                        | "access_token"
++                        | "refresh_token"
++                        | "password"
++                        | "authorization"
++                        | "client_secret"
++                ) && let Some(s) = child.as_str().filter(|s| !s.is_empty())
++                {
++                    secrets.push(s.to_owned());
++                }
++                collect_credentials(child, secrets);
++            }
++        }
++        Value::Array(a) => {
++            for child in a {
++                collect_credentials(child, secrets);
++            }
++        }
++        Value::String(s) if matches!(s.trim_start().chars().next(), Some('{' | '[')) => {
++            if let Ok(parsed) = serde_json::from_str::<Value>(s) {
++                collect_credentials(&parsed, secrets);
++            }
++        }
++        _ => {}
++    }
++}
++
++pub(crate) fn copy(record: &mut Value, dest: &str, source: &Value, key: &str) {
++    if let Some(value) = source.get(key).filter(|v| !v.is_null()) {
++        record[dest] = value.clone();
++    }
++}
++
++/// Preserve wide native values before a reader can round them through binary64.
++pub(crate) fn stringify_wide_numbers(value: &mut Value) -> bool {
++    match value {
++        Value::Number(n) if n.as_f64().is_none_or(|n| n.abs() > 9_007_199_254_740_991.0) => {
++            *value = Value::String(n.to_string());
++            true
++        }
++        Value::Array(values) => values
++            .iter_mut()
++            .fold(false, |changed, v| stringify_wide_numbers(v) | changed),
++        Value::Object(values) => values
++            .values_mut()
++            .fold(false, |changed, v| stringify_wide_numbers(v) | changed),
++        _ => false,
++    }
++}
++
++pub(crate) fn timestamp(value: &Value) -> Option<String> {
++    if let Some(s) = value.as_str() {
++        return chrono::DateTime::parse_from_rfc3339(s).ok().map(|t| {
++            t.with_timezone(&chrono::Utc)
++                .to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)
++        });
++    }
++    value
++        .as_i64()
++        .and_then(chrono::DateTime::from_timestamp_millis)
++        .map(|t| t.to_rfc3339_opts(chrono::SecondsFormat::Millis, true))
++}
++
++/// Scrub known secret answers, including copies inside JSON-encoded strings.
++/// This is deliberately not a general archive sharing or credential detector.
++pub(crate) fn clean_secrets(value: &mut Value, secrets: &[String]) -> Vec<String> {
++    let mut paths = Vec::new();
++    if !secrets.is_empty() {
++        scrub(value, secrets, "", &mut paths, 0);
++    }
++    paths
++}
++
++fn scrub(value: &mut Value, secrets: &[String], path: &str, paths: &mut Vec<String>, depth: usize) {
++    match value {
++        Value::String(s) => {
++            let before = s.clone();
++            if depth < 8
++                && matches!(s.trim_start().chars().next(), Some('{' | '['))
++                && let Ok(mut parsed) = serde_json::from_str::<Value>(s)
++            {
++                let mut nested = Vec::new();
++                scrub(&mut parsed, secrets, "", &mut nested, depth + 1);
++                if !nested.is_empty() {
++                    *s = parsed.to_string();
++                }
++            }
++            for secret in secrets {
++                if !secret.is_empty() {
++                    *s = s.replace(secret, "[REDACTED SECRET]");
++                }
++            }
++            if *s != before {
++                paths.push(path.to_owned());
++            }
++        }
++        Value::Array(a) => {
++            for (i, v) in a.iter_mut().enumerate() {
++                scrub(v, secrets, &format!("{path}/{i}"), paths, depth);
++            }
++        }
++        Value::Object(o) => {
++            for (k, v) in o {
++                scrub(
++                    v,
++                    secrets,
++                    &format!("{path}/{}", k.replace('~', "~0").replace('/', "~1")),
++                    paths,
++                    depth,
++                );
++            }
++        }
++        _ => {}
++    }
++}
++
++pub(crate) fn session_ref(id: &str) -> String {
++    let mut encoded = String::new();
++    for c in id.chars() {
++        if c.is_control() || matches!(c, ' ' | '%' | ':' | '#') {
++            for b in c.to_string().as_bytes() {
++                encoded.push_str(&format!("%{b:02X}"));
++            }
++        } else {
++            encoded.push(c);
++        }
++    }
++    format!("codex:{encoded}")
++}
+diff --git a/codex-rs/session-export/src/export.rs b/codex-rs/session-export/src/export.rs
+new file mode 100644
+index 0000000000..1bd7aaf0af
+--- /dev/null
++++ b/codex-rs/session-export/src/export.rs
+@@ -0,0 +1,253 @@
++use std::collections::HashMap;
++use std::fs;
++use std::io::Write;
++use std::path::Path;
++use std::time::Instant;
++
++use anyhow::Context;
++use anyhow::ensure;
++use serde::Serialize;
++use serde_json::Value;
++use serde_json::json;
++use sha2::Digest;
++use sha2::Sha256;
++
++use crate::ExportArgs;
++use crate::content::*;
++use crate::mapping::Mapper;
++use crate::source;
++use crate::source::Index;
++use crate::source::Source;
++use crate::state::Snapshot;
++
++#[derive(Default, Serialize)]
++pub(crate) struct Stats {
++    pub threads: u64,
++    pub rollouts: u64,
++    pub native_lines: u64,
++    pub records: u64,
++    pub decoded_bytes: u64,
++    pub output_bytes: u64,
++    pub typed_fallbacks: u64,
++    pub gaps: u64,
++    pub recovered_headers: u64,
++    pub unavailable_sources: u64,
++    pub elapsed_seconds: f64,
++}
++
++pub(crate) fn run(home: &Path, args: &ExportArgs, mut state: Snapshot) -> anyhow::Result<Stats> {
++    let started = Instant::now();
++    ensure!(args.max_line_bytes > 0, "--max-line-bytes must be positive");
++    let inventory = source::inventory(home, args.max_line_bytes, &state.threads)?;
++    let rollouts: HashMap<_, _> = inventory
++        .segments
++        .iter()
++        .map(|s| (s.rollout_id.clone(), s.thread_id.clone()))
++        .collect();
++    let rollouts = std::sync::Arc::new(rollouts);
++    let mut groups = source::groups(inventory.segments)?;
++    if let Some(thread) = args.thread {
++        groups.retain(|id, _| id == &thread.to_string());
++        ensure!(!groups.is_empty(), "thread not found");
++    }
++    let mut output = None;
++    if let Some(path) = &args.out {
++        ensure!(
++            !path.exists(),
++            "output already exists; select a new directory"
++        );
++        let parent = path
++            .parent()
++            .filter(|p| !p.as_os_str().is_empty())
++            .unwrap_or(Path::new("."));
++        fs::create_dir_all(parent)?;
++        let mut builder = tempfile::Builder::new();
++        builder.prefix(".codex-asr-");
++        let mut sessions = fs::DirBuilder::new();
++        #[cfg(unix)]
++        {
++            use std::os::unix::fs::DirBuilderExt;
++            use std::os::unix::fs::PermissionsExt;
++            builder.permissions(fs::Permissions::from_mode(0o700));
++            sessions.mode(0o700);
++        }
++        let staging = builder.tempdir_in(parent)?;
++        sessions.create(staging.path().join("sessions"))?;
++        output = Some(staging);
++    }
++    let mut stats = Stats {
++        unavailable_sources: inventory.unavailable.len() as u64,
++        ..Stats::default()
++    };
++    let mut entries = Vec::new();
++    for (id, segments) in groups {
++        let mut readers = Vec::new();
++        let mut index = Index::default();
++        for segment in &segments {
++            stats.recovered_headers +=
++                u64::from(segment.meta.get("_asrIdentityRecovery").is_some());
++            let mut reader = Source::open(&segment.path, args.max_line_bytes)?;
++            stats.decoded_bytes += reader.bytes;
++            index.scan(&mut reader)?;
++            readers.push(reader);
++        }
++        for reader in &mut readers {
++            index.scan_secrets(reader)?;
++        }
++        let first = segments.first().context("empty segment group")?;
++        let mut meta = first.meta.clone();
++        clean_secrets(&mut meta, &index.secrets);
++        let mut mapper = Mapper::new(
++            meta,
++            index,
++            first.rollout_id.clone(),
++            rollouts.clone(),
++            home.to_string_lossy().into_owned(),
++        )?;
++        if segments.len() > 1 {
++            mapper.missing.insert("segment_order".into());
++        }
++        for (segment, reader) in segments.iter().zip(&mut readers) {
++            while let Some(line) = reader.next()? {
++                mapper.line(segment, line)?;
++            }
++        }
++        let mut row = state.threads.remove(&id);
++        if let Some(row) = &mut row {
++            clean_secrets(row, &mapper.index.secrets);
++        }
++        let annotations = annotations(
++            &mut mapper,
++            row.as_ref(),
++            state.rows.remove(&id).unwrap_or_default(),
++        )?;
++        if !state.available {
++            mapper.missing.insert("thread_metadata".into());
++        }
++        mapper.stream.finish()?;
++        let mut completed = tempfile::NamedTempFile::new()?;
++        serde_json::to_writer(&mut completed, &mapper.header())?;
++        completed.write_all(b"\n")?;
++        std::io::copy(&mut mapper.stream.file.reopen()?, &mut completed)?;
++        completed.flush()?;
++        let mut digest = Sha256::new();
++        std::io::copy(&mut completed.reopen()?, &mut digest)?;
++        let digest = format!("{:x}", digest.finalize());
++        let bytes = completed.as_file().metadata()?.len();
++        let records = mapper.stream.count + 1;
++        if let Some(output) = &output {
++            let storage = format!("{:x}", Sha256::digest(session_ref(&id).as_bytes()));
++            let relative = format!("sessions/{storage}.jsonl");
++            // Copy into a create-new file with private permissions, then publish
++            // the complete directory and manifest together.
++            let mut dest = private_file(&output.path().join(&relative))?;
++            std::io::copy(&mut completed.reopen()?, &mut dest)?;
++            dest.sync_all()?;
++            if !annotations.is_empty() {
++                let mut sidecar = private_file(
++                    &output
++                        .path()
++                        .join(format!("sessions/{storage}.annotations.jsonl")),
++                )?;
++                for annotation in &annotations {
++                    serde_json::to_writer(&mut sidecar, annotation)?;
++                    sidecar.write_all(b"\n")?;
++                }
++                sidecar.sync_all()?;
++            }
++            entries.push(json!({"agent":"codex","sessionId":id,"status":"present","path":relative,"digest":{"alg":"sha256","value":digest},"recordCount":records}));
++        } else {
++            std::io::copy(&mut completed.reopen()?, &mut std::io::stdout().lock())?;
++            if !annotations.is_empty() {
++                eprintln!("later metadata requires --out for annotation sidecars");
++            }
++        }
++        stats.threads += 1;
++        stats.rollouts += segments.len() as u64;
++        stats.native_lines += mapper.native_lines;
++        stats.records += records;
++        stats.output_bytes += bytes;
++        stats.typed_fallbacks += mapper.fallbacks;
++        stats.gaps += mapper.gaps;
++        if stats.threads.is_multiple_of(1000) {
++            eprintln!("exported {} threads", stats.threads);
++        }
++    }
++    if let Some(output) = output {
++        let manifest = json!({"formatVersion":"0.1","producer":{"name":"codex","version":env!("CARGO_PKG_VERSION")},"purpose":"archive","sessions":entries,"unavailableSources":inventory.unavailable});
++        let mut file = private_file(&output.path().join("bundle.json"))?;
++        serde_json::to_writer_pretty(&mut file, &manifest)?;
++        file.write_all(b"\n")?;
++        file.sync_all()?;
++        let target = args.out.as_ref().context("missing output path")?;
++        ensure!(!target.exists(), "output appeared during export");
++        fs::rename(output.path(), target)?;
++    }
++    stats.elapsed_seconds = started.elapsed().as_secs_f64();
++    Ok(stats)
++}
++
++fn private_file(path: &Path) -> anyhow::Result<fs::File> {
++    let mut options = fs::OpenOptions::new();
++    options.write(true).create_new(true);
++    #[cfg(unix)]
++    {
++        use std::os::unix::fs::OpenOptionsExt;
++        options.mode(0o600);
++    }
++    Ok(options.open(path)?)
++}
++
++// Mutable side stores establish facts at collection time, never earlier actions.
++// Their collection timestamp is valid for annotations, not for event timestamps.
++fn annotations(
++    mapper: &mut Mapper,
++    row: Option<&Value>,
++    rows: Vec<(String, Value)>,
++) -> anyhow::Result<Vec<Value>> {
++    let at = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
++    let session = session_ref(
++        mapper.meta["id"]
++            .as_str()
++            .context("missing thread identity")?,
++    );
++    let mut annotations = Vec::new();
++    let base = json!({"type":"annotation","session":session,"at":at,
++        "source":{"name":"codex","version":env!("CARGO_PKG_VERSION")}});
++    if let Some(row) = row {
++        if let Some(title) = row["name"]
++            .as_str()
++            .filter(|s| !s.is_empty())
++            .or(row["title"].as_str())
++        {
++            let mut r = base.clone();
++            r["kind"] = "title".into();
++            r["data"] = json!({"title":title});
++            annotations.push(r);
++        }
++        mapper.missing.insert("thread_metadata".into());
++    }
++    for (table, value) in rows {
++        if table == "thread_attachments" {
++            let p = value["payload"]
++                .as_str()
++                .or(value["payload_json"].as_str())
++                .and_then(|s| serde_json::from_str::<Value>(s).ok());
++            if let Some(p) = p
++                && let Some(url) = p["url"].as_str()
++            {
++                let mut r = base.clone();
++                r["kind"] = "vcs".into();
++                r["data"] = json!({"action":"pr_link","status":"unknown","evidence":"reported","pr":{"url":url}});
++                annotations.push(r);
++            }
++        }
++    }
++    for (i, r) in annotations.iter_mut().enumerate() {
++        r["id"] = format!("asr:annotation:{i}").into();
++        if !clean_secrets(r, &mapper.index.secrets).is_empty() || strip_private(r).0 {
++            mapper.missing.insert("secrets".into());
++        }
++    }
++    Ok(annotations)
++}
+diff --git a/codex-rs/session-export/src/lib.rs b/codex-rs/session-export/src/lib.rs
+new file mode 100644
+index 0000000000..e9171eb14d
+--- /dev/null
++++ b/codex-rs/session-export/src/lib.rs
+@@ -0,0 +1,83 @@
++//! Read-only export of Codex's persisted history to Agent Session Record 0.1.
++//!
++//! This is an archive export, not a sharing/redaction service or a replay path.
++
++mod content;
++mod export;
++mod mapping;
++mod source;
++mod state;
++mod stream;
++
++use std::path::PathBuf;
++
++use anyhow::bail;
++use clap::Args;
++use clap::Subcommand;
++use codex_protocol::ThreadId;
++
++#[derive(Debug, Args)]
++pub struct SessionsCommand {
++    #[command(subcommand)]
++    pub command: SessionCommand,
++}
++
++#[derive(Debug, Subcommand)]
++pub enum SessionCommand {
++    /// Write a private ASR archive. Existing output directories are never overwritten.
++    Export(ExportArgs),
++}
++
++#[derive(Clone, Debug, Args)]
++pub struct ExportArgs {
++    #[arg(long, default_value = "agent-session", value_parser = ["agent-session"])]
++    pub format: String,
++    /// Native thread ID. Without --out, write its stream to stdout.
++    #[arg(long, visible_alias = "session", conflicts_with = "all", value_parser = ThreadId::from_string)]
++    pub thread: Option<ThreadId>,
++    /// Include active and archived threads.
++    #[arg(long)]
++    pub all: bool,
++    /// New bundle directory; required when exporting more than one thread.
++    #[arg(long, visible_alias = "output")]
++    pub out: Option<PathBuf>,
++    /// Read a different Codex home, without loading or modifying its configuration.
++    #[arg(long)]
++    pub codex_home: Option<PathBuf>,
++    /// Directory containing the state database, when separate from Codex home.
++    #[arg(long)]
++    pub sqlite_home: Option<PathBuf>,
++    /// Maximum decoded bytes in one native line. Oversized lines fail explicitly.
++    #[arg(long, default_value_t = 67_108_864)]
++    pub max_line_bytes: usize,
++}
++
++impl SessionsCommand {
++    pub async fn run(self) -> anyhow::Result<()> {
++        match self.command {
++            SessionCommand::Export(args) => {
++                if args.thread.is_none() && args.out.is_none() {
++                    bail!("use --thread for stdout, or --out for a bundle");
++                }
++                let home = match &args.codex_home {
++                    Some(home) => home.clone(),
++                    None => codex_utils_home_dir::find_codex_home()?.into_path_buf(),
++                };
++                let state =
++                    state::Snapshot::read(args.sqlite_home.as_ref().unwrap_or(&home)).await?;
++                let stats =
++                    tokio::task::spawn_blocking(move || export::run(&home, &args, state)).await??;
++                eprintln!("{}", serde_json::to_string(&stats)?);
++                if stats.unavailable_sources > 0 {
++                    bail!(
++                        "some source files were unavailable; the archive inventory lists failures"
++                    );
++                }
++                Ok(())
++            }
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests;
+diff --git a/codex-rs/session-export/src/mapping/events.rs b/codex-rs/session-export/src/mapping/events.rs
+new file mode 100644
+index 0000000000..1617a1d276
+--- /dev/null
++++ b/codex-rs/session-export/src/mapping/events.rs
+@@ -0,0 +1,171 @@
++use super::*;
++
++impl Mapper {
++    pub(super) fn event(&mut self, base: &Value, p: &Value) -> anyhow::Result<()> {
++        match p["type"].as_str().unwrap_or_default() {
++            "thread_settings_applied" => self.config(base, &p["thread_settings"], false)?,
++            "token_count" if p["info"]["total_token_usage"].is_object() => {
++                let mut r = record(base, "session_info");
++                r["usage"] = usage_values(&p["info"]["total_token_usage"]);
++                meta(&mut r, "tokenCount", p.clone());
++                self.emit(r)?;
++            }
++            "item_completed" => {
++                let item = &p["item"];
++                match item["type"].as_str() {
++                    Some(
++                        "CommandExecution"
++                        | "McpToolCall"
++                        | "DynamicToolCall"
++                        | "FileChange"
++                        | "CollabAgentToolCall",
++                    ) => self.execution(base, item)?,
++                    Some("FunctionCallOutput") => {
++                        let mut output = item.clone();
++                        output["call_id"] = item["id"].clone();
++                        output["type"] = "function_call_output".into();
++                        self.response(base, &output, &Value::Null)?;
++                    }
++                    // Display events cannot establish model-facing content, nor
++                    // a duplicate model message merely by nearby equal text.
++                    _ => self.audit(base, "item_completed", p)?,
++                }
++            }
++            "exec_command_end" => {
++                let mut item = p.clone();
++                item["type"] = "CommandExecution".into();
++                item["id"] = p["call_id"].clone();
++                self.execution(base, &item)?;
++            }
++            "patch_apply_end" => {
++                let mut item = p.clone();
++                item["type"] = "FileChange".into();
++                item["id"] = p["call_id"].clone();
++                // success is the patch tool's explicit outcome, not an inference
++                // from an exit code or a prose success message.
++                if status(&item["status"]).is_none() && p["success"].is_boolean() {
++                    item["status"] = if p["success"] == true {
++                        "completed"
++                    } else {
++                        "failed"
++                    }
++                    .into();
++                }
++                self.execution(base, &item)?;
++            }
++            "mcp_tool_call_end" => {
++                let mut item = p.clone();
++                item["type"] = "McpToolCall".into();
++                item["id"] = p["call_id"].clone();
++                for k in ["server", "tool", "arguments"] {
++                    copy(&mut item, k, &p["invocation"], k);
++                }
++                if p["result"]["Err"].is_string() {
++                    item["error"] = p["result"]["Err"].clone();
++                    item["status"] = "failed".into();
++                }
++                if p["result"]["Ok"].is_object() {
++                    item["status"] = if p["result"]["Ok"]["isError"] == true {
++                        "failed"
++                    } else {
++                        "completed"
++                    }
++                    .into();
++                }
++                self.execution(base, &item)?;
++            }
++            "patch_apply_begin" => {
++                if p["auto_approved"] == true {
++                    self.auto_approval(base, &p["call_id"])?;
++                }
++                self.audit(base, "patch_apply_begin", p)?;
++            }
++            "codex.tool_decision" | "tool_decision" => self.approval(base, p)?,
++            "task_complete" | "turn_complete" | "turn_aborted" => {
++                self.audit(base, "event_msg", p)?;
++                self.current_turn = None;
++            }
++            _ => self.audit(base, "event_msg", p)?,
++        }
++        Ok(())
++    }
++
++    pub(super) fn config(&mut self, base: &Value, p: &Value, turn: bool) -> anyhow::Result<()> {
++        if turn && let Some(id) = base["turnId"].as_str() {
++            self.configs.insert(id.to_owned(), p.clone());
++        }
++        self.audit(base, "settings", p)
++    }
++
++    pub(super) fn usage(&mut self, base: &Value, p: &Value) -> anyhow::Result<()> {
++        if let Some(response) = p["response_id"].as_str()
++            && self.index.inference_last.get(response) == Some(&self.position)
++        {
++            let config = p["turn_id"].as_str().and_then(|t| self.configs.get(t));
++            let mut r = record(base, "inference");
++            self.native_id(&mut r, &p["response_id"]);
++            meta(&mut r, "responseId", json!(response));
++            if let Some(model) = config
++                .and_then(|c| c["model"].as_str())
++                .filter(|m| !m.is_empty())
++            {
++                r["model"] = json!({"requested":model});
++                if let Some(provider) = self.meta["model_provider"].as_str() {
++                    r["model"]["provider"] = provider.into();
++                }
++            }
++            let settings = model_settings(config.unwrap_or(&Value::Null), "effort");
++            if settings.as_object().is_some_and(|o| !o.is_empty()) {
++                r["settings"] = settings;
++            }
++            if p["usage"].is_object() {
++                r["usage"] = usage_values(&p["usage"]);
++            }
++            meta(&mut r, "usageRecord", p.clone());
++            self.emit(r)?;
++        }
++        if p["thread_token_usage"].is_object() {
++            let mut r = record(base, "session_info");
++            r["usage"] = usage_values(&p["thread_token_usage"]);
++            self.emit(r)?;
++        }
++        Ok(())
++    }
++
++    pub(super) fn auto_approval(&mut self, base: &Value, call: &Value) -> anyhow::Result<()> {
++        self.audit(
++            base,
++            "automatic_approval",
++            &json!({"call_id":call, "auto_approved":true}),
++        )
++    }
++
++    pub(super) fn approval(&mut self, base: &Value, p: &Value) -> anyhow::Result<()> {
++        self.audit(base, "approval", p)
++    }
++}
++
++fn model_settings(p: &Value, effort: &str) -> Value {
++    let mut settings = json!({});
++    for (src, dst) in [(effort, "reasoningEffort"), ("service_tier", "serviceTier")] {
++        if let Some(s) = p[src].as_str() {
++            settings[dst] = s.into();
++        }
++    }
++    settings
++}
++pub(super) fn usage_values(p: &Value) -> Value {
++    let mut r = json!({});
++    for (src, dst) in [
++        ("input_tokens", "inputTokens"),
++        ("cached_input_tokens", "cacheReadTokens"),
++        ("cache_write_input_tokens", "cacheWriteTokens"),
++        ("output_tokens", "outputTokens"),
++        ("reasoning_output_tokens", "reasoningTokens"),
++    ] {
++        if let Some(n) = p[src].as_u64() {
++            r[dst] = n.into();
++        }
++    }
++    r
++}
+diff --git a/codex-rs/session-export/src/mapping/mod.rs b/codex-rs/session-export/src/mapping/mod.rs
+new file mode 100644
+index 0000000000..9d0cd74d52
+--- /dev/null
++++ b/codex-rs/session-export/src/mapping/mod.rs
+@@ -0,0 +1,308 @@
++//! Map saved facts, without using deserializer defaults as historical evidence.
++mod events;
++mod responses;
++mod structure;
++mod tools;
++
++use crate::content::*;
++use crate::source::{Index, Segment};
++use crate::stream::Stream;
++use codex_rollout::RolloutItem;
++use serde_json::{Value, json};
++use std::collections::{BTreeSet, HashMap, HashSet};
++
++pub(crate) struct Mapper {
++    pub stream: Stream,
++    pub index: Index,
++    pub meta: Value,
++    pub position: u64,
++    pub native_lines: u64,
++    pub fallbacks: u64,
++    pub gaps: u64,
++    pub missing: BTreeSet<String>,
++    pub current_turn: Option<String>,
++    pub configs: HashMap<String, Value>,
++    pub copied_last: Option<String>,
++    copying: bool,
++    copy_prefix_open: bool,
++    pub rollouts: std::sync::Arc<HashMap<String, String>>,
++    pub emitted_calls: HashSet<String>,
++    pub message_ids: HashMap<String, String>,
++    pub call_inputs: HashMap<String, Value>,
++    header_id: String,
++}
++
++impl Mapper {
++    pub fn new(
++        mut meta: Value,
++        index: Index,
++        _initial_segment: String,
++        rollouts: std::sync::Arc<HashMap<String, String>>,
++        _codex_home: String,
++    ) -> anyhow::Result<Self> {
++        let mut header_id = "header".to_owned();
++        let mut header_suffix = 0u64;
++        while index.record_ids.contains_key(&header_id) {
++            header_suffix += 1;
++            header_id = format!("header:{header_suffix}");
++        }
++        let mut reserved: HashSet<_> = index.record_ids.keys().cloned().collect();
++        reserved.insert(header_id.clone());
++        let mut missing: BTreeSet<String> = [
++            "approvals",
++            "model",
++            "cost",
++            "tool_definitions",
++            "commits",
++            "subagents",
++            "message_authorship",
++            "message_person",
++            "inference_item_links",
++            "hook_runs",
++            "terminal_lifecycle",
++            "transient_events",
++            "unlinked_stores",
++            "native_event_normalization",
++            "inference_update_history",
++            "call_requester",
++            "triggers",
++            "result_update_history",
++            "attachment_bytes",
++        ]
++        .into_iter()
++        .map(str::to_owned)
++        .collect();
++        if stringify_wide_numbers(&mut meta) {
++            missing.insert("numeric_counts".into());
++        }
++        Ok(Self {
++            stream: Stream::new(reserved)?,
++            index,
++            meta,
++            position: 0,
++            native_lines: 0,
++            fallbacks: 0,
++            gaps: 0,
++            missing,
++            current_turn: None,
++            configs: HashMap::new(),
++            copied_last: None,
++            copying: false,
++            copy_prefix_open: true,
++            rollouts,
++            emitted_calls: HashSet::new(),
++            message_ids: HashMap::new(),
++            call_inputs: HashMap::new(),
++            header_id,
++        })
++    }
++
++    pub fn line(&mut self, segment: &Segment, mut line: Value) -> anyhow::Result<()> {
++        self.position += 1;
++        self.native_lines += 1;
++        self.stream.position(self.position);
++        // Exhaustive dispatch makes new persistence variants a compile-time review.
++        let kind = match codex_rollout::decode_rollout_line(line.clone()) {
++            Ok(typed) => match typed.item {
++                RolloutItem::SessionMeta(_) => "session_meta",
++                RolloutItem::ResponseItem(_) => "response_item",
++                RolloutItem::InterAgentCommunication(_) => "inter_agent_communication",
++                RolloutItem::InterAgentCommunicationMetadata { .. } => {
++                    "inter_agent_communication_metadata"
++                }
++                RolloutItem::Compacted(_) => "compacted",
++                RolloutItem::TurnContext(_) => "turn_context",
++                RolloutItem::TokenUsageRecord(_) => "token_usage_record",
++                RolloutItem::WorldState(_) => "world_state",
++                RolloutItem::RetainedContext(_) => "retained_context",
++                RolloutItem::SecurityRiskScore(_) => "security_risk_score",
++                RolloutItem::EventMsg(_) => "event_msg",
++                RolloutItem::RealtimeItem(_) => "realtime_item",
++            }
++            .to_owned(),
++            Err(_) => {
++                self.fallbacks += 1;
++                line["type"].as_str().unwrap_or("_gap").to_owned()
++            }
++        };
++        if stringify_wide_numbers(&mut line) {
++            self.missing.insert("numeric_counts".into());
++        }
++        let mut base = json!({});
++        if let Some(ts) = timestamp(&line["timestamp"]) {
++            base["ts"] = ts.into();
++        } else if kind != "_blank" {
++            self.missing.insert("timestamps".into());
++        }
++        let p = &line["payload"];
++        if matches!(kind.as_str(), "turn_context" | "event_msg")
++            && (kind == "turn_context"
++                || matches!(p["type"].as_str(), Some("task_started" | "turn_started")))
++        {
++            // A new context without an ID must not inherit the previous turn's settings.
++            self.current_turn = p["turn_id"]
++                .as_str()
++                .filter(|s| !s.is_empty())
++                .map(str::to_owned);
++        }
++        let turn = p["turn_id"]
++            .as_str()
++            .or(p["turnId"].as_str())
++            .or(p["internal_chat_message_metadata_passthrough"]["turn_id"].as_str())
++            .filter(|s| !s.is_empty())
++            .map(str::to_owned)
++            .or_else(|| self.current_turn.clone());
++        if let Some(turn) = turn {
++            base["turnId"] = turn.into();
++        }
++        let mut pos = json!({"rolloutId":segment.rollout_id,"line":self.position});
++        copy(&mut pos, "ordinal", &line, "ordinal");
++        meta(&mut base, "sourcePosition", pos);
++        self.copying = line["ordinal"]
++            .as_u64()
++            .zip(segment.meta["subagent_history_start_ordinal"].as_u64())
++            .is_some_and(|(a, b)| a < b)
++            && kind != "session_meta";
++        if !clean_secrets(&mut line, &self.index.secrets).is_empty() {
++            base["truncated"] = true.into();
++            self.missing.insert("secrets".into());
++        }
++        let losses = strip_private(&mut line);
++        if losses.0 {
++            base["truncated"] = true.into();
++            self.missing.insert("secrets".into());
++        }
++        if losses.1 {
++            self.missing.insert("reasoning".into());
++        }
++        let p = &line["payload"];
++        match kind.as_str() {
++            "session_meta" => self.session_meta(&base, p)?,
++            "response_item" => self.response(&base, p, &line["metadata"])?,
++            "event_msg" => self.event(&base, p)?,
++            "turn_context" => self.config(&base, p, true)?,
++            "token_usage_record" => self.usage(&base, p)?,
++            "compacted" => self.compaction(&base, p)?,
++            "world_state" => self.world(&base, p)?,
++            "inter_agent_communication" => self.agent_message(&base, p)?,
++            "codex.tool_decision" => self.approval(&base, p)?,
++            "_gap" | "_blank" => {
++                self.gaps += 1;
++                self.missing.insert("history".into());
++                let mut r = record(&base, "gap");
++                r["reason"] = "unparseable".into();
++                r["count"] = 1.into();
++                meta(
++                    &mut r,
++                    "sourceFailure",
++                    line.get("reason").cloned().unwrap_or(json!("blank_line")),
++                );
++                self.emit(r)?;
++            }
++            _ => self.audit(&base, &kind, p)?,
++        }
++        self.copying = false;
++        Ok(())
++    }
++
++    pub fn emit(&mut self, mut r: Value) -> anyhow::Result<String> {
++        if self.copying {
++            if let Some(parent) =
++                self.meta["source"]["subagent"]["thread_spawn"]["parent_thread_id"]
++                    .as_str()
++                    .or(self.meta["parent_thread_id"].as_str())
++                    .or(self.meta["forked_from_id"].as_str())
++            {
++                r["copiedFrom"] = json!({"session":session_ref(parent)});
++            } else {
++                self.missing.insert("copies".into());
++            }
++        } else {
++            self.copy_prefix_open = false;
++        }
++        if !clean_secrets(&mut r, &self.index.secrets).is_empty() {
++            r["truncated"] = true.into();
++            self.missing.insert("secrets".into());
++        }
++        let losses = strip_private(&mut r);
++        if losses.0 {
++            r["truncated"] = true.into();
++            self.missing.insert("secrets".into());
++        }
++        if losses.1 {
++            self.missing.insert("reasoning".into());
++        }
++        stringify_wide_numbers(&mut r);
++        let id = self.stream.emit(r)?;
++        if self.copying && self.copy_prefix_open {
++            self.copied_last = Some(id.clone());
++        }
++        Ok(id)
++    }
++
++    fn native_id(&self, r: &mut Value, id: &Value) {
++        if let Some(id) = id.as_str().filter(|s| valid_id(s)) {
++            if self.index.record_ids.get(id) == Some(&1) {
++                r["id"] = id.into();
++            } else {
++                meta(r, "nativeId", json!(id));
++            }
++        }
++    }
++
++    pub fn audit(&mut self, base: &Value, kind: &str, p: &Value) -> anyhow::Result<()> {
++        let mut r = record(base, "com.openai.codex/event");
++        meta(&mut r, "event", json!({"type":kind,"payload":p}));
++        self.emit(r)?;
++        Ok(())
++    }
++
++    pub fn path(&self, path: &str) -> String {
++        let path = normalize_path(path);
++        if absolute(&path) {
++            return path;
++        }
++        if let Some(cwd) = self.meta["cwd"].as_str() {
++            let cwd = normalize_path(cwd);
++            if absolute(&cwd) {
++                return format!("{}/{}", cwd.trim_end_matches('/'), path);
++            }
++        }
++        path
++    }
++}
++
++fn record(base: &Value, kind: &str) -> Value {
++    let mut r = base.clone();
++    r["type"] = kind.into();
++    r
++}
++fn valid_id(id: &str) -> bool {
++    !id.is_empty() && id.chars().count() <= 256 && !id.chars().any(char::is_control)
++}
++fn absolute(path: &str) -> bool {
++    path.starts_with('/') || path.as_bytes().get(1) == Some(&b':')
++}
++fn normalize_path(path: &str) -> String {
++    codex_utils_path_uri::PathUri::parse(path)
++        .map(|u| u.inferred_native_path_string())
++        .unwrap_or_else(|_| path.to_owned())
++        .replace('\\', "/")
++}
++fn duration(p: &Value) -> Option<f64> {
++    p.as_f64()
++        .or_else(|| {
++            Some(p["secs"].as_f64()? * 1000.0 + p["nanos"].as_f64().unwrap_or(0.0) / 1_000_000.0)
++        })
++        .filter(|n| n.is_finite() && *n >= 0.0 && *n <= 9_007_199_254_740_991.0)
++}
++fn status(p: &Value) -> Option<&'static str> {
++    match p.as_str() {
++        Some("completed" | "success") => Some("completed"),
++        Some("failed") => Some("failed"),
++        Some("declined" | "denied") => Some("denied"),
++        Some("cancelled") => Some("cancelled"),
++        Some("interrupted") => Some("interrupted"),
++        _ => None,
++    }
++}
+diff --git a/codex-rs/session-export/src/mapping/responses.rs b/codex-rs/session-export/src/mapping/responses.rs
+new file mode 100644
+index 0000000000..00ea04e47d
+--- /dev/null
++++ b/codex-rs/session-export/src/mapping/responses.rs
+@@ -0,0 +1,179 @@
++use super::*;
++
++impl Mapper {
++    pub(super) fn response(
++        &mut self,
++        base: &Value,
++        p: &Value,
++        metadata: &Value,
++    ) -> anyhow::Result<()> {
++        match p["type"].as_str().unwrap_or_default() {
++            "message" | "reasoning" => {
++                let mut r = record(base, "message");
++                self.native_id(&mut r, &p["id"]);
++                if p["type"] == "reasoning" {
++                    r["role"] = "assistant".into();
++                    r["author"] = "model".into();
++                    let summaries: Vec<Value> = p["summary"].as_array().into_iter().flatten()
++                        .chain(p["content"].as_array().into_iter().flatten())
++                        .filter_map(|v| v["text"].as_str())
++                        .filter(|text| !text.is_empty())
++                        .map(Value::from).collect();
++                    let part = if !summaries.is_empty() {
++                        json!({"type":"reasoning", "visibility":"summary", "summary":summaries})
++                    } else {
++                        self.missing.insert("reasoning".into());
++                        json!({"type":"reasoning", "visibility": if p["_asr_encrypted_content"] == true {"encrypted"} else {"omitted"}})
++                    };
++                    r["content"] = json!([part]);
++                } else {
++                    let Some(role) = p["role"].as_str() else {
++                        return self.audit(base, "message_without_role", p);
++                    };
++                    r["role"] = role.into();
++                    if role == "assistant" {
++                        r["author"] = "model".into();
++                    }
++                    if matches!(role, "system" | "developer") {
++                        r["origin"] = "instructions".into();
++                    }
++                    r["content"] = parts(
++                        &p["content"],
++                        &p["internal_chat_message_metadata_passthrough"],
++                    )
++                    .into();
++                    if let Some(phase) = p["phase"].as_str() {
++                        r["phase"] = match phase {
++                            "final_answer" => "final",
++                            other => other,
++                        }
++                        .into();
++                    }
++                    if let Some(s) = p["status"].as_str()
++                        && let Some(s) = match s {
++                            "completed" => Some("complete"),
++                            "incomplete" => Some("interrupted"),
++                            "failed" => Some("error"),
++                            _ => None,
++                        }
++                    {
++                        r["status"] = s.into();
++                    }
++                }
++                if metadata["retained_source"]["complete"] == false {
++                    r["truncated"] = true.into();
++                }
++                if let Some(original) = metadata["retained_source"]["id"]["message_id"].as_str()
++                    && let Some(id) = self.message_ids.get(original)
++                {
++                    r["copiedFrom"] = json!({"record":id});
++                }
++                meta(&mut r, "responseMetadata", metadata.clone());
++                let mut native = p.clone();
++                if let Some(o) = native.as_object_mut() {
++                    o.remove("content");
++                    o.remove("summary");
++                }
++                meta(&mut r, "response", native);
++                let id = self.emit(r)?;
++                if let Some(native) = p["id"].as_str() {
++                    self.message_ids.insert(native.to_owned(), id);
++                }
++            }
++            "function_call"
++            | "custom_tool_call"
++            | "local_shell_call"
++            | "web_search_call"
++            | "image_generation_call"
++            | "tool_search_call" => self.model_call(base, p)?,
++            "function_call_output" | "custom_tool_call_output" | "tool_search_output" => {
++                let mut r = record(base, "tool_result");
++                r["status"] = "unknown".into();
++                copy(&mut r, "callId", p, "call_id");
++                if p["call_id"]
++                    .as_str()
++                    .is_some_and(|c| self.index.secret_calls.contains(c))
++                {
++                    r["truncated"] = true.into();
++                    self.missing.insert("secrets".into());
++                } else if p["output"].is_string() || p["output"].is_array() {
++                    r["content"] = parts(&p["output"], &Value::Null).into();
++                } else if p.get("output").is_some() {
++                    meta(&mut r, "nativeOutput", p["output"].clone());
++                    self.missing.insert("tool_output".into());
++                }
++                if metadata["retained_source"]["complete"] == false {
++                    r["truncated"] = true.into();
++                }
++                meta(&mut r, "responseMetadata", metadata.clone());
++                if p["tools"].is_array() {
++                    meta(&mut r, "toolSearchOutput", p["tools"].clone());
++                }
++                self.result(r)?;
++            }
++            "additional_tools" => {
++                let mut base = base.clone();
++                self.native_id(&mut base, &p["id"]);
++                self.tools(&base, &p["tools"])?;
++            }
++            "compaction" | "compaction_summary" | "context_compaction" => {
++                self.compaction(base, p)?
++            }
++            "agent_message" => self.agent_message(base, p)?,
++            _ => self.audit(base, "response_item", p)?,
++        }
++        Ok(())
++    }
++
++    pub(super) fn agent_message(&mut self, base: &Value, p: &Value) -> anyhow::Result<()> {
++        // Actor paths name addresses within a spawn tree, not native session IDs.
++        // The rollout item has no message role or established sender-thread join.
++        self.missing
++            .insert("inter_agent_message_normalization".into());
++        self.audit(base, "inter_agent_communication", p)
++    }
++
++    pub(super) fn result(&mut self, mut r: Value) -> anyhow::Result<()> {
++        let Some(call) = r["callId"].as_str().map(str::to_owned) else {
++            self.emit(r)?;
++            return Ok(());
++        };
++        if let Some(mut old) = self.stream.take_result(&call)? {
++            // An absent completion time must not retain an earlier update's time.
++            if let Some(fields) = old.as_object_mut() {
++                fields.remove("ts");
++            }
++            // Fold at the last recorded update. Content always comes from model
++            // output; display completion supplies status/exec, never content.
++            for (k, v) in r.as_object().into_iter().flatten() {
++                if k == "status" && v == "unknown" && old["status"] != "unknown" {
++                    continue;
++                }
++                if k == "_meta" {
++                    if let Some(v) = v["com.openai.codex"].as_object() {
++                        for (key, value) in v {
++                            meta(&mut old, key, value.clone());
++                        }
++                    }
++                } else {
++                    old[k] = v.clone();
++                }
++            }
++            r = old;
++        }
++        if self
++            .index
++            .result_last
++            .get(&call)
++            .is_none_or(|p| *p == self.position)
++        {
++            if r["_meta"]["com.openai.codex"]["approvalSnapshot"]["auto_approved"] == true {
++                self.auto_approval(&json!({}), &json!(call))?;
++            }
++            self.emit(r)?;
++        } else {
++            self.stream.save_result(&call, &r)?;
++        }
++        Ok(())
++    }
++}
+diff --git a/codex-rs/session-export/src/mapping/structure.rs b/codex-rs/session-export/src/mapping/structure.rs
+new file mode 100644
+index 0000000000..a3aedb10c8
+--- /dev/null
++++ b/codex-rs/session-export/src/mapping/structure.rs
+@@ -0,0 +1,185 @@
++use super::*;
++
++impl Mapper {
++    pub fn header(&self) -> Value {
++        let p = &self.meta;
++        let mut missing = self.missing.clone();
++        missing.insert("agent_settings".into());
++        if self.index.inference_last.is_empty() {
++            missing.insert("usage".into());
++        }
++        if self.index.execution_calls.is_empty() {
++            missing.insert("exit_codes".into());
++        }
++        missing.insert("file_changes".into()); // edits outside structured patch events are not normalized
++        let mut h = json!({"type":"session","id":self.header_id,"formatVersion":"0.1",
++            "sessionId":p["id"],"agent":{"name":"codex"},
++            "producer":{"name":"codex","version":env!("CARGO_PKG_VERSION"),"method":"native","source":"codex-rollout"},
++            "extensions":["com.openai.codex"]});
++        copy(&mut h["agent"], "version", p, "cli_version");
++        if let Some(ts) = timestamp(&p["timestamp"]) {
++            h["startedAt"] = ts.into();
++        }
++        if let Some(cwd) = p["cwd"]
++            .as_str()
++            .map(normalize_path)
++            .filter(|s| absolute(s))
++        {
++            h["cwd"] = cwd.clone().into();
++            if p["git"].is_object() {
++                let mut repo = json!({"path":cwd});
++                copy(&mut repo, "branch", &p["git"], "branch");
++                if let Some(head) = p["git"]["commit_hash"].as_str().filter(|s| full_commit(s)) {
++                    repo["head"] = head.into();
++                }
++                if let Some(remote) = p["git"]["repository_url"].as_str() {
++                    repo["remote"] = safe_remote(remote).into();
++                }
++                h["repos"] = json!([repo]);
++            }
++        }
++        if let Some(user) = p["creator_user_id"].as_str().filter(|s| !s.is_empty()) {
++            h["user"] = json!({"id":user,"source":"agent_account"});
++        }
++        let sub = &p["source"]["subagent"]["thread_spawn"];
++        if let Some(parent) = sub["parent_thread_id"]
++            .as_str()
++            .or(p["parent_thread_id"].as_str())
++        {
++            h["parent"] = json!({"session":session_ref(parent),"kind":"subagent"});
++            if let Some(role) = p["agent_role"].as_str().or(sub["agent_role"].as_str()) {
++                h["parent"]["role"] = role.into();
++            }
++        } else if let Some(parent) = p["forked_from_id"].as_str() {
++            h["parent"] = json!({"session":session_ref(parent),"kind":"fork"});
++        } else if let Some(base) = p["history_base"]["thread_id"].as_str()
++            && let Some(parent) = self
++                .rollouts
++                .get(base)
++                .filter(|id| Some(id.as_str()) != p["id"].as_str())
++        {
++            h["parent"] = json!({"session":session_ref(parent),"kind":"continues"});
++        }
++        if h["parent"].is_object()
++            && let Some(last) = &self.copied_last
++        {
++            h["parent"]["copiedThrough"] = last.clone().into();
++        }
++        // Older logs and referenced forks do not establish a local copied boundary.
++        if self.copied_last.is_none() || p.get("_asrIdentityRecovery").is_some() {
++            missing.insert("copies".into());
++        }
++        let mut native = p.clone();
++        if let Some(m) = native.as_object_mut() {
++            m.remove("base_instructions");
++            m.remove("dynamic_tools");
++        }
++        if let Some(remote) = native["git"]["repository_url"].as_str().map(str::to_owned) {
++            let safe = safe_remote(&remote);
++            if safe != remote {
++                missing.insert("secrets".into());
++                h["truncated"] = true.into();
++            }
++            native["git"]["repository_url"] = safe.into();
++        }
++        let losses = strip_private(&mut native);
++        if losses.0 || !clean_secrets(&mut native, &self.index.secrets).is_empty() {
++            missing.insert("secrets".into());
++            h["truncated"] = true.into();
++        }
++        if losses.1 {
++            missing.insert("reasoning".into());
++        }
++        if p.get("_asrIdentityRecovery").is_some() {
++            missing.insert("session_metadata".into());
++        }
++        meta(&mut h, "sessionMeta", native);
++        h["missing"] = json!(missing);
++        h
++    }
++
++    pub(super) fn session_meta(&mut self, base: &Value, p: &Value) -> anyhow::Result<()> {
++        if p["id"] != self.meta["id"] {
++            return self.audit(base, "inherited_session_meta", p);
++        }
++        if let Some(instructions) = p["base_instructions"]["text"].as_str() {
++            let mut r = record(base, "message");
++            r["role"] = "system".into();
++            r["origin"] = "instructions".into();
++            r["content"] = json!([text(instructions)]);
++            self.emit(r)?;
++        }
++        if p["dynamic_tools"].is_array() {
++            self.tools(base, &p["dynamic_tools"])?;
++        }
++        Ok(())
++    }
++
++    pub(super) fn compaction(&mut self, base: &Value, p: &Value) -> anyhow::Result<()> {
++        if let Some(summary) = p["message"].as_str() {
++            let mut r = record(base, "message");
++            r["role"] = "user".into();
++            r["author"] = "harness".into();
++            r["origin"] = "compaction".into();
++            r["content"] = json!([text(summary)]);
++            self.native_id(&mut r, &p["id"]);
++            meta(&mut r, "compaction", p.clone());
++            self.emit(r)?;
++        } else {
++            self.audit(base, "compaction", p)?;
++        }
++        // A replacement changes the model's context, but does not itself delete
++        // the durable rollout. Only an explicit saved loss warrants a gap here.
++        if p["history_lost"] == true {
++            let mut r = record(base, "gap");
++            r["reason"] = "not_retained".into();
++            self.missing.insert("history".into());
++            self.gaps += 1;
++            self.emit(r)?;
++        }
++        Ok(())
++    }
++
++    pub(super) fn world(&mut self, base: &Value, p: &Value) -> anyhow::Result<()> {
++        self.audit(base, "world_state", p)?;
++        if p["full"] == true {
++            for (key, field) in [
++                ("agents_md", "text"),
++                ("host_skills", "body"),
++                ("permissions", "instructions"),
++                ("collaboration_mode", "instructions"),
++            ] {
++                if let Some(s) = p["state"][key][field].as_str() {
++                    let mut r = record(base, "message");
++                    r["role"] = "developer".into();
++                    r["author"] = "harness".into();
++                    r["origin"] = "instructions".into();
++                    r["content"] = json!([text(s)]);
++                    self.emit(r)?;
++                }
++            }
++        }
++        Ok(())
++    }
++
++    pub(super) fn tools(&mut self, base: &Value, definitions: &Value) -> anyhow::Result<()> {
++        self.audit(base, "tool_definitions", definitions)
++    }
++}
++
++fn full_commit(s: &str) -> bool {
++    matches!(s.len(), 40 | 64)
++        && s.bytes()
++            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
++}
++fn safe_remote(s: &str) -> String {
++    if let Some((scheme, rest)) = s.split_once("://") {
++        let (host, path) = rest.split_once('/').unwrap_or((rest, ""));
++        let host = host.rsplit_once('@').map_or(host, |(_, host)| host);
++        // Query and fragment components can contain bearer credentials.
++        let path = path.split(['?', '#']).next().unwrap_or_default();
++        format!("{scheme}://{host}/{path}")
++    } else {
++        s.to_owned()
++    }
++}
+diff --git a/codex-rs/session-export/src/mapping/tools.rs b/codex-rs/session-export/src/mapping/tools.rs
+new file mode 100644
+index 0000000000..c9ace6b5c1
+--- /dev/null
++++ b/codex-rs/session-export/src/mapping/tools.rs
+@@ -0,0 +1,243 @@
++use super::*;
++use crate::source::arguments;
++
++impl Mapper {
++    pub(super) fn model_call(&mut self, base: &Value, p: &Value) -> anyhow::Result<()> {
++        let mut r = record(base, "tool_call");
++        self.native_id(&mut r, &p["id"]);
++        let call = p["call_id"]
++            .as_str()
++            .or(p["id"].as_str())
++            .map(str::to_owned)
++            .unwrap_or_else(|| format!("asr:call:{}", self.position));
++        r["callId"] = call.clone().into();
++        r["requestedBy"] = "model".into();
++        copy(&mut r, "name", p, "name");
++        if let Some(kind) = p["name"].as_str().and_then(tool_kind) {
++            r["kind"] = kind.into();
++        }
++        if p["type"] == "custom_tool_call" {
++            copy(&mut r, "inputText", p, "input");
++        } else if let Some(raw) = p["arguments"].as_str() {
++            match serde_json::from_str::<Value>(raw) {
++                Ok(v) => r["input"] = v,
++                Err(_) => r["inputText"] = raw.into(),
++            }
++        } else if let Some(v) = p.get("arguments").or(p.get("action")) {
++            r["input"] = v.clone();
++        }
++        let args = arguments(p);
++        if p["name"] == "spawn_agent" {
++            let mut sub = json!({});
++            copy(&mut sub, "role", &args, "agent_type");
++            copy(&mut sub, "description", &args, "message");
++            r["subagent"] = sub;
++        }
++        meta(&mut r, "call", p.clone());
++        stringify_wide_numbers(&mut r);
++        let mut input = json!({});
++        for key in ["input", "inputText"] {
++            if let Some(value) = r.get(key) {
++                input[key] = value.clone();
++            }
++        }
++        self.call_inputs.insert(call.clone(), input);
++        self.emit(r)?;
++        self.emitted_calls.insert(call.clone());
++        if p["name"] == "apply_patch"
++            && let Some(patch) = p["input"].as_str()
++        {
++            // Only file activity is decoded from the bespoke patch grammar. It
++            // is never mislabeled as a unified diff or as an applied edit.
++            let mut changes: Vec<Value> = Vec::new();
++            for line in patch.lines() {
++                let header = [
++                    ("*** Add File: ", "add"),
++                    ("*** Update File: ", "modify"),
++                    ("*** Delete File: ", "delete"),
++                ]
++                .into_iter()
++                .find_map(|(prefix, op)| line.strip_prefix(prefix).map(|p| (p, op)));
++                if let Some((path, op)) = header {
++                    changes.push(json!({"path":self.path(path),"op":op}));
++                } else if let Some(to) = line.strip_prefix("*** Move to: ")
++                    && let Some(change) = changes.last_mut()
++                {
++                    change["oldPath"] = change["path"].clone();
++                    change["path"] = self.path(to).into();
++                    change["op"] = "move".into();
++                }
++            }
++            for change in changes {
++                let mut r = record(base, "file_change");
++                for (k, v) in change.as_object().into_iter().flatten() {
++                    r[k] = v.clone();
++                }
++                r["callId"] = call.clone().into();
++                r["status"] = "proposed".into();
++                self.emit(r)?;
++            }
++        }
++        Ok(())
++    }
++
++    pub(super) fn execution(&mut self, base: &Value, item: &Value) -> anyhow::Result<()> {
++        let Some(call) = item["id"].as_str() else {
++            return self.audit(base, "execution_without_id", item);
++        };
++        let kind = item["type"].as_str().unwrap_or_default();
++        if !self.index.model_calls.contains(call) && self.emitted_calls.insert(call.to_owned()) {
++            let mut r = record(base, "tool_call");
++            self.native_id(&mut r, &item["id"]);
++            r["callId"] = call.into();
++            if item["source"] == "user_shell" {
++                r["requestedBy"] = "user".into();
++            } else if let Some(parent) = self.index.parents.get(call) {
++                r["requestedBy"] = "code".into();
++                r["parentCallId"] = parent.clone().into();
++            }
++            if kind == "CommandExecution" {
++                r["kind"] = "execute".into();
++                r["input"] = json!({"command":item["command"],"cwd":item["cwd"]});
++            }
++            if kind == "FileChange" {
++                r["kind"] = "edit".into();
++            }
++            if matches!(
++                kind,
++                "McpToolCall" | "DynamicToolCall" | "CollabAgentToolCall"
++            ) {
++                copy(&mut r, "name", item, "tool");
++                copy(&mut r, "input", item, "arguments");
++            }
++            meta(&mut r, "invocation", item.clone());
++            self.emit(r)?;
++        }
++        let mut r = record(base, "tool_result");
++        r["callId"] = call.into();
++        r["status"] = status(&item["status"]).unwrap_or("unknown").into();
++        if matches!(kind, "McpToolCall" | "DynamicToolCall")
++            && let Some(args) = item.get("arguments")
++            && self
++                .call_inputs
++                .get(call)
++                .is_some_and(|old| old.get("input") != Some(args) || !old["inputText"].is_null())
++        {
++            r["input"] = args.clone();
++        }
++        if kind == "FileChange" && item["auto_approved"] == true {
++            meta(&mut r, "approvalSnapshot", json!({"auto_approved":true}));
++        }
++        if let Some(ms) = duration(&item["duration"]) {
++            r["durationMs"] = json!(ms);
++        }
++        if kind == "CommandExecution" {
++            let mut exec = json!({});
++            for (src, dst) in [
++                ("command", "command"),
++                ("exit_code", "exitCode"),
++                ("stdout", "stdout"),
++                ("stderr", "stderr"),
++                ("aggregated_output", "output"),
++                ("signal", "signal"),
++            ] {
++                copy(&mut exec, dst, item, src);
++            }
++            if let Some(cwd) = item["cwd"]
++                .as_str()
++                .map(|s| self.path(s))
++                .filter(|s| absolute(s))
++            {
++                exec["cwd"] = cwd.into();
++            }
++            if item["aggregated_output"]
++                .as_str()
++                .is_some_and(|s| s.contains("\n... command output truncated for persistence ...\n"))
++            {
++                r["truncated"] = true.into();
++                self.missing.insert("tool_output".into());
++            }
++            r["exec"] = exec;
++        }
++        if let Some(error) = item.get("error").filter(|e| !e.is_null()) {
++            if error.is_string() {
++                r["error"] = json!({"message":error});
++            } else if error.is_object() {
++                let mut e = json!({});
++                copy(&mut e, "message", error, "message");
++                copy(&mut e, "code", error, "code");
++                r["error"] = e;
++            }
++        }
++        if kind == "CollabAgentToolCall"
++            && item["tool"] == "spawn_agent"
++            && let Some(ids) = item["receiver_thread_ids"].as_array()
++            && ids.len() == 1
++            && let Some(child) = ids[0].as_str()
++        {
++            r["subagent"] = json!({"session":session_ref(child)});
++        }
++        meta(&mut r, "execution", item.clone());
++        self.result(r)?;
++        if kind == "FileChange" {
++            self.files(base, call, item)?;
++        }
++        Ok(())
++    }
++
++    fn files(&mut self, base: &Value, call: &str, item: &Value) -> anyhow::Result<()> {
++        for (path, change) in item["changes"].as_object().into_iter().flatten() {
++            let mut r = record(base, "file_change");
++            r["path"] = self.path(path).into();
++            r["callId"] = call.into();
++            r["status"] = match status(&item["status"]) {
++                Some("completed") => "applied",
++                Some("failed" | "denied") => "failed",
++                _ => "unknown",
++            }
++            .into();
++            match change["type"].as_str() {
++                Some("add") => {
++                    r["op"] = "add".into();
++                    if let Some(s) = change["content"].as_str() {
++                        r["after"] = json!({"text":s});
++                    }
++                }
++                Some("delete") => {
++                    r["op"] = "delete".into();
++                    if let Some(s) = change["content"].as_str() {
++                        r["before"] = json!({"text":s});
++                    }
++                }
++                Some("update") => {
++                    r["op"] = "modify".into();
++                    if let Some(to) = change["move_path"].as_str() {
++                        r["oldPath"] = r["path"].clone();
++                        r["path"] = self.path(to).into();
++                        r["op"] = "move".into();
++                    }
++                    if let Some(patch) = change["unified_diff"].as_str() {
++                        r["patch"] = patch.into();
++                    }
++                }
++                _ => {
++                    r["op"] = "unknown".into();
++                    meta(&mut r, "fileChange", change.clone());
++                }
++            }
++            self.emit(r)?;
++        }
++        Ok(())
++    }
++}
++
++// Fixed name map; arguments and output text never determine tool kind.
++fn tool_kind(name: &str) -> Option<&'static str> {
++    match name {
++        "exec_command" | "write_stdin" | "exec" => Some("execute"),
++        "apply_patch" => Some("edit"),
++        "view_image" => Some("read"),
++        "tool_search_tool" | "search_contents" => Some("search"),
++        _ => None,
++    }
++}
+diff --git a/codex-rs/session-export/src/source.rs b/codex-rs/session-export/src/source.rs
+new file mode 100644
+index 0000000000..f9d02a6828
+--- /dev/null
++++ b/codex-rs/session-export/src/source.rs
+@@ -0,0 +1,520 @@
++//! Storage adapter. Never constructs a recorder, StateRuntime, or a migration job.
++
++use std::collections::BTreeMap;
++use std::collections::HashMap;
++use std::collections::HashSet;
++use std::fs;
++use std::io::BufRead;
++use std::io::BufReader;
++use std::io::Read;
++use std::io::Seek;
++use std::io::SeekFrom;
++use std::path::Path;
++use std::path::PathBuf;
++
++use anyhow::Context;
++use anyhow::bail;
++use codex_protocol::ThreadId;
++use codex_rollout::RolloutItem;
++use serde_json::Value;
++
++#[derive(Clone, Debug)]
++pub(crate) struct Segment {
++    pub path: PathBuf,
++    pub rollout_id: String,
++    pub meta: Value,
++    pub thread_id: String,
++}
++
++pub(crate) struct Source<'a> {
++    reader: BufReader<Box<dyn ReadSeek + 'a>>,
++    pub bytes: u64,
++    pub line: u64,
++    max_line_bytes: usize,
++    offset: u64,
++}
++trait ReadSeek: Read + Seek {}
++impl<T: Read + Seek> ReadSeek for T {}
++
++impl<'a> Source<'a> {
++    pub fn open(path: &'a Path, max_line_bytes: usize) -> anyhow::Result<Self> {
++        let mut reader = codex_rollout::open_rollout_seekable_reader(path, || false)?;
++        let bytes = reader.seek(SeekFrom::End(0))?;
++        reader.rewind()?;
++        Ok(Self {
++            reader: BufReader::with_capacity(1024 * 1024, Box::new(reader)),
++            bytes,
++            line: 0,
++            max_line_bytes,
++            offset: 0,
++        })
++    }
++
++    pub fn rewind(&mut self) -> anyhow::Result<()> {
++        self.reader.rewind()?;
++        self.line = 0;
++        self.offset = 0;
++        Ok(())
++    }
++
++    // Retain a fixed byte boundary even when a live rollout grows. A torn final
++    // record is a gap, never passed off as a complete native record.
++    pub fn next(&mut self) -> anyhow::Result<Option<Value>> {
++        if self.offset >= self.bytes {
++            return Ok(None);
++        }
++        let mut bytes = Vec::new();
++        loop {
++            let remaining = self.bytes - self.offset;
++            if remaining == 0 {
++                break;
++            }
++            let available = self.reader.fill_buf()?;
++            if available.is_empty() {
++                self.offset = self.bytes;
++                break;
++            }
++            let available = &available[..available.len().min(remaining as usize)];
++            let n = available
++                .iter()
++                .position(|b| *b == b'\n')
++                .map_or(available.len(), |i| i + 1);
++            if bytes.len() + n > self.max_line_bytes {
++                bail!(
++                    "native line exceeds --max-line-bytes at line {}",
++                    self.line + 1
++                );
++            }
++            bytes.extend_from_slice(&available[..n]);
++            self.reader.consume(n);
++            self.offset += n as u64;
++            if bytes.last() == Some(&b'\n') {
++                break;
++            }
++        }
++        self.line += 1;
++        if bytes.last() != Some(&b'\n') {
++            return Ok(Some(
++                serde_json::json!({"type":"_gap", "reason":"source_truncated"}),
++            ));
++        }
++        if bytes.iter().all(u8::is_ascii_whitespace) {
++            return Ok(Some(serde_json::json!({"type":"_blank"})));
++        }
++        Ok(Some(match serde_json::from_slice::<Value>(&bytes) {
++            Ok(value) if value.is_object() && value["type"].is_string() => value,
++            _ => serde_json::json!({"type":"_gap", "reason":"unparseable"}),
++        }))
++    }
++}
++
++pub(crate) struct Inventory {
++    pub segments: Vec<Segment>,
++    pub unavailable: Vec<Value>,
++}
++
++pub(crate) fn inventory(
++    home: &Path,
++    max_line_bytes: usize,
++    threads: &HashMap<String, Value>,
++) -> anyhow::Result<Inventory> {
++    let mut paths = Vec::new();
++    let mut unavailable = Vec::new();
++    let mut visited = HashSet::new();
++    for root in [home.join("sessions"), home.join("archived_sessions")] {
++        if root.exists() {
++            walk(&root, &mut paths, &mut unavailable, &mut visited)?;
++        }
++    }
++    paths.sort();
++    // Codex's reader prefers plain when both representations exist during compression.
++    let mut seen = HashSet::new();
++    let mut segments = Vec::new();
++    for path in paths {
++        let plain = codex_rollout::plain_rollout_path(&path);
++        if !seen.insert(plain.clone()) {
++            continue;
++        }
++        let rollout_id = codex_rollout::rollout_id_from_path(&path)
++            .map(|id| id.to_string())
++            .context("rollout filename has no native rollout ID")?;
++        let filename = plain
++            .file_name()
++            .and_then(|s| s.to_str())
++            .unwrap_or_default();
++        // A legacy fork may carry its parent's header before its own. The filename
++        // selects between recorded headers. If none is readable, recovery below
++        // explicitly records the weaker filename/index evidence.
++        let hint = filename.get(28..64);
++        let prefix = codex_rollout::read_rollout_prefix(&path, max_line_bytes.min(1024 * 1024))?
++            .context("rollout is not a regular file")?;
++        let mut candidate = None;
++        for bytes in prefix
++            .split_inclusive(|b| *b == b'\n')
++            .filter(|b| b.last() == Some(&b'\n'))
++        {
++            if let Ok(value) = serde_json::from_slice::<Value>(bytes)
++                && let Some(found) = session_meta(&value)
++            {
++                candidate = Some(found);
++                if candidate
++                    .as_ref()
++                    .is_some_and(|(id, _)| hint == Some(id.as_str()))
++                {
++                    break;
++                }
++            }
++        }
++        if !candidate
++            .as_ref()
++            .is_some_and(|(id, _)| hint == Some(id.as_str()))
++        {
++            let mut reader = Source::open(&path, max_line_bytes)?;
++            while let Some(value) = reader.next()? {
++                if let Some(found) = session_meta(&value) {
++                    candidate = Some(found);
++                    if candidate
++                        .as_ref()
++                        .is_some_and(|(id, _)| hint == Some(id.as_str()))
++                    {
++                        break;
++                    }
++                }
++            }
++        }
++        // A surviving ancestor header is not this child's identity.
++        let candidate = candidate.filter(|(id, _)| hint == Some(id.as_str()));
++        let (thread_id, meta) = match candidate {
++            Some(found) => found,
++            None => {
++                // The canonical basename encodes a native thread ID (validated by
++                // rollout_id_from_path above). Do not derive it from timestamps or
++                // content, or fabricate the missing session settings.
++                let id = hint.context("unreadable header and no native thread ID")?;
++                ThreadId::from_string(id)?;
++                let indexed = threads.get(id).is_some_and(|row| {
++                    row["rollout_path"].as_str().is_some_and(|p| {
++                        codex_rollout::plain_rollout_path(Path::new(p)).file_name()
++                            == plain.file_name()
++                    })
++                });
++                if !indexed {
++                    unavailable
++                        .push(serde_json::json!({"path":path,"code":"unrecoverable-header"}));
++                    continue;
++                }
++                (
++                    id.to_owned(),
++                    serde_json::json!({"id":id,"_asrIdentityRecovery":{"source":if indexed {"state_index_and_rollout_filename"} else {"rollout_filename"},"reason":"unreadable_session_meta"}}),
++                )
++            }
++        };
++        segments.push(Segment {
++            path,
++            rollout_id,
++            meta,
++            thread_id,
++        });
++    }
++    Ok(Inventory {
++        segments,
++        unavailable,
++    })
++}
++
++fn session_meta(value: &Value) -> Option<(String, Value)> {
++    if value["type"] != "session_meta" {
++        return None;
++    }
++    // Older versions did not persist all fields required by today's SessionMeta.
++    // Validate the native identity independently; raw fields preserve true absence.
++    if let Ok(line) = codex_rollout::decode_rollout_line(value.clone())
++        && !matches!(line.item, RolloutItem::SessionMeta(_))
++    {
++        return None;
++    }
++    let id = value["payload"]["id"].as_str()?;
++    ThreadId::from_string(id).ok()?;
++    Some((id.to_owned(), value["payload"].clone()))
++}
++
++fn walk(
++    dir: &Path,
++    paths: &mut Vec<PathBuf>,
++    unavailable: &mut Vec<Value>,
++    visited: &mut HashSet<PathBuf>,
++) -> anyhow::Result<()> {
++    if !visited.insert(fs::canonicalize(dir)?) {
++        return Ok(());
++    }
++    for entry in fs::read_dir(dir)? {
++        let entry = entry?;
++        let kind = entry.file_type()?;
++        let path = if kind.is_symlink() {
++            match fs::canonicalize(entry.path()) {
++                Ok(path) => path,
++                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
++                    unavailable
++                        .push(serde_json::json!({"path":entry.path(),"code":"unavailable-alias"}));
++                    continue;
++                }
++                Err(e) => return Err(e.into()),
++            }
++        } else {
++            entry.path()
++        };
++        if path.is_dir() {
++            walk(&path, paths, unavailable, visited)?;
++        } else if path.is_file() {
++            let name = entry.file_name();
++            let name = name.to_string_lossy();
++            if name.starts_with("rollout-")
++                && (name.ends_with(".jsonl") || name.ends_with(".jsonl.zst"))
++            {
++                paths.push(path);
++            }
++        }
++    }
++    Ok(())
++}
++
++#[derive(Default)]
++pub(crate) struct Index {
++    pub model_calls: HashSet<String>,
++    pub code_invocations: HashSet<String>,
++    pub triggers: HashMap<String, Value>,
++    pub parents: HashMap<String, String>,
++    pub secret_calls: HashSet<String>,
++    pub secrets: Vec<String>,
++    pub record_ids: HashMap<String, u64>,
++    pub result_last: HashMap<String, u64>,
++    pub inference_last: HashMap<String, u64>,
++    pub execution_calls: HashSet<String>,
++    pub tools_removed: bool,
++    position: u64,
++}
++
++impl Index {
++    pub fn scan(&mut self, source: &mut Source<'_>) -> anyhow::Result<()> {
++        while let Some(mut line) = source.next()? {
++            crate::content::stringify_wide_numbers(&mut line);
++            self.position += 1;
++            let p = &line["payload"];
++            crate::content::collect_credentials(p, &mut self.secrets);
++            let id = if line["type"] == "token_usage_record" {
++                p["response_id"].as_str()
++            } else if line["type"] == "event_msg" {
++                p["item"]["id"].as_str()
++            } else {
++                p["id"].as_str()
++            };
++            if let Some(id) = id {
++                *self.record_ids.entry(id.to_owned()).or_default() += 1;
++            }
++            if line["type"] == "token_usage_record"
++                && let Some(id) = p["response_id"].as_str()
++            {
++                self.inference_last.insert(id.to_owned(), self.position);
++            }
++            let result_call = if line["type"] == "response_item"
++                && matches!(
++                    p["type"].as_str(),
++                    Some("function_call_output" | "custom_tool_call_output" | "tool_search_output")
++                ) {
++                p["call_id"].as_str()
++            } else if line["type"] == "event_msg"
++                && p["type"] == "item_completed"
++                && matches!(
++                    p["item"]["type"].as_str(),
++                    Some(
++                        "CommandExecution"
++                            | "McpToolCall"
++                            | "DynamicToolCall"
++                            | "FileChange"
++                            | "CollabAgentToolCall"
++                            | "FunctionCallOutput"
++                    )
++                )
++            {
++                p["item"]["id"].as_str()
++            } else if line["type"] == "event_msg"
++                && matches!(
++                    p["type"].as_str(),
++                    Some("patch_apply_end" | "mcp_tool_call_end" | "exec_command_end")
++                )
++            {
++                p["call_id"].as_str()
++            } else {
++                None
++            };
++            if let Some(id) = result_call {
++                self.result_last.insert(id.to_owned(), self.position);
++                if line["type"] == "event_msg" {
++                    self.execution_calls.insert(id.to_owned());
++                }
++            }
++            if line["type"] == "response_item" {
++                let kind = p["type"].as_str().unwrap_or_default();
++                if kind.ends_with("_call")
++                    && let Some(id) = p["call_id"].as_str().or(p["id"].as_str())
++                {
++                    self.model_calls.insert(id.to_owned());
++                    if p["type"] == "custom_tool_call" && p["name"] == "exec" {
++                        self.code_invocations.insert(id.to_owned());
++                    }
++                    if matches!(
++                        p["name"].as_str(),
++                        Some(
++                            "request_user_input"
++                                | "request_user_input_async"
++                                | "send_message_to_user_async"
++                                | "request_secret"
++                        )
++                    ) {
++                        let args = arguments(p);
++                        if p["name"] == "request_secret"
++                            || args["questions"].as_array().is_some_and(|qs| {
++                                qs.iter().any(|q| {
++                                    q["isSecret"] == true
++                                        || q["is_secret"] == true
++                                        || q["secret"] == true
++                                })
++                            })
++                        {
++                            self.secret_calls.insert(id.to_owned());
++                        }
++                    }
++                }
++                let m = &p["internal_chat_message_metadata_passthrough"];
++                self.tools_removed |= m["content_item_kinds"].as_array().is_some_and(|kinds| {
++                    kinds.iter().any(|kind| kind == "tools.removed_definition")
++                });
++                if let Some(calls) = m["executed_tool_calls"].as_array() {
++                    // The output's call_id identifies the outer invocation. A cell_id
++                    // alone is not a model call ID; never invent that equivalence.
++                    if let Some(parent) = p["call_id"].as_str().filter(|id| {
++                        m["cell_id"].is_string() && self.code_invocations.contains(*id)
++                    }) {
++                        for call in calls {
++                            if let Some(id) = call["id"].as_str().or(call["call_id"].as_str()) {
++                                self.parents.insert(id.to_owned(), parent.to_owned());
++                            }
++                        }
++                    }
++                }
++            }
++            if matches!(p["type"].as_str(), Some("task_started" | "turn_started"))
++                && let Some(turn) = p["turn_id"].as_str()
++                && p["turn_attribution"]["turn_trigger"].is_string()
++            {
++                self.triggers
++                    .insert(turn.to_owned(), p["turn_attribution"].clone());
++            }
++        }
++        self.secrets.sort();
++        self.secrets.dedup();
++        source.rewind()
++    }
++
++    pub fn scan_secrets(&mut self, source: &mut Source<'_>) -> anyhow::Result<()> {
++        if self.secret_calls.is_empty() {
++            return Ok(());
++        }
++        while let Some(line) = source.next()? {
++            let p = &line["payload"];
++            if p["call_id"]
++                .as_str()
++                .is_some_and(|id| self.secret_calls.contains(id))
++                && p["type"].as_str().is_some_and(|s| s.ends_with("_output"))
++            {
++                let output = if let Some(s) = p["output"].as_str() {
++                    serde_json::from_str(s).unwrap_or_else(|_| Value::String(s.to_owned()))
++                } else {
++                    p["output"].clone()
++                };
++                collect_strings(output.get("answers").unwrap_or(&output), &mut self.secrets);
++            }
++            // Verified answers can survive compaction after the tool output is gone.
++            collect_retained_secrets(p, &self.secret_calls, &mut self.secrets);
++        }
++        self.secrets.sort();
++        self.secrets.dedup();
++        source.rewind()
++    }
++}
++
++fn collect_retained_secrets(value: &Value, calls: &HashSet<String>, secrets: &mut Vec<String>) {
++    match value {
++        Value::Object(o) => {
++            if o.get("call_id")
++                .and_then(Value::as_str)
++                .is_some_and(|id| calls.contains(id))
++            {
++                for q in value["questions"].as_array().into_iter().flatten() {
++                    collect_strings(&q["answer"], secrets);
++                }
++            }
++            for child in o.values() {
++                collect_retained_secrets(child, calls, secrets);
++            }
++        }
++        Value::Array(a) => {
++            for child in a {
++                collect_retained_secrets(child, calls, secrets);
++            }
++        }
++        _ => {}
++    }
++}
++
++fn collect_strings(value: &Value, strings: &mut Vec<String>) {
++    match value {
++        Value::String(s) if !s.is_empty() => strings.push(s.clone()),
++        Value::Array(a) => a.iter().for_each(|v| collect_strings(v, strings)),
++        Value::Object(o) => o.values().for_each(|v| collect_strings(v, strings)),
++        _ => {}
++    }
++}
++
++pub(crate) fn arguments(p: &Value) -> Value {
++    p["arguments"]
++        .as_str()
++        .and_then(|s| serde_json::from_str(s).ok())
++        .unwrap_or_else(|| p["arguments"].clone())
++}
++
++pub(crate) fn groups(segments: Vec<Segment>) -> anyhow::Result<BTreeMap<String, Vec<Segment>>> {
++    let mut groups: BTreeMap<String, Vec<Segment>> = BTreeMap::new();
++    for segment in segments {
++        groups
++            .entry(segment.thread_id.clone())
++            .or_default()
++            .push(segment);
++    }
++    for segments in groups.values_mut() {
++        segments.sort_by(|a, b| {
++            a.meta["timestamp"]
++                .as_str()
++                .cmp(&b.meta["timestamp"].as_str())
++                .then(a.rollout_id.cmp(&b.rollout_id))
++        });
++        let ids: HashSet<_> = segments.iter().map(|s| s.rollout_id.clone()).collect();
++        let mut ordered = Vec::new();
++        let mut emitted = HashSet::new();
++        while !segments.is_empty() {
++            let i = segments
++                .iter()
++                .position(|s| {
++                    s.meta["history_base"]["thread_id"]
++                        .as_str()
++                        .is_none_or(|id| !ids.contains(id) || emitted.contains(id))
++                })
++                .context("cycle between rollout segments")?;
++            let next = segments.remove(i);
++            emitted.insert(next.rollout_id.clone());
++            ordered.push(next);
++        }
++        *segments = ordered;
++    }
++    Ok(groups)
++}
+diff --git a/codex-rs/session-export/src/state.rs b/codex-rs/session-export/src/state.rs
+new file mode 100644
+index 0000000000..f3405bc9aa
+--- /dev/null
++++ b/codex-rs/session-export/src/state.rs
+@@ -0,0 +1,124 @@
++//! Snapshot authoritative metadata through the existing read-only SQLite API.
++
++use std::collections::HashMap;
++use std::path::Path;
++
++use codex_state::SqliteConfig;
++use codex_utils_absolute_path::AbsolutePathBuf;
++use serde_json::Map;
++use serde_json::Value;
++use sqlx::Column;
++use sqlx::Row;
++use sqlx::ValueRef;
++
++#[derive(Default)]
++pub(crate) struct Snapshot {
++    pub threads: HashMap<String, Value>,
++    pub projects: HashMap<String, Value>,
++    pub sections: HashMap<String, Value>,
++    pub rows: HashMap<String, Vec<(String, Value)>>,
++    pub available: bool,
++}
++
++impl Snapshot {
++    pub async fn read(home: &Path) -> anyhow::Result<Self> {
++        let config = SqliteConfig::from_sqlite_home_with_nfs_enforcement(
++            AbsolutePathBuf::relative_to_current_dir(home)?,
++            false,
++        );
++        let mut snapshot = Self::default();
++        for (path, tables) in [
++            (
++                config.state_db_path(),
++                &[
++                    "threads",
++                    "projects",
++                    "thread_spawn_edges",
++                    "thread_attachments",
++                    "thread_read_receipts",
++                    "thread_sections",
++                ][..],
++            ),
++            (home.join("goals_1.sqlite"), &["thread_goals"][..]),
++            (home.join("queue_1.sqlite"), &["queued_items"][..]),
++            (home.join("memories_1.sqlite"), &["stage1_outputs"][..]),
++        ] {
++            if !path.exists() {
++                continue;
++            }
++            let pool = config
++                .open_read_only_pool(&path, Some(std::time::Duration::from_secs(5)))
++                .await?;
++            // One consistent snapshot per database, without migration or backfill.
++            let mut tx = pool.begin().await?;
++            for table in tables {
++                let exists: i64 = sqlx::query_scalar(
++                    "SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?",
++                )
++                .bind(table)
++                .fetch_one(&mut *tx)
++                .await?;
++                if exists == 0 {
++                    continue;
++                }
++                // Table names above are static, never user input.
++                for row in sqlx::query(sqlx::AssertSqlSafe(format!("SELECT * FROM {table}")))
++                    .fetch_all(&mut *tx)
++                    .await?
++                {
++                    let mut object = Map::new();
++                    for column in row.columns() {
++                        let name = column.name();
++                        if row.try_get_raw(name)?.is_null() {
++                            continue;
++                        }
++                        let value = if let Ok(n) = row.try_get::<i64, _>(name) {
++                            Value::from(n)
++                        } else if let Ok(n) = row.try_get::<f64, _>(name) {
++                            Value::from(n)
++                        } else if let Ok(s) = row.try_get::<String, _>(name) {
++                            Value::String(s)
++                        } else {
++                            continue;
++                        };
++                        object.insert(name.to_owned(), value);
++                    }
++                    let value = Value::Object(object);
++                    match *table {
++                        "threads" => {
++                            if let Some(id) = value["id"].as_str() {
++                                snapshot.threads.insert(id.to_owned(), value);
++                            }
++                            snapshot.available = true;
++                        }
++                        "thread_sections" => {
++                            if let Some(id) = value["id"].as_str() {
++                                snapshot.sections.insert(id.to_owned(), value);
++                            }
++                        }
++                        "projects" => {
++                            if let Some(id) = value["id"].as_str() {
++                                snapshot.projects.insert(id.to_owned(), value);
++                            }
++                        }
++                        _ => {
++                            if let Some(id) = value["thread_id"]
++                                .as_str()
++                                .or(value["parent_thread_id"].as_str())
++                            {
++                                snapshot
++                                    .rows
++                                    .entry(id.to_owned())
++                                    .or_default()
++                                    .push((table.to_string(), value));
++                            }
++                        }
++                    }
++                }
++            }
++            tx.rollback().await?;
++            pool.close().await;
++        }
++        Ok(snapshot)
++    }
++}
+diff --git a/codex-rs/session-export/src/stream.rs b/codex-rs/session-export/src/stream.rs
+new file mode 100644
+index 0000000000..046649e364
+--- /dev/null
++++ b/codex-rs/session-export/src/stream.rs
+@@ -0,0 +1,87 @@
++//! Private streaming output and disk-backed folding of tool-result updates.
++use std::collections::HashMap;
++use std::collections::HashSet;
++use std::fs::File;
++use std::io::{BufRead, BufReader, BufWriter, Seek, SeekFrom, Write};
++
++use serde_json::Value;
++
++pub(crate) struct Stream {
++    pub file: tempfile::NamedTempFile,
++    writer: BufWriter<File>,
++    pending_file: tempfile::NamedTempFile,
++    pending: HashMap<String, u64>,
++    reserved: HashSet<String>,
++    pub count: u64,
++    position: u64,
++    slot: u64,
++}
++
++impl Stream {
++    pub fn new(reserved: HashSet<String>) -> anyhow::Result<Self> {
++        let file = tempfile::NamedTempFile::new()?;
++        Ok(Self {
++            writer: BufWriter::new(file.reopen()?),
++            file,
++            pending_file: tempfile::NamedTempFile::new()?,
++            pending: HashMap::new(),
++            reserved,
++            count: 0,
++            position: 0,
++            slot: 0,
++        })
++    }
++
++    pub fn position(&mut self, position: u64) {
++        self.position = position;
++        self.slot = 0;
++    }
++
++    pub fn emit(&mut self, mut record: Value) -> anyhow::Result<String> {
++        let id = if let Some(id) = record["id"].as_str() {
++            id.to_owned()
++        } else {
++            loop {
++                let id = format!("asr:{}:{}", self.position, self.slot);
++                self.slot += 1;
++                if !self.reserved.contains(&id) {
++                    break id;
++                }
++            }
++        };
++        record["id"] = id.clone().into();
++        serde_json::to_writer(&mut self.writer, &record)?;
++        self.writer.write_all(b"\n")?;
++        self.count += 1;
++        Ok(id)
++    }
++
++    pub fn save_result(&mut self, key: &str, value: &Value) -> anyhow::Result<()> {
++        let file = self.pending_file.as_file_mut();
++        let offset = file.seek(SeekFrom::End(0))?;
++        serde_json::to_writer(&mut *file, value)?;
++        file.write_all(b"\n")?;
++        self.pending.insert(key.to_owned(), offset);
++        Ok(())
++    }
++
++    pub fn take_result(&mut self, key: &str) -> anyhow::Result<Option<Value>> {
++        let Some(offset) = self.pending.remove(key) else {
++            return Ok(None);
++        };
++        let mut reader = BufReader::new(self.pending_file.reopen()?);
++        reader.seek(SeekFrom::Start(offset))?;
++        let mut line = String::new();
++        reader.read_line(&mut line)?;
++        Ok(Some(serde_json::from_str(&line)?))
++    }
++
++    pub fn finish(&mut self) -> anyhow::Result<()> {
++        anyhow::ensure!(
++            self.pending.is_empty(),
++            "unfolded tool results at capture boundary"
++        );
++        self.writer.flush()?;
++        Ok(())
++    }
++}
+diff --git a/codex-rs/session-export/src/tests.rs b/codex-rs/session-export/src/tests.rs
+new file mode 100644
+index 0000000000..1a35131696
+--- /dev/null
++++ b/codex-rs/session-export/src/tests.rs
+@@ -0,0 +1,582 @@
++use crate::ExportArgs;
++use crate::mapping::Mapper;
++use crate::source::{Index, Segment, Source};
++use pretty_assertions::assert_eq;
++use serde_json::{Value, json};
++use std::collections::HashMap;
++use std::fs;
++use std::io::Write;
++use std::path::Path;
++use std::sync::Arc;
++
++const THREAD: &str = "019a3c2e-7b1f-7d40-9e2a-5c8b1d3f6e70";
++const CHILD: &str = "019a3c2e-7b1f-7d40-9e2a-5c8b1d3f6e71";
++fn header() -> Value {
++    json!({"id":THREAD,"timestamp":"2026-10-27T12:00:00Z","cwd":"/work/repo","cli_version":"0.163.0","source":"cli"})
++}
++fn line(kind: &str, p: Value) -> Value {
++    json!({"type":kind,"timestamp":"2026-10-27T12:00:00Z","payload":p})
++}
++fn mapped(lines: Vec<Value>) -> (Value, Vec<Value>) {
++    mapped_meta(header(), lines)
++}
++fn mapped_meta(meta: Value, lines: Vec<Value>) -> (Value, Vec<Value>) {
++    let mut source_file = tempfile::NamedTempFile::new().unwrap();
++    for line in &lines {
++        writeln!(source_file, "{line}").unwrap();
++    }
++    let mut source = Source::open(source_file.path(), 16 * 1024 * 1024).unwrap();
++    let mut index = Index::default();
++    index.scan(&mut source).unwrap();
++    index.scan_secrets(&mut source).unwrap();
++    let seg = Segment {
++        path: "unused".into(),
++        rollout_id: THREAD.into(),
++        thread_id: meta["id"].as_str().unwrap().into(),
++        meta: meta.clone(),
++    };
++    let mut mapper = Mapper::new(
++        meta,
++        index,
++        THREAD.into(),
++        Arc::new(HashMap::new()),
++        "/unused".into(),
++    )
++    .unwrap();
++    for line in lines {
++        mapper.line(&seg, line).unwrap();
++    }
++    mapper.stream.finish().unwrap();
++    let records = fs::read_to_string(mapper.stream.file.path())
++        .unwrap()
++        .lines()
++        .map(|s| serde_json::from_str(s).unwrap())
++        .collect::<Vec<Value>>();
++    let header = mapper.header();
++    validate(&header, &records);
++    (header, records)
++}
++fn validate(header: &Value, records: &[Value]) {
++    if let Some(validator) = std::env::var_os("ASR_VALIDATOR") {
++        let mut file = tempfile::NamedTempFile::new().unwrap();
++        writeln!(file, "{header}").unwrap();
++        for r in records {
++            writeln!(file, "{r}").unwrap();
++        }
++        let output = std::process::Command::new("node")
++            .arg(validator)
++            .arg(file.path())
++            .output()
++            .unwrap();
++        assert!(
++            output.status.success(),
++            "{}",
++            String::from_utf8_lossy(&output.stdout)
++        );
++    }
++}
++fn rows<'a>(r: &'a [Value], kind: &str) -> Vec<&'a Value> {
++    r.iter().filter(|r| r["type"] == kind).collect()
++}
++fn call(id: &str) -> Value {
++    line(
++        "response_item",
++        json!({"type":"function_call","call_id":id,"name":"exec_command","arguments":"{}"}),
++    )
++}
++fn output(id: &str, text: &str) -> Value {
++    line(
++        "response_item",
++        json!({"type":"function_call_output","call_id":id,"output":text}),
++    )
++}
++fn completion(id: &str) -> Value {
++    line(
++        "event_msg",
++        json!({"type":"item_completed","item":{"type":"CommandExecution","id":id,"command":["false"],"cwd":"/work/repo","status":"failed","exit_code":1,"aggregated_output":"display","duration":{"secs":1,"nanos":500000000}}}),
++    )
++}
++
++#[test]
++fn identities_and_reasoning_follow_current_spec() {
++    let mut meta = header();
++    meta["creator_user_id"] = "synthetic-user".into();
++    meta["creator_account_id"] = "synthetic-account".into();
++    let (h, r) = mapped_meta(
++        meta,
++        vec![
++            line(
++                "response_item",
++                json!({"type":"reasoning","id":"reasoning","summary":[],"encrypted_content":"synthetic-ciphertext","signature":"synthetic-signature"}),
++            ),
++            line(
++                "response_item",
++                json!({"type":"reasoning","id":"opaque","encrypted_content":"synthetic-ciphertext"}),
++            ),
++            line(
++                "response_item",
++                json!({"type":"message","id":"prompt","role":"user","content":[{"type":"input_text","text":"AGENTS\r\n"},{"type":"input_text","text":"Hello"}],"internal_chat_message_metadata_passthrough":{"content_item_kinds":["agents_md.instructions","user.text"]}}),
++            ),
++        ],
++    );
++    assert_eq!(
++        h["user"],
++        json!({"id":"synthetic-user","source":"agent_account"})
++    );
++    assert_eq!(r[0]["id"], "reasoning");
++    assert_eq!(r[0]["content"][0]["summary"], json!([]));
++    assert_eq!(r[0]["content"][0]["visibility"], "summary");
++    assert_eq!(r[1]["content"][0]["visibility"], "encrypted");
++    assert_eq!(r[2]["content"][0]["text"], "AGENTS\r\n");
++    assert_eq!(r[2]["content"][1]["author"], "human");
++    let encoded = json!(r).to_string();
++    assert!(!encoded.contains("synthetic-ciphertext"));
++    assert!(!encoded.contains("synthetic-signature"));
++    assert!(h.get("seq").is_none());
++    assert_eq!(h["producer"]["source"], "codex-rollout");
++}
++#[test]
++fn tool_updates_fold_once_at_last_source_position_in_either_order() {
++    for order in [
++        vec![call("c"), output("c", "model"), completion("c")],
++        vec![call("c"), completion("c"), output("c", "model")],
++    ] {
++        let (_, r) = mapped(order);
++        let results = rows(&r, "tool_result");
++        assert_eq!(results.len(), 1);
++        assert_eq!(results[0]["status"], "failed");
++        assert_eq!(results[0]["content"][0]["text"], "model");
++        assert_eq!(results[0]["exec"]["output"], "display");
++        assert_eq!(results[0]["exec"]["exitCode"], 1);
++        assert_eq!(results[0]["durationMs"], 1500.0);
++        assert_eq!(
++            results[0]["_meta"]["com.openai.codex"]["sourcePosition"]["line"],
++            3
++        );
++    }
++}
++#[test]
++fn duplicate_calls_and_outputs_keep_ambiguous_native_call_id() {
++    let (_, r) = mapped(vec![
++        call("c"),
++        call("c"),
++        output("c", "old"),
++        output("c", "new"),
++        output("orphan", "value"),
++    ]);
++    assert_eq!(rows(&r, "tool_call").len(), 2);
++    assert_eq!(rows(&r, "tool_result").len(), 2);
++    assert_eq!(r[2]["content"][0]["text"], "new");
++    assert_ne!(r[0]["id"], r[1]["id"]);
++}
++#[test]
++fn patches_preserve_file_endpoints_and_require_recorded_application() {
++    let (_, r) = mapped(vec![
++        line(
++            "response_item",
++            json!({"type":"custom_tool_call","name":"apply_patch","call_id":"patch","input":"*** Begin Patch\n*** Update File: old.txt\n*** Move to: new.txt\n@@\n-a\n+b\n*** End Patch"}),
++        ),
++        line(
++            "event_msg",
++            json!({"type":"patch_apply_end","call_id":"patch","success":true,"changes":{"old.txt":{"type":"update","move_path":"new.txt","unified_diff":"@@ -1 +1 @@\n-a\n+b\n"}}}),
++        ),
++        output("patch", "ok"),
++    ]);
++    let changes = rows(&r, "file_change");
++    assert_eq!(changes.len(), 2);
++    assert_eq!(changes[0]["status"], "proposed");
++    assert!(changes[0].get("patch").is_none());
++    assert_eq!(changes[1]["status"], "applied");
++    assert_eq!(changes[1]["oldPath"], "/work/repo/old.txt");
++    assert_eq!(changes[1]["path"], "/work/repo/new.txt");
++    assert_eq!(changes[1]["patch"], "@@ -1 +1 @@\n-a\n+b\n");
++    assert_eq!(rows(&r, "tool_result").len(), 1);
++}
++#[test]
++fn copied_prefix_and_subagent_parent_do_not_use_root_session_identity() {
++    let mut h = header();
++    h["id"] = CHILD.into();
++    h["session_id"] = "unrelated-root".into();
++    h["source"] =
++        json!({"subagent":{"thread_spawn":{"parent_thread_id":THREAD,"agent_role":"reviewer"}}});
++    h["subagent_history_start_ordinal"] = 3.into();
++    let mut a = line(
++        "response_item",
++        json!({"type":"message","role":"user","content":[]}),
++    );
++    a["ordinal"] = 1.into();
++    let mut b = line(
++        "response_item",
++        json!({"type":"message","role":"assistant","content":[]}),
++    );
++    b["ordinal"] = 3.into();
++    let (h, r) = mapped_meta(h, vec![a, b]);
++    assert_eq!(h["sessionId"], CHILD);
++    assert_eq!(h["parent"]["session"], format!("codex:{THREAD}"));
++    assert_eq!(h["parent"]["copiedThrough"], r[0]["id"]);
++}
++#[test]
++fn unknown_turn_model_keeps_the_identified_inference() {
++    let (h, r) = mapped(vec![line(
++        "token_usage_record",
++        json!({"turn_id":"missing","response_id":"r","usage":{"input_tokens":2}}),
++    )]);
++    let inference = rows(&r, "inference");
++    assert_eq!(inference.len(), 1);
++    assert!(inference[0].get("model").is_none());
++    assert_eq!(inference[0]["usage"]["inputTokens"], 2);
++    assert!(h["missing"].as_array().unwrap().contains(&json!("model")));
++}
++
++#[test]
++fn wide_native_values_are_strings_and_unsafe_core_counts_are_omitted() {
++    let wide: Value = serde_json::from_str(r#"{"type":"function_call","call_id":"wide","name":"read","arguments":"{\"counter\":9007199254740993}"}"#).unwrap();
++    let (_, r) = mapped(vec![
++        line("response_item", wide),
++        line(
++            "token_usage_record",
++            json!({"response_id":"wide-response","usage":{"input_tokens":9007199254740993u64,"output_tokens":0}}),
++        ),
++    ]);
++    assert_eq!(
++        rows(&r, "tool_call")[0]["input"]["counter"],
++        "9007199254740993"
++    );
++    assert!(
++        rows(&r, "inference")[0]["usage"]
++            .get("inputTokens")
++            .is_none()
++    );
++    assert_eq!(rows(&r, "inference")[0]["usage"]["outputTokens"], 0);
++}
++
++#[test]
++fn completion_arguments_do_not_rewrite_the_original_call() {
++    let initial = line(
++        "response_item",
++        json!({"type":"function_call","call_id":"c","name":"lookup","arguments":"{}"}),
++    );
++    let completion = line(
++        "event_msg",
++        json!({"type":"item_completed","item":{"type":"McpToolCall","id":"c","tool":"lookup","arguments":null,"status":"completed"}}),
++    );
++    let (_, r) = mapped(vec![initial, completion]);
++    assert_eq!(rows(&r, "tool_call")[0]["input"], json!({}));
++    assert_eq!(rows(&r, "tool_result")[0].get("input"), Some(&Value::Null));
++}
++#[test]
++fn compaction_does_not_claim_retained_history_was_deleted() {
++    let (_, r) = mapped(vec![line(
++        "compacted",
++        json!({"message":"synthetic summary","replacement_history":[],"encrypted_content":"synthetic-ciphertext"}),
++    )]);
++    assert_eq!(r[0]["origin"], "compaction");
++    assert!(rows(&r, "gap").is_empty());
++}
++#[test]
++fn secrets_are_removed_even_from_escaped_copies() {
++    let secret = "synthetic-\"secret\"-value";
++    let (h, r) = mapped(vec![
++        line(
++            "response_item",
++            json!({"type":"function_call","name":"request_user_input","call_id":"secret","arguments":json!({"questions":[{"isSecret":true}]}).to_string()}),
++        ),
++        line(
++            "retained_context",
++            json!({"call_id":"secret","questions":[{"answer":secret}]}),
++        ),
++        output(
++            "secret",
++            &json!({"answers":{"q":{"answers":[secret]}}}).to_string(),
++        ),
++        line(
++            "response_item",
++            json!({"type":"message","role":"assistant","content":[{"type":"output_text","text":json!({"copy":secret}).to_string()}]}),
++        ),
++    ]);
++    assert!(!json!(r).to_string().contains("synthetic-"));
++    assert!(r.iter().any(|r| r["truncated"] == true));
++    assert!(h["missing"].as_array().unwrap().contains(&json!("secrets")));
++}
++#[test]
++fn dynamic_string_errors_have_the_required_object_shape() {
++    let (_, r) = mapped(vec![line(
++        "event_msg",
++        json!({"type":"item_completed","item":{"type":"DynamicToolCall","id":"d","tool":"synthetic","status":"failed","error":"synthetic failure"}}),
++    )]);
++    assert_eq!(r[1]["error"], json!({"message":"synthetic failure"}));
++}
++#[test]
++fn valid_native_ids_take_precedence_and_derived_ids_avoid_collisions() {
++    let (_, r) = mapped(vec![
++        line(
++            "response_item",
++            json!({"type":"message","id":"asr:2:0","role":"user","content":[]}),
++        ),
++        call("call"),
++    ]);
++    assert_eq!(r[0]["id"], "asr:2:0");
++    assert_ne!(r[0]["id"], r[1]["id"]);
++}
++#[test]
++fn header_collisions_keep_ids_bounded_and_unique() {
++    let ids = (0..=250)
++        .map(|n| format!("header{}", "-".repeat(n)))
++        .chain((1..=300).map(|n| format!("header:{n}")));
++    let (h, r) = mapped(
++        ids.map(|id| {
++            line(
++                "response_item",
++                json!({"type":"message","id":id,"role":"user","content":[]}),
++            )
++        })
++        .collect(),
++    );
++    assert!(h["id"].as_str().unwrap().len() <= 256);
++    assert!(r.iter().all(|record| record["id"] != h["id"]));
++}
++fn args(out: &Path) -> ExportArgs {
++    ExportArgs {
++        format: "agent-session".into(),
++        thread: None,
++        all: true,
++        out: Some(out.into()),
++        codex_home: None,
++        sqlite_home: None,
++        max_line_bytes: 1024 * 1024,
++    }
++}
++fn rollout(home: &Path, compressed: bool) -> std::path::PathBuf {
++    let root = home.join("sessions");
++    fs::create_dir_all(&root).unwrap();
++    let path = root.join(format!(
++        "rollout-2026-10-27T12-00-00-{THREAD}.jsonl{}",
++        if compressed { ".zst" } else { "" }
++    ));
++    let bytes = format!(
++        "{}\n{}\n{{torn",
++        line("session_meta", header()),
++        line(
++            "response_item",
++            json!({"type":"message","role":"user","content":[]})
++        )
++    );
++    fs::write(
++        &path,
++        if compressed {
++            zstd::stream::encode_all(bytes.as_bytes(), 1).unwrap()
++        } else {
++            bytes.into_bytes()
++        },
++    )
++    .unwrap();
++    path
++}
++#[test]
++fn plain_and_compressed_exports_are_deterministic_private_and_read_only() {
++    for compressed in [false, true] {
++        let home = tempfile::tempdir().unwrap();
++        let path = rollout(home.path(), compressed);
++        let before = fs::read(&path).unwrap();
++        let out = home.path().join("out");
++        let stats = crate::export::run(home.path(), &args(&out), Default::default()).unwrap();
++        assert_eq!(stats.gaps, 1);
++        assert_eq!(fs::read(&path).unwrap(), before);
++        let out2 = home.path().join("out2");
++        crate::export::run(home.path(), &args(&out2), Default::default()).unwrap();
++        assert_eq!(
++            fs::read(out.join("bundle.json")).unwrap(),
++            fs::read(out2.join("bundle.json")).unwrap()
++        );
++        assert!(crate::export::run(home.path(), &args(&out), Default::default()).is_err());
++        #[cfg(unix)]
++        {
++            use std::os::unix::fs::PermissionsExt;
++            for dir in [&out, &out.join("sessions")] {
++                assert_eq!(
++                    fs::metadata(dir).unwrap().permissions().mode() & 0o777,
++                    0o700
++                );
++            }
++        }
++        for file in fs::read_dir(out.join("sessions")).unwrap() {
++            let file = file.unwrap().path();
++            #[cfg(unix)]
++            {
++                use std::os::unix::fs::PermissionsExt;
++                assert_eq!(
++                    fs::metadata(&file).unwrap().permissions().mode() & 0o777,
++                    0o600
++                );
++            }
++            let rows = fs::read_to_string(file)
++                .unwrap()
++                .lines()
++                .map(|s| serde_json::from_str::<Value>(s).unwrap())
++                .collect::<Vec<_>>();
++            validate(&rows[0], &rows[1..]);
++        }
++    }
++}
++#[test]
++fn oversize_input_fails_without_publishing() {
++    let home = tempfile::tempdir().unwrap();
++    rollout(home.path(), false);
++    let mut a = args(&home.path().join("out"));
++    a.max_line_bytes = 32;
++    assert!(crate::export::run(home.path(), &a, Default::default()).is_err());
++    assert!(!a.out.unwrap().exists());
++}
++#[test]
++fn annotations_do_not_backdate_database_facts_into_session_actions() {
++    let home = tempfile::tempdir().unwrap();
++    rollout(home.path(), false);
++    let out = home.path().join("out");
++    let mut state = crate::state::Snapshot::default();
++    state
++        .threads
++        .insert(THREAD.into(), json!({"title":"synthetic title"}));
++    state.rows.insert(
++        THREAD.into(),
++        vec![(
++            "thread_attachments".into(),
++            json!({"payload":json!({"url":"https://example.com/repo/pull/1"}).to_string()}),
++        )],
++    );
++    crate::export::run(home.path(), &args(&out), state).unwrap();
++    let paths = fs::read_dir(out.join("sessions"))
++        .unwrap()
++        .map(|p| p.unwrap().path())
++        .collect::<Vec<_>>();
++    assert_eq!(paths.len(), 2);
++    let annotation = paths
++        .iter()
++        .find(|p| p.to_string_lossy().ends_with(".annotations.jsonl"))
++        .unwrap();
++    let bytes = fs::read_to_string(annotation).unwrap();
++    assert!(bytes.contains("\"kind\":\"title\""));
++    assert!(bytes.contains("\"kind\":\"vcs\""));
++    if let Some(validator) = std::env::var_os("ASR_VALIDATOR") {
++        assert!(
++            std::process::Command::new("node")
++                .arg(validator)
++                .arg(annotation)
++                .output()
++                .unwrap()
++                .status
++                .success()
++        );
++    }
++}
++#[tokio::test]
++async fn state_snapshot_is_read_only_and_does_not_migrate() {
++    use codex_state::SqliteConfig;
++    use codex_utils_absolute_path::AbsolutePathBuf;
++    let home = tempfile::tempdir().unwrap();
++    let config = SqliteConfig::from_sqlite_home_with_nfs_enforcement(
++        AbsolutePathBuf::from_absolute_path(home.path()).unwrap(),
++        false,
++    );
++    let path = config.state_db_path();
++    let pool = config.open_read_write_pool(&path).await.unwrap();
++    sqlx::query("CREATE TABLE threads (id TEXT, title TEXT)")
++        .execute(&pool)
++        .await
++        .unwrap();
++    sqlx::query("INSERT INTO threads VALUES (?, 'synthetic')")
++        .bind(THREAD)
++        .execute(&pool)
++        .await
++        .unwrap();
++    pool.close().await;
++    let before = fs::read(&path).unwrap();
++    let snapshot = crate::state::Snapshot::read(home.path()).await.unwrap();
++    assert_eq!(snapshot.threads[THREAD]["title"], "synthetic");
++    assert_eq!(before, fs::read(&path).unwrap());
++}
++#[test]
++fn a_shrinking_source_ends_with_one_gap() {
++    let mut file = tempfile::NamedTempFile::new().unwrap();
++    writeln!(file, "{}", line("session_meta", header())).unwrap();
++    let mut source = Source::open(file.path(), 1024 * 1024).unwrap();
++    file.as_file().set_len(0).unwrap();
++    assert_eq!(source.next().unwrap().unwrap()["type"], "_gap");
++    assert!(source.next().unwrap().is_none());
++}
++
++#[test]
++fn credential_fields_are_removed_from_encoded_arguments_and_copies() {
++    let (h, r) = mapped(vec![
++        line(
++            "response_item",
++            json!({"type":"function_call","call_id":"c","name":"synthetic","arguments":json!({"api_key":"synthetic-credential"}).to_string()}),
++        ),
++        line(
++            "response_item",
++            json!({"type":"message","role":"assistant","content":[{"type":"output_text","text":"synthetic-credential"}]}),
++        ),
++    ]);
++    assert!(!json!(r).to_string().contains("synthetic-credential"));
++    assert!(h["missing"].as_array().unwrap().contains(&json!("secrets")));
++}
++
++#[test]
++fn own_instructions_before_copied_history_do_not_receive_copy_credit() {
++    let mut meta = header();
++    meta["source"] = json!({"subagent":{"thread_spawn":{"parent_thread_id":CHILD}}});
++    meta["subagent_history_start_ordinal"] = 3.into();
++    let mut copied = line(
++        "response_item",
++        json!({"type":"message","role":"user","content":[]}),
++    );
++    copied["ordinal"] = 1.into();
++    let (h, r) = mapped_meta(
++        meta,
++        vec![
++            line(
++                "session_meta",
++                json!({"id":THREAD,"base_instructions":{"text":"own instructions"}}),
++            ),
++            copied,
++        ],
++    );
++    assert!(h["parent"].get("copiedThrough").is_none());
++    assert!(r[0].get("copiedFrom").is_none());
++    assert_eq!(r[1]["copiedFrom"]["session"], format!("codex:{CHILD}"));
++}
++
++#[test]
++fn ancestor_only_header_is_never_mistaken_for_child_identity() {
++    let home = tempfile::tempdir().unwrap();
++    let path = rollout(home.path(), false);
++    fs::write(
++        &path,
++        format!("{}\n", line("session_meta", json!({"id":CHILD}))),
++    )
++    .unwrap();
++    let inventory = crate::source::inventory(home.path(), 1024 * 1024, &HashMap::new()).unwrap();
++    assert!(inventory.segments.is_empty());
++    assert_eq!(inventory.unavailable[0]["code"], "unrecoverable-header");
++    let state = HashMap::from([(THREAD.to_owned(), json!({"rollout_path":path}))]);
++    let inventory = crate::source::inventory(home.path(), 1024 * 1024, &state).unwrap();
++    assert_eq!(inventory.segments[0].thread_id, THREAD);
++}
++
++#[cfg(unix)]
++#[test]
++fn aliases_are_resolved_and_unavailable_sources_are_reported() {
++    let home = tempfile::tempdir().unwrap();
++    let path = rollout(home.path(), false);
++    let alias = home.path().join(format!(
++        "sessions/rollout-2026-10-27T12-00-01-{CHILD}.jsonl"
++    ));
++    std::os::unix::fs::symlink(&path, &alias).unwrap();
++    let broken = home.path().join(format!(
++        "sessions/rollout-2026-10-27T12-00-02-{CHILD}.jsonl"
++    ));
++    std::os::unix::fs::symlink(home.path().join("missing"), &broken).unwrap();
++    let inventory = crate::source::inventory(home.path(), 1024 * 1024, &HashMap::new()).unwrap();
++    assert_eq!(inventory.segments.len(), 1);
++    assert_eq!(inventory.segments[0].thread_id, THREAD);
++    assert_eq!(inventory.unavailable[0]["code"], "unavailable-alias");
++}
+-- 
+2.43.0
+

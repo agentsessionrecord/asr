@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const checkout = resolve(process.argv[2]);
+const native = fileURLToPath(new URL('./samples/native/', import.meta.url));
+const command = ["node", ".claude/skills/export-agent-session/scripts/export-agent-session.ts", "--session", "synthetic-session", "--transcript", "{native}/transcript.jsonl", "--format", "agent-session"];
+const output = execFileSync(command[0], command.slice(1).map(arg => arg.replace('{native}', native)), { cwd: checkout });
+assert.equal(output.toString(), readFileSync(new URL('./samples/asr/session.jsonl', import.meta.url), 'utf8'));
+console.log('nanoclaw: native fixture byte reproduction passed.');

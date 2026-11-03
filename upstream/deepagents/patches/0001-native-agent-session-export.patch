@@ -1,22 +1,22 @@
-From 83eb2ace1e89fce4ecef4654b7b0a127252f56a9 Mon Sep 17 00:00:00 2001
+From ea40d02876a7f9622a1b732739ea5adafbbd2827 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:27 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] feat(code): add structured thread export
 
 ---
  libs/code/deepagents_code/main.py             |  15 +
- libs/code/deepagents_code/session_export.py   | 321 ++++++++++++++++++
+ libs/code/deepagents_code/session_export.py   | 323 ++++++++++++++++++
  libs/code/deepagents_code/ui.py               |   3 +
  .../tests/unit_tests/test_session_export.py   | 134 ++++++++
- 4 files changed, 473 insertions(+)
+ 4 files changed, 475 insertions(+)
  create mode 100644 libs/code/deepagents_code/session_export.py
  create mode 100644 libs/code/tests/unit_tests/test_session_export.py
 
 diff --git a/libs/code/deepagents_code/main.py b/libs/code/deepagents_code/main.py
-index 83e996f..9f37550 100644
+index 793d43f6..bd115651 100644
 --- a/libs/code/deepagents_code/main.py
 +++ b/libs/code/deepagents_code/main.py
-@@ -2497,6 +2497,13 @@ def parse_args() -> argparse.Namespace:
+@@ -2472,6 +2472,13 @@ def parse_args() -> argparse.Namespace:
          default=None,
          help="Show timestamps as relative time (default: from config)",
      )
@@ -30,7 +30,7 @@ index 83e996f..9f37550 100644
      threads_delete = threads_sub.add_parser(
          "delete",
          help="Delete a thread",
-@@ -6531,6 +6538,14 @@ def cli_main() -> None:
+@@ -6514,6 +6521,14 @@ def cli_main() -> None:
                          output_format=output_format,
                      )
                  )
@@ -47,10 +47,10 @@ index 83e996f..9f37550 100644
                      delete_thread_command(
 diff --git a/libs/code/deepagents_code/session_export.py b/libs/code/deepagents_code/session_export.py
 new file mode 100644
-index 0000000..ffd5323
+index 00000000..56701041
 --- /dev/null
 +++ b/libs/code/deepagents_code/session_export.py
-@@ -0,0 +1,321 @@
+@@ -0,0 +1,323 @@
 +"""Offline Agent Session Record export of native message writes."""
 +
 +from __future__ import annotations
@@ -62,6 +62,8 @@ index 0000000..ffd5323
 +import sys
 +from contextlib import closing
 +from typing import TYPE_CHECKING
++
++from deepagents_code._version import __version__
 +
 +if TYPE_CHECKING:
 +    from collections.abc import Sequence
@@ -201,7 +203,7 @@ index 0000000..ffd5323
 +            "sessionId": session_id,
 +            "producer": {
 +                "name": "deepagents-code",
-+                "version": "0.2.2",
++                "version": __version__,
 +                "method": "native",
 +                "source": "langgraph-message-writes",
 +            },
@@ -373,7 +375,7 @@ index 0000000..ffd5323
 +                destination.chmod(0o600)
 +                handle.write(stream)
 diff --git a/libs/code/deepagents_code/ui.py b/libs/code/deepagents_code/ui.py
-index 9108ac2..97724de 100644
+index 9108ac20..97724de7 100644
 --- a/libs/code/deepagents_code/ui.py
 +++ b/libs/code/deepagents_code/ui.py
 @@ -1019,6 +1019,9 @@ def show_threads_help() -> None:
@@ -388,7 +390,7 @@ index 9108ac2..97724de 100644
      console.print()
 diff --git a/libs/code/tests/unit_tests/test_session_export.py b/libs/code/tests/unit_tests/test_session_export.py
 new file mode 100644
-index 0000000..73a5047
+index 00000000..73a50479
 --- /dev/null
 +++ b/libs/code/tests/unit_tests/test_session_export.py
 @@ -0,0 +1,134 @@
@@ -526,5 +528,6 @@ index 0000000..73a5047
 +        export_threads(["absent"], None)
 +    with pytest.raises(ValueError, match="exactly one"):
 +        export_threads([], None)
+-- 
+2.43.0
 
-base-commit: e9f0d8855cff6d7e79d87afc15c2defc62214a71

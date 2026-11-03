@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-03",
+  "status": "blocked",
+  "repository": "https://github.com/zed-industries/zed",
+  "base": "57dfd54adebb6d4a62cd1c42d397acb667a71c0a",
+  "head": "3cc21573f2f5a2fadfaeea9828da8f0f0e639364",
+  "nativeChecks": "Not run. Required build admission remained unavailable and queued attempts were cancelled. No current native compilation, tests, lint or fixture execution is certified.",
+  "blocker": "All 12 required build-governor slots are occupied by other sessions.",
+  "sampleStatus": "Retained synthetic sample. Native regeneration on this base is pending.",
+  "liveTestStatus": "not-live-tested",
+  "notes": "Snapshot export only. Delta ACP v2 envelopes are not implemented. Staff-confirmed discussion and human review are prerequisites to submission.",
+  "patchReplay": {
+    "method": "temporary Git index",
+    "result": "matches committed source tree",
+    "tree": "541585d9f4fe74eda238c6e8a3e133a36cd2b7bf"
+  },
+  "packageChecks": "Not run. The check.mjs and reproduce.mjs commands were queued, then cancelled because build admission remained unavailable.",
+  "validator": "Not rerun. The retained synthetic sample is unchanged. Historical validator results are not current validation."
+}

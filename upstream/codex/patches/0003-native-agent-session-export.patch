@@ -1,0 +1,75 @@
+From c4edd840f71c50fa6e545db9236f2548c07fc7f5 Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:32:40 -0500
+Subject: [PATCH] Wire offline session exports into the CLI
+
+---
+ codex-rs/Cargo.lock      |  1 +
+ codex-rs/cli/Cargo.toml  |  1 +
+ codex-rs/cli/src/main.rs | 12 ++++++++++++
+ 3 files changed, 14 insertions(+)
+
+diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
+index 5b03e52c77..ee3a5128b8 100644
+--- a/codex-rs/Cargo.lock
++++ b/codex-rs/Cargo.lock
+@@ -2554,6 +2554,7 @@ dependencies = [
+  "codex-rollout",
+  "codex-rollout-trace",
+  "codex-sandboxing",
++ "codex-session-export",
+  "codex-skills-extension",
+  "codex-state",
+  "codex-stdio-to-uds",
+diff --git a/codex-rs/cli/Cargo.toml b/codex-rs/cli/Cargo.toml
+index ffff79d331..dcd5666358 100644
+--- a/codex-rs/cli/Cargo.toml
++++ b/codex-rs/cli/Cargo.toml
+@@ -70,6 +70,7 @@ codex-responses-api-proxy = { workspace = true }
+ codex-tcp-tunnel = { workspace = true }
+ codex-rmcp-client = { workspace = true }
+ codex-rollout = { workspace = true }
++codex-session-export = { workspace = true }
+ codex-rollout-trace = { workspace = true }
+ codex-sandboxing = { workspace = true }
+ codex-skills-extension = { workspace = true }
+diff --git a/codex-rs/cli/src/main.rs b/codex-rs/cli/src/main.rs
+index fff4dd4656..9da0dba786 100644
+--- a/codex-rs/cli/src/main.rs
++++ b/codex-rs/cli/src/main.rs
+@@ -143,6 +143,9 @@ struct MultitoolCli {
+ 
+ #[derive(Debug, clap::Subcommand)]
+ enum Subcommand {
++    /// Export saved sessions as Agent Session Record streams.
++    Sessions(codex_session_export::SessionsCommand),
++
+     /// Open the agent command center to browse and switch sessions.
+     Agents(AgentsCommand),
+ 
+@@ -1108,6 +1111,14 @@ async fn dispatch_cli(
+     };
+     let open_agents_overview = matches!(&subcommand, Some(Subcommand::Agents(_)));
+     match subcommand {
++        Some(Subcommand::Sessions(command)) => {
++            reject_remote_mode_for_subcommand(
++                root_remote.as_deref(),
++                root_remote_auth_token_env.as_deref(),
++                "sessions",
++            )?;
++            command.run().await?;
++        }
+         None | Some(Subcommand::Agents(_)) => {
+             prepend_config_flags(
+                 &mut interactive.config_overrides,
+@@ -2386,6 +2397,7 @@ fn unsupported_subcommand_name_for_strict_config(
+         Some(Subcommand::StdioToUds(_)) => Some("stdio-to-uds"),
+         Some(Subcommand::Features(_)) => Some("features"),
+         Some(Subcommand::TcpTunnel(_)) => Some("tcp-tunnel"),
++        Some(Subcommand::Sessions(_)) => Some("sessions"),
+     }
+ }
+ 
+-- 
+2.43.0
+

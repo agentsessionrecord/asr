@@ -16,5 +16,7 @@
     }
   },
   "liveTestStatus": "not-live-tested",
-  "liveTestNotes": "No live GUI session was available in the headless environment. Native agent tests and a saved-thread snapshot export passed."
+  "liveTestNotes": "No live GUI session was available in the headless environment. Native agent tests and a saved-thread snapshot export passed.",
+  "evidenceScope": "Historical evidence from before the 2026-11-03 refresh. It does not certify the refreshed source.",
+  "currentCodeLiveTest": "unverified"
 }

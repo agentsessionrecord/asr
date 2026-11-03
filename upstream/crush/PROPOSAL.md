@@ -1,30 +1,15 @@
-# Crush native Agent Session Record export
+# Crush session export
 
-Export a saved session in an open format that search and code history tools can read. The export keeps the source facts available for later review.
+Export a saved session through `crush session show` so other tools can read it without depending on the private SQLite layout.
 
-Adds an offline export command beside the existing session commands. It uses the native session and message services.
+The patch adds ASR output to the existing `session show` command. A `.jsonl` output path selects ASR. A `.json` path selects the existing JSON representation. Explicit `--format agent-session` selects ASR on stdout or with any output filename. `--json` and `--format` are mutually exclusive. Files are created with private permissions and existing files are never overwritten.
 
-Applies to [https://github.com/charmbracelet/crush](https://github.com/charmbracelet/crush) at `b576f95896704c88ed84b2f16c3c346d6c58cb42`. The local patch commit is `794e53e86087dd945473bb044a57ffeceda9ad50`.
-
-Apply the patch with `git am patches/0001-native-agent-session-export.patch` in a clean checkout of that base.
-
-```text
-crush sessions export --session SESSION_ID --format agent-session --output exports
+```sh
+crush session show SESSION_ID --format agent-session
+crush session show SESSION_ID -o session.asr.jsonl
+crush session show SESSION_ID --json -o session.json
 ```
 
-It records retained text, readable reasoning, tool calls and final tool results in native row and content order. It exports the complete retained store snapshot and marks compaction summaries. Tool arguments keep integers beyond JavaScript precision as strings.
+The exporter reads retained SQLite messages in native row and content order. It keeps text, visible reasoning, calls, and final results. Mutable snapshots cannot recover overwritten events. Media, provider state, approvals, model accounting, settings, file changes, commits, and relationships are declared missing. The export is not a redactor. Review conversation content before sharing.
 
-It omits mutable titles without an observation time, row-level message timestamps, media data, provider metadata, aggregate model accounting, approvals, tools, file changes and commits. It cannot restore deleted database history or derive event ordering hidden by mutable rows. Unknown prompt authors stay unknown.
-
-Supported source: the native SQLite message store at this revision. Output uses ASR `0.1` and `producer.method: "native"`. File output is exclusive and private where the command writes a file.
-
-Checks: 2 focused exporter tests and matching session-setup tests. Go vet for the exporter. Go formatting. Synthetic fixture created through the real SQLite services. The included native fixture and sample are synthetic. The sample passes the reference validator with zero errors.
-
-An isolated source binary run through the local Responses endpoint exported 5 records, including one tool call and one result. Validation reported zero errors or warnings. The provider key was read only from a private provider settings file.
-
-`manifest.json` pins the upstream base, local commit and packaged file hashes. Run `node upstream/crush/check.mjs` from the ASR repository to check this patch package without upstream dependencies.
-
-## Verification scope
-
-The live evidence above is from a prior revision. The current source has focused
-regressions and package checks. Its full agent and model path has not been rerun.
+The patch targets [crush](https://github.com/charmbracelet/crush) at `3b1f8604f0027cf5fa47f29a27655ef1aeed8d8f`. Tests cover exact text, source order, final tool results, and excluded provider state. [TESTS.json](TESTS.json) states which checks ran on this revision.

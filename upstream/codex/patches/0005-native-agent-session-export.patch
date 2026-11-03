@@ -1,0 +1,131 @@
+From 36de179d60c6f137a0f1099e07e5434256ef8a1a Mon Sep 17 00:00:00 2001
+From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 15:32:40 -0500
+Subject: [PATCH] Preserve unknown native content in a namespaced ASR wrapper
+
+---
+ codex-rs/session-export/src/content.rs        |  3 +-
+ .../session-export/src/mapping/responses.rs   |  8 ++-
+ codex-rs/session-export/src/tests.rs          | 55 ++++++++++++++++++-
+ 3 files changed, 60 insertions(+), 6 deletions(-)
+
+diff --git a/codex-rs/session-export/src/content.rs b/codex-rs/session-export/src/content.rs
+index 2e750a012c..f9adfad47e 100644
+--- a/codex-rs/session-export/src/content.rs
++++ b/codex-rs/session-export/src/content.rs
+@@ -21,9 +21,8 @@ pub(crate) fn parts(value: &Value, metadata: &Value) -> Vec<Value> {
+             "input_image" | "image" if p["image_url"].is_string() => image_url(p["image_url"].as_str().unwrap_or_default()),
+             "local_image" | "local_audio" | "skill" | "mention" => json!({"type":"resource_link","uri":p["path"],"name":p["name"].as_str().unwrap_or(p["type"].as_str().unwrap_or("attachment"))}),
+             "encrypted_content" => json!({"type":"reasoning","visibility":"encrypted"}),
+-            "refusal" => json!({"type":"refusal","text":p["refusal"].as_str().or(p["text"].as_str()).unwrap_or_default()}),
+             "image" | "audio" | "resource" | "resource_link" => p.clone(),
+-            _ => json!({"type":"com.openai.codex/content","_meta":{"com.openai.codex":{"content":p}}}),
++            _ => json!({"type":"com.openai.codex/content","_meta":{"com.openai.codex":{"native":p}}}),
+         };
+         let kind = metadata["content_item_kinds"][i].as_str().unwrap_or_default();
+         let provenance = &metadata["content_item_metadata"][i]["provenance"];
+diff --git a/codex-rs/session-export/src/mapping/responses.rs b/codex-rs/session-export/src/mapping/responses.rs
+index 00ea04e47d..51ff2fd3d8 100644
+--- a/codex-rs/session-export/src/mapping/responses.rs
++++ b/codex-rs/session-export/src/mapping/responses.rs
+@@ -14,11 +14,15 @@ impl Mapper {
+                 if p["type"] == "reasoning" {
+                     r["role"] = "assistant".into();
+                     r["author"] = "model".into();
+-                    let summaries: Vec<Value> = p["summary"].as_array().into_iter().flatten()
++                    let summaries: Vec<Value> = p["summary"]
++                        .as_array()
++                        .into_iter()
++                        .flatten()
+                         .chain(p["content"].as_array().into_iter().flatten())
+                         .filter_map(|v| v["text"].as_str())
+                         .filter(|text| !text.is_empty())
+-                        .map(Value::from).collect();
++                        .map(Value::from)
++                        .collect();
+                     let part = if !summaries.is_empty() {
+                         json!({"type":"reasoning", "visibility":"summary", "summary":summaries})
+                     } else {
+diff --git a/codex-rs/session-export/src/tests.rs b/codex-rs/session-export/src/tests.rs
+index 7564b8112d..ecfde86b60 100644
+--- a/codex-rs/session-export/src/tests.rs
++++ b/codex-rs/session-export/src/tests.rs
+@@ -14,6 +14,24 @@ const CHILD: &str = "019a3c2e-7b1f-7d40-9e2a-5c8b1d3f6e71";
+ fn header() -> Value {
+     json!({"id":THREAD,"timestamp":"2026-10-27T12:00:00Z","cwd":"/work/repo","cli_version":"0.163.0","source":"cli"})
+ }
++
++#[test]
++fn unknown_native_content_keeps_its_owner_and_neighboring_text() {
++    let native = json!({"type":"document","name":"notes.pdf"});
++    let refusal = json!({"type":"refusal","refusal":"Synthetic refusal."});
++    let (_, records) = mapped(vec![line(
++        "response_item",
++        json!({"type":"message","id":"attachments","role":"user","content":[native, {"type":"input_text","text":"known"}, refusal]}),
++    )]);
++    assert_eq!(
++        records[0]["content"],
++        json!([
++            {"type":"com.openai.codex/content","_meta":{"com.openai.codex":{"native":native}}},
++            {"type":"text","text":"known"},
++            {"type":"com.openai.codex/content","_meta":{"com.openai.codex":{"native":refusal}}}
++        ])
++    );
++}
+ fn line(kind: &str, p: Value) -> Value {
+     json!({"type":kind,"timestamp":"2026-10-27T12:00:00Z","payload":p})
+ }
+@@ -97,6 +115,39 @@ fn completion(id: &str) -> Value {
+     )
+ }
+ 
++#[test]
++fn reasoning_summaries_keep_exact_text_and_empty_items_are_omitted() {
++    let (_, records) = mapped_meta(
++        header(),
++        vec![
++            line(
++                "response_item",
++                json!({"type":"reasoning","summary":[{"type":"summary_text","text":"Exact\r\n"}]}),
++            ),
++            line(
++                "response_item",
++                json!({"type":"reasoning","content":[{"type":"reasoning_text","text":"Readable summary"}]}),
++            ),
++            line(
++                "response_item",
++                json!({"type":"reasoning","summary":[{"type":"summary_text","text":""}]}),
++            ),
++        ],
++    );
++    assert_eq!(
++        records[0]["content"][0],
++        json!({"type":"reasoning","visibility":"summary","summary":["Exact\r\n"]})
++    );
++    assert_eq!(
++        records[1]["content"][0],
++        json!({"type":"reasoning","visibility":"summary","summary":["Readable summary"]})
++    );
++    assert_eq!(
++        records[2]["content"][0],
++        json!({"type":"reasoning","visibility":"omitted"})
++    );
++}
++
+ #[test]
+ fn identities_and_reasoning_follow_current_spec() {
+     let mut meta = header();
+@@ -124,8 +175,8 @@ fn identities_and_reasoning_follow_current_spec() {
+         json!({"id":"synthetic-user","source":"agent_account"})
+     );
+     assert_eq!(r[0]["id"], "reasoning");
+-    assert_eq!(r[0]["content"][0]["summary"], json!([]));
+-    assert_eq!(r[0]["content"][0]["visibility"], "summary");
++    assert!(r[0]["content"][0].get("summary").is_none());
++    assert_eq!(r[0]["content"][0]["visibility"], "encrypted");
+     assert_eq!(r[1]["content"][0]["visibility"], "encrypted");
+     assert_eq!(r[2]["content"][0]["text"], "AGENTS\r\n");
+     assert_eq!(r[2]["content"][1]["author"], "human");
+-- 
+2.43.0
+

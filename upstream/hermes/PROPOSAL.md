@@ -1,57 +1,21 @@
-# Native session export for Hermes
+# Agent Session Record export for Hermes
 
-Export a saved session in an open format that search and code history tools can read. The export keeps the source facts available for later review.
+Export a saved session as Agent Session Record so local tools can search and review its recorded work.
 
-This patch adds Agent Session Record export to Hermes at
-`c7c7e0fa92f40c8f526e4a52c0966c128245ffd3` from
-<https://github.com/NousResearch/hermes-agent>. The patch and commit digests are in
-[manifest.json](manifest.json).
+This adds `agent-session` to the existing `hermes sessions export --format` menu. It reads the stored SQLite history and uses the existing `--session-id` selector and positional output argument. One explicit ID without output writes JSONL to stdout. An output directory receives one file per selected session. `-` also selects stdout. Existing output files are refused.
 
-Apply the patch in a clean checkout of that commit with `git am`.
+The export retains stored text, readable reasoning, tool calls, model-facing results and native message order. Inactive rows remain available. Explicit parent markers and shared message UIDs preserve supported lineage and copies. Compaction summaries carry a following gap. Tool outcomes remain unknown when storage does not establish them.
+
+Usage, inference boundaries, approvals, complete settings, offered tools, file edits, commits and complete copy detection are missing. Unsupported or corrupt stored content becomes a gap. No audit store, CLI aliases or dependency is added.
 
 ```sh
-hermes sessions export --format agent-session --session SESSION_ID
-hermes sessions export --format agent-session --session SESSION_ID --output exports
-hermes sessions export --format agent-session --output exports --since 2026-11-01T00:00:00Z
+hermes sessions export --format agent-session --session-id SESSION_ID
+hermes sessions export exports --format agent-session --session-id SESSION_ID
+hermes sessions export exports --format agent-session
 ```
 
-Exactly one explicit session is required for stdout. Repeat `--session` when
-writing several files to a directory. With a directory and no session selector,
-the command selects all sessions. `--since` filters by stored activity. Filenames
-are digests of native session IDs. Diagnostics go to stderr. Unavailable or
-ambiguous sessions fail. ASR export rejects upload, deletion, view filters and
-logical-lineage options.
+Source: [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent), base `b7736eca98cc6919b7b7f1d52dc1c45946793648`. Apply the ordered patches in [manifest.json](manifest.json) with `git am` in a clean checkout at that base.
 
-The exporter takes a read-only SQLite snapshot and reads messages in insertion
-order. It keeps inactive and compacted stored rows, model-facing content,
-reasoning and tool calls. It folds repeated tool results at their final stored
-position and declares the earlier updates as gaps. Tool result status stays
-unknown because the stored row does not prove an execution outcome. Native row
-IDs survive as strings, with suffixes when a row expands. Large numbers in tool
-input are encoded as strings without rounding their stored JSON literals.
+Output uses ASR 0.1 with `producer.method: native`. Known credential fields or recognized secret text are excluded where the source mapping supports them. Review exports before sharing. Filtering cannot identify every secret.
 
-Explicit branch and delegation markers establish parent relationships. Shared
-message UIDs identify copies from a direct parent. Compaction summaries carry
-harness authorship and a gap. The final snapshot records the latest title and
-requested model. It does not claim historical model selection.
-
-Known secrets are excluded with Hermes's forced redactor. Unsupported or corrupt
-content produces a declared gap. Missing approval history, settings, tools,
-usage, inference boundaries, exit codes, file changes and commits remain unknown.
-The patch does not register discovery files, append a live sidecar or add
-deletion hooks.
-
-Seven focused tests passed through the repository test runner. All 14 repository
-checks passed. A scratch agent session ran through a OpenAI-compatible or Anthropic-compatible endpoint, then the
-real CLI exported its persisted history. Both the sample and live export pass
-the ASR validator without errors or warnings. Details are in
-`check.mjs`.
-
-The package checks in `scripts/ci.sh` validate the synthetic sample, compare it
-with native evidence, and check patch syntax and provenance. They do not install
-Hermes. Run the included Python tests when applying the patch upstream.
-
-## Verification scope
-
-The live evidence above is from a prior revision. The current source has focused
-regressions and package checks. Its full agent and model path has not been rerun.
+The native fixture and ASR sample are synthetic. [TEST-RESULTS.md](TEST-RESULTS.md) states the current verification results and remaining limits. Structural validation does not prove complete capture.

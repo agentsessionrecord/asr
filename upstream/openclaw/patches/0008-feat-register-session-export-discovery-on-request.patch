@@ -1,7 +1,7 @@
-From f9e3a0aae50713a47a3db75a8f029d6dc2fbbaa9 Mon Sep 17 00:00:00 2001
+From 07c7746e7ab54e1586a04d24ad4140bc119a8362 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 16:26:17 -0500
-Subject: [PATCH 8/8] feat: register session export discovery on request
+Subject: [PATCH] feat: register session export discovery on request
 
 ---
  .../register.status-health-sessions.test.ts   |  2 +
@@ -13,7 +13,7 @@ Subject: [PATCH 8/8] feat: register session export discovery on request
  create mode 100644 src/sessions/agent-session-discovery.ts
 
 diff --git a/src/cli/program/register.status-health-sessions.test.ts b/src/cli/program/register.status-health-sessions.test.ts
-index 1a0361f2f93..c7d1362400a 100644
+index ddc9c3d8e6a..d2c079febf8 100644
 --- a/src/cli/program/register.status-health-sessions.test.ts
 +++ b/src/cli/program/register.status-health-sessions.test.ts
 @@ -231,11 +231,13 @@ it("dispatches ASR export selectors and inherited agent selection", async () =>
@@ -31,7 +31,7 @@ index 1a0361f2f93..c7d1362400a 100644
    });
  });
 diff --git a/src/cli/program/register.status-health-sessions.ts b/src/cli/program/register.status-health-sessions.ts
-index beaed988d43..a37db59d962 100644
+index 0b72714d4fd..f89a99ac1b5 100644
 --- a/src/cli/program/register.status-health-sessions.ts
 +++ b/src/cli/program/register.status-health-sessions.ts
 @@ -396,6 +396,7 @@ export function registerStatusHealthSessionsCommands(program: Command) {
@@ -171,3 +171,6 @@ index f609f9737b2..440826f7511 100644
    it("keeps unknown-model calls, completion positions and explicit setting clears", async () => {
      const { source } = await fixture();
      const native = [
+-- 
+2.43.0
+

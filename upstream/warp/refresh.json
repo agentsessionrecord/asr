@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-03",
+  "status": "blocked",
+  "repository": "https://github.com/warpdotdev/warp",
+  "base": "3dca8f995cc116814f17fc818ee0c37ec1141eaa",
+  "head": "3581388011b36340bca02a204996d608c4f947fc",
+  "nativeChecks": "Not run. Required build admission remained unavailable and queued attempts were cancelled. No current native compilation, tests, lint or fixture execution is certified.",
+  "blocker": "All 12 required build-governor slots are occupied by other sessions.",
+  "sampleStatus": "Retained synthetic sample. Native regeneration on this base is pending.",
+  "liveTestStatus": "not-live-tested",
+  "notes": "Spec draft only. Lifecycle hooks and product UI are outside the saved-text patch. The known-secret exclusion invariant in the draft needs implementation and tests before product use.",
+  "patchReplay": {
+    "method": "temporary Git index",
+    "result": "matches committed source tree",
+    "tree": "657252352977390c77522cadbd25d96175706ec3"
+  },
+  "packageChecks": "Not run. The check.mjs and reproduce.mjs commands were queued, then cancelled because build admission remained unavailable.",
+  "validator": "Not rerun. The retained synthetic sample is unchanged. Historical validator results are not current validation."
+}

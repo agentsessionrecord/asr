@@ -1,33 +1,38 @@
 {
   "schemaVersion": 1,
   "agent": "codex",
-  "base": "ff2346f33f851bd4e90c8e42ae60abcc7e7f293b",
-  "head": "34d046cdf67cce73016fb79e21bdc8a41a191e65",
+  "base": "6b2a2757de696c2506ee460c49c66a8e2bed65e0",
+  "head": "b87b460c5dee927a7bb4c82a2e0ce0bc2125d350",
   "patches": [
     {
-      "path": "patches/0001-Add-offline-session-export-crate-with-core-mappings-.patch",
-      "commit": "6d2e791833d630a6e0157a0bc82d2211f6e8d120",
-      "sha256": "93dd64f97022f2f9b5c5a91c4c687076cf26ba4bfda90f68daf6668e09992fd7"
+      "path": "patches/0001-native-agent-session-export.patch",
+      "commit": "35d3e90eb233052dfe643d1e7c00297bdf42cffd",
+      "sha256": "09d47deb8a95aade44ed918dd8bd43aa1ec1d692c7513e38b02d4c764548d483"
     },
     {
-      "path": "patches/0002-Map-saved-settings-offered-tools-and-approval-decisi.patch",
-      "commit": "a66bd87f42e866a5538b5baf77dc15daaf463c19",
-      "sha256": "0d38fbd2837a5524becb102ded919bd1d897fc9996df244216b4c8196642f2af"
+      "path": "patches/0002-native-agent-session-export.patch",
+      "commit": "890b170ec2bf67ead66e53c7e8dccf7caa97dabe",
+      "sha256": "f32cff5f7d471805abc970a8cabd483498b82716b1efb7a42b38cae376ea2199"
     },
     {
-      "path": "patches/0003-Wire-offline-session-exports-into-the-CLI.patch",
-      "commit": "5a2784564eac45c786e13620ffe82c593dce7908",
-      "sha256": "6f0656752718ec9a48c29c8e61cd00fc60fc37e77729b45b582541b83c7a2f8b"
+      "path": "patches/0003-native-agent-session-export.patch",
+      "commit": "c4edd840f71c50fa6e545db9236f2548c07fc7f5",
+      "sha256": "d03f678de92985d6de9ebfc59472868e60f4f1450758df3586cd13e20b9f1da3"
     },
     {
-      "path": "patches/0004-Add-explicit-session-discovery-registration.patch",
-      "commit": "ab4456f07105f6dc65076940bf9458fd6bac690c",
-      "sha256": "2e2c809c9c64f4b80e45416573d07eb0d4d257555775ce0c880a7fb5f707c1a0"
+      "path": "patches/0004-native-agent-session-export.patch",
+      "commit": "cb5afa572a12c278b80dd89395e604a86fe3ca46",
+      "sha256": "f7ff5dff990394243d54ffaebedf403dca4b2ea5b4929613954194b223177598"
     },
     {
-      "path": "patches/0005-Preserve-unknown-native-content-in-a-namespaced-ASR-.patch",
-      "commit": "34d046cdf67cce73016fb79e21bdc8a41a191e65",
-      "sha256": "c9276d2e0ddbe2f0c588def986ba93a96c60321fae4bf97a6be794e1fecbe7be"
+      "path": "patches/0005-native-agent-session-export.patch",
+      "commit": "36de179d60c6f137a0f1099e07e5434256ef8a1a",
+      "sha256": "9681baff9099af2e5b4549b6f6ee1ddb41e9c53923fef4b48c72c554a538eb90"
+    },
+    {
+      "path": "patches/0006-native-agent-session-export.patch",
+      "commit": "b87b460c5dee927a7bb4c82a2e0ce0bc2125d350",
+      "sha256": "61e0e0d10f9c093689711994e34affd697cd1a44566629f01adf28c1e68406af"
     }
   ],
   "checks": [
@@ -38,35 +43,43 @@
     ]
   ],
   "provenance": {
-    "upstreamBase": "ff2346f33f851bd4e90c8e42ae60abcc7e7f293b",
-    "implementationRevision": "34d046cdf67cce73016fb79e21bdc8a41a191e65",
-    "implementationBranch": "codex/fix2-repo",
+    "upstreamBase": "6b2a2757de696c2506ee460c49c66a8e2bed65e0",
+    "implementationRevision": "b87b460c5dee927a7bb4c82a2e0ce0bc2125d350",
+    "implementationBranch": "codex/patch-rust",
     "sampleFiles": {
       "samples/asr/session.jsonl": "4fa1457a7010d81c02aa1fc4d0b0f7ce7f41fbbfd6c5419eee320eca175fdfad",
       "samples/native/session.jsonl": "7cbedd52b6586f642fb8e42b7b29ce9eb32553642c154a4d0d3608a69edd5884"
     },
     "patchSeries": [
-      "patches/0001-Add-offline-session-export-crate-with-core-mappings-.patch",
-      "patches/0002-Map-saved-settings-offered-tools-and-approval-decisi.patch",
-      "patches/0003-Wire-offline-session-exports-into-the-CLI.patch",
-      "patches/0004-Add-explicit-session-discovery-registration.patch",
-      "patches/0005-Preserve-unknown-native-content-in-a-namespaced-ASR-.patch"
-    ]
+      "patches/0001-native-agent-session-export.patch",
+      "patches/0002-native-agent-session-export.patch",
+      "patches/0003-native-agent-session-export.patch",
+      "patches/0004-native-agent-session-export.patch",
+      "patches/0005-native-agent-session-export.patch",
+      "patches/0006-native-agent-session-export.patch"
+    ],
+    "repository": "https://github.com/openai/codex",
+    "base": "6b2a2757de696c2506ee460c49c66a8e2bed65e0",
+    "head": "b87b460c5dee927a7bb4c82a2e0ce0bc2125d350",
+    "branch": "codex/patch-rust"
   },
   "files": {
     ".gitattributes": "f8ecfcc97c6f3ebf96632b7f40d750db27797188ddfb3894ed9487eb8061a156",
-    "PROPOSAL.md": "a37ed91c050008f8db64d61d66450cb0c7a94113640700427df0c822b1822f0b",
-    "README.md": "bc1a8521c8e96748a3e0f198e3c34bc0411c471984e2209248f352e0f7939587",
+    "PROPOSAL.md": "fbc6d234c15f5869bb55ea055fa9963a6a1c56507b7c4c9321fd800c4ca10053",
+    "README.md": "2db6aeeb4e53f71dae7aeaad741b968cb4e7d289e4640ebfe69ffcb0524b2c14",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
-    "contracts.mjs": "980fb5cac2e07dc9ec3568d4093fc72756566f00e5ae59cece8d8d7944cdbde4",
-    "patches/0001-Add-offline-session-export-crate-with-core-mappings-.patch": "93dd64f97022f2f9b5c5a91c4c687076cf26ba4bfda90f68daf6668e09992fd7",
-    "patches/0002-Map-saved-settings-offered-tools-and-approval-decisi.patch": "0d38fbd2837a5524becb102ded919bd1d897fc9996df244216b4c8196642f2af",
-    "patches/0003-Wire-offline-session-exports-into-the-CLI.patch": "6f0656752718ec9a48c29c8e61cd00fc60fc37e77729b45b582541b83c7a2f8b",
-    "patches/0004-Add-explicit-session-discovery-registration.patch": "2e2c809c9c64f4b80e45416573d07eb0d4d257555775ce0c880a7fb5f707c1a0",
-    "patches/0005-Preserve-unknown-native-content-in-a-namespaced-ASR-.patch": "c9276d2e0ddbe2f0c588def986ba93a96c60321fae4bf97a6be794e1fecbe7be",
+    "contracts.mjs": "3f82091fd67b9a6cea2cfa88979705c1c6d59e70b3d0106ae50febf04fafde0c",
+    "patches/0001-native-agent-session-export.patch": "09d47deb8a95aade44ed918dd8bd43aa1ec1d692c7513e38b02d4c764548d483",
+    "patches/0002-native-agent-session-export.patch": "f32cff5f7d471805abc970a8cabd483498b82716b1efb7a42b38cae376ea2199",
+    "patches/0003-native-agent-session-export.patch": "d03f678de92985d6de9ebfc59472868e60f4f1450758df3586cd13e20b9f1da3",
+    "patches/0004-native-agent-session-export.patch": "f7ff5dff990394243d54ffaebedf403dca4b2ea5b4929613954194b223177598",
+    "patches/0005-native-agent-session-export.patch": "9681baff9099af2e5b4549b6f6ee1ddb41e9c53923fef4b48c72c554a538eb90",
+    "patches/0006-native-agent-session-export.patch": "61e0e0d10f9c093689711994e34affd697cd1a44566629f01adf28c1e68406af",
+    "refresh.json": "3a95fa12bf043074ec2504b9814eaeabdcc0c8f12daeb757cf4ab5502471e023",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
+    "reproduce.py": "f5d7dcfa557cfa612dffbbecc040231eea18ffc2bc973b852a96781b45fb67ad",
     "samples/asr/session.jsonl": "4fa1457a7010d81c02aa1fc4d0b0f7ce7f41fbbfd6c5419eee320eca175fdfad",
     "samples/native/session.jsonl": "7cbedd52b6586f642fb8e42b7b29ce9eb32553642c154a4d0d3608a69edd5884",
-    "validation.json": "5e3ddb0e9e7bfe62982eeeea6274bed4550ea58d7c4c5a923d6da177560a9dc5"
+    "validation.json": "5cacd04a127f688c56850babeba0ece7cca187ba0e882c347687fe891ffad283"
   }
 }

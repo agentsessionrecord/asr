@@ -2,44 +2,47 @@
   "schemaVersion": 1,
   "agent": "mistral-vibe",
   "base": "338ad4bf0f73c4dd879d667cf7ab011555ae1751",
-  "head": "d51f3bceb46c7fd55fb295ebfb54f9d63b7168af",
+  "head": "e039fdaad6989f8c19cb0245ebe12e286d256d76",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "d51f3bceb46c7fd55fb295ebfb54f9d63b7168af",
-      "sha256": "441b3f1fa64abc41e8096f2ccf10e9a49b23941676ba4c66330ff9d1879f00f6"
+      "commit": "e039fdaad6989f8c19cb0245ebe12e286d256d76",
+      "sha256": "3b1ae2b93ee510315deb0d9cf55b1ae7d67ec2a637c96f75408fb74290964056"
     }
   ],
   "checks": [
     [
       "node",
-      "../kimi-code/contracts.mjs",
-      "mistral-vibe"
+      "contracts.mjs"
     ]
   ],
   "provenance": {
     "repository": "https://github.com/mistralai/mistral-vibe",
     "base": "338ad4bf0f73c4dd879d667cf7ab011555ae1751",
-    "head": "d51f3bceb46c7fd55fb295ebfb54f9d63b7168af",
-    "branch": "codex/fix2-repo",
+    "head": "e039fdaad6989f8c19cb0245ebe12e286d256d76",
+    "branch": "codex/patch-python",
     "files": {
-      "patches/0001-native-agent-session-export.patch": "441b3f1fa64abc41e8096f2ccf10e9a49b23941676ba4c66330ff9d1879f00f6",
+      "patches/0001-native-agent-session-export.patch": "3b1ae2b93ee510315deb0d9cf55b1ae7d67ec2a637c96f75408fb74290964056",
       "live-test.json": "9fd1b42e04cfebc31ef18f988d8c9e3f04836ff5f1b2ca4b0607701ead6418d7",
       "samples/native/native.json": "16f1d0bc2102031ffbaf7200ccf7587543cbf56479f4921e98670f9fa49361ff",
       "samples/asr/session.jsonl": "6a8cd2114a1b01ef30fbc17e0fb50fafec54356ade6ec68b56ed1ccfa774d364",
-      "PROPOSAL.md": "6f65b917770205f2c329576d53a7d96588da4b0bc89d56682ecf81785ae02e7a",
-      "TESTS.json": "0244c437e0a0fbfe98d560f8b862ab13368180e72279072785fe44e0d65ec50c",
+      "PROPOSAL.md": "ead49c5dc320e8c82e0aeb25fb229e8d6fd9190e0664b5f7411999744e6cd876",
+      "TESTS.json": "5495a64ca731dac79842c0e3a070a5ed54ff8bd92bfb70dfc95b853cb7ce3d6f",
       ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944"
-    }
+    },
+    "patch": "patches/0001-native-agent-session-export.patch",
+    "commit": "e039fdaad6989f8c19cb0245ebe12e286d256d76"
   },
   "files": {
     ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
-    "PROPOSAL.md": "6f65b917770205f2c329576d53a7d96588da4b0bc89d56682ecf81785ae02e7a",
-    "README.md": "59274a35bb69524b8ce4cc3ecfd00dfd217c6977b46f4b436c2aba1c0f63c71d",
-    "TESTS.json": "0244c437e0a0fbfe98d560f8b862ab13368180e72279072785fe44e0d65ec50c",
+    "PROPOSAL.md": "ead49c5dc320e8c82e0aeb25fb229e8d6fd9190e0664b5f7411999744e6cd876",
+    "README.md": "4f046bbfd6989962d53a8a175bffc1f298c43bcc5d1c19afadd287c2665a5016",
+    "TEST-RESULTS.md": "89074428030b0618a5ebabd0b6a1f414deb79531cd02f55734514fca37d1a733",
+    "TESTS.json": "5495a64ca731dac79842c0e3a070a5ed54ff8bd92bfb70dfc95b853cb7ce3d6f",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
+    "contracts.mjs": "7b2119e90d1c205c56f2662f06c454a2d0d9f8ecf3fe04c3ee3d76ffca562c7a",
     "live-test.json": "9fd1b42e04cfebc31ef18f988d8c9e3f04836ff5f1b2ca4b0607701ead6418d7",
-    "patches/0001-native-agent-session-export.patch": "441b3f1fa64abc41e8096f2ccf10e9a49b23941676ba4c66330ff9d1879f00f6",
+    "patches/0001-native-agent-session-export.patch": "3b1ae2b93ee510315deb0d9cf55b1ae7d67ec2a637c96f75408fb74290964056",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
     "samples/asr/session.jsonl": "6a8cd2114a1b01ef30fbc17e0fb50fafec54356ade6ec68b56ed1ccfa774d364",
     "samples/native/native.json": "16f1d0bc2102031ffbaf7200ccf7587543cbf56479f4921e98670f9fa49361ff"

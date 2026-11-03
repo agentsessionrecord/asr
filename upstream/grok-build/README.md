@@ -21,6 +21,9 @@ Existing exported files remain in their output directory.
 
 ## Use
 
+This is reference code. Upstream does not accept outside patches.
+The ACP transcript in `updates.jsonl` remains separate from this telemetry sidecar.
+
 Run with the patched agent. Replace example IDs and input paths with a selected
 native session. See the proposal for selection and output options.
 
@@ -58,9 +61,6 @@ temporary Git index against the pinned source commits. It preserves the source
 checkout. It needs both pinned commits in that checkout and does not build or
 run the agent. Upstream build and test evidence is in the proposal.
 
-Live-test status: **not-live-tested**.
-Not live-tested. The affected event crate was built and exercised. No patched full CLI binary was available for a model session within this focused crate build. The source supports per-model credentials, so this is not an account-only limitation. Full CLI inference remains unverified.
-
-The package's [synthetic export](samples/asr/session.jsonl) has zero validator
-errors. Any expected extension or pairing warnings are explained by the proposal
-or printed by the package check. Package checks make no model requests.
+Current project verification and fixture results are in [refresh.json](refresh.json).
+No current live inference test is claimed. Historical live evidence does not
+certify this refreshed source.

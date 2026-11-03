@@ -1,39 +1,38 @@
-# Warp native export
+# Saved Warp conversations as Agent Session Record
 
-Export a saved session in an open format that search and code history tools can read. The export keeps the source facts available for later review.
+Export retained conversation text for local inspection and indexing.
+The reference patch adds `AgentConversation::write_agent_session` to persistence.
+It reads an existing SQLite database without changing it.
 
-Applies to `warpdotdev/warp` at `89de3f5c9945eeee277e713f111d707d39857dff`.
-
-The patch adds `AgentConversation::write_agent_session` in the persistence crate.
-A small command reads a native SQLite database without changing it.
-
-```bash
+```sh
 cargo run -p persistence --example export_agent_session -- \
   --format agent-session DATABASE CONVERSATION_ID > session.jsonl
 ```
 
-The export accepts exactly one task in a conversation. It preserves the native
-conversation ID, unique message IDs, source timestamps, initial absolute working
-directory, user text, assistant text and retained reasoning. Unsupported messages
-become gaps in their source positions. It rejects invalid timestamps before writing.
+Exactly one task is supported. The export retains conversation and message IDs,
+source times, an initial absolute working directory, text and recorded reasoning.
+Unsupported messages become gaps. Invalid times fail before output.
+Tools, models, usage, approvals, attachments, settings and session relationships
+are outside this text projection. No session end or human authorship is inferred.
+Output is ASR 0.1. No UI action or discovery manifest is added.
 
-Tool calls, results, context attachments, settings, approvals, model identity,
-usage and session relationships are outside this text export. The header lists
-these losses. It does not infer human authorship or an end time.
+Warp's client is open source. Persistence code is covered by the repository's
+AGPL licence. The MIT UI crates do not change that scope.
+The package includes a short product and technical spec draft for
+[observability hooks #7834](https://github.com/warpdotdev/warp/issues/7834)
+in [specs/GH7834](specs/GH7834/product.md). The issue is ready to spec.
+The reference text exporter implements only a small part of that draft.
+Spec acceptance and implementation readiness are separate from local checks.
 
-Two persistence unit tests, crate lint and the SQLite example passed. Only the
-persistence crate was selected for compilation. The synthetic SQLite source in
-`samples/native/source.sql` produced the included sample. The app needs an account for
-a live agent session, so this patch has no live inference test. No UI action or
-discovery manifest is added.
+Source: <https://github.com/warpdotdev/warp> at `3dca8f995cc116814f17fc818ee0c37ec1141eaa`.
 
-To reproduce the packaged sample from an already patched checkout, run:
+Focused verification commands:
 
-```bash
-python3 upstream/warp/reproduce.py /path/to/patched/checkout
+```sh
+cargo test -p persistence agent_session --lib
+cargo clippy -p persistence --all-targets --tests -- -D warnings
+cargo fmt -p persistence --check
 ```
 
-The reproduction uses temporary native fixture files, compares the exported
-records with the packaged sample and runs the ASR validator. It does not start
-inference. The package check runs in repository CI without fetching or compiling
-the upstream project.
+Current results and limitations are recorded in [refresh.json](refresh.json).
+The fixtures are synthetic. No current live inference test is claimed.

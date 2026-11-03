@@ -1,11 +1,12 @@
 {
   "checks": [
-    "2 focused pytest tests",
-    "Ruff lint and format",
-    "Pyright with zero errors and warnings"
+    "Current refresh blocked. Submitted checks were canceled before resource admission."
   ],
   "sampleRecords": 5,
   "sampleErrors": 0,
   "sampleWarnings": [],
-  "liveTestStatus": "partial"
+  "liveTestStatus": "partial",
+  "refreshStatus": "blocked",
+  "sampleEvidence": "Historical sample counts. Not revalidated for this refresh.",
+  "refreshSampleErrors": null
 }

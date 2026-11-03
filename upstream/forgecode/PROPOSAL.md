@@ -1,52 +1,42 @@
-# ForgeCode native export
+# Agent Session Record from ForgeCode conversation dumps
 
-Export a saved session in an open format that search and code history tools can read. The export keeps the source facts available for later review.
+Export retained conversation context for inspection and indexing across agents.
+The patch extends the existing `dump` command with a format selector.
+The default JSON dump and `--html` option keep their current behavior.
 
-Applies to `antinomyhq/forge` at `7639d2b18418bd1948609ffd4e46f4acca30a117`.
-
-The patch adds `Conversation::write_agent_session` and a CLI export command.
-
-```bash
-forge conversation export ID --format agent-session > session.jsonl
+```sh
+forge conversation dump ID --format agent-session > session.jsonl
 ```
 
-A domain example also accepts a saved Conversation JSON object or its native
-dump wrapper.
+`--format agent-session` conflicts with `--html`. It writes JSON Lines to standard
+output. The domain example also reads the existing JSON dump wrapper.
 
-```bash
+```sh
 cargo run -p forge_domain --example export_agent_session -- \
   CONVERSATION.json > session.jsonl
 ```
 
-The export records retained context, native conversation identity, start time,
-text, reasoning summaries, tool argument strings, native call IDs and results.
-It preserves role without guessing human authorship. Opaque state, signatures
-and image bytes are excluded. An initial gap states that earlier context and
-intermediate events may be absent. Duplicate result IDs fail before output.
-Generated call IDs cannot pair with unrelated native result IDs.
+The output retains conversation identity, source start time, text, reasoning
+summaries, tool argument strings, call IDs and results. An initial gap declares
+that only retained context is available. Opaque state, signatures and image bytes
+are excluded. Duplicate result IDs fail before output. Generated call IDs cannot
+pair with unrelated native results.
 
-Model identity, usage, approvals, settings, session relationships and per-message
-timestamps are not exported. The header lists these losses. No session end or
-original content interleaving is inferred from retained context.
+Models, usage, approvals, settings, session relationships and per-message times
+are absent. No original interleaving, human authorship or session end is inferred.
+Output is ASR 0.1.
 
-Three domain tests, the main crate check, a debug CLI build, focused lint and
-the JSON example passed. The CLI completed one synthetic turn through a local
-model endpoint with the key in its native private provider files. The actual CLI
-export validated. The committed sample comes from the synthetic fixture, which
-avoids retaining generated system instructions from the live run.
+Source: <https://github.com/tailcallhq/forgecode> at `a22b49288856d5b3f3ca57e8532683d54a662c8c`.
 
-To reproduce the packaged sample from an already patched checkout, run:
+Focused verification commands:
 
-```bash
-python3 upstream/forgecode/reproduce.py /path/to/patched/checkout
+```sh
+cargo test -p forge_domain agent_session --lib
+cargo test -p forge_main test_conversation_dump --bin forge
+cargo check -p forge_main
+cargo clippy -p forge_domain -p forge_main --all-targets -- -D warnings
+cargo fmt -p forge_domain -p forge_main --check
 ```
 
-The reproduction uses temporary native fixture files, compares the exported
-records with the packaged sample and runs the ASR validator. It does not start
-inference. The package check runs in repository CI without fetching or compiling
-the upstream project.
-
-## Verification scope
-
-The live evidence above is from a prior revision. The current source has focused
-regressions and package checks. Its full agent and model path has not been rerun.
+Current results and limitations are recorded in [refresh.json](refresh.json).
+The fixtures are synthetic. No current live inference test is claimed.

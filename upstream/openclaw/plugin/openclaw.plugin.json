@@ -1,0 +1,17 @@
+{
+  "id": "asr-export",
+  "name": "ASR export",
+  "description": "Export a selected session through the public transcript API",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "cliCommands": [
+    {
+      "name": "asr-export",
+      "description": "Export one retained session as ASR",
+      "hasSubcommands": false
+    }
+  ]
+}

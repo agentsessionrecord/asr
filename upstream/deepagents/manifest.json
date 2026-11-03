@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "agent": "deepagents",
-  "base": "e9f0d8855cff6d7e79d87afc15c2defc62214a71",
-  "head": "83eb2ace1e89fce4ecef4654b7b0a127252f56a9",
+  "base": "89f85affc20ea22d9a1ddb5821987660368b7b8b",
+  "head": "ea40d02876a7f9622a1b732739ea5adafbbd2827",
   "patches": [
     {
       "path": "patches/0001-native-agent-session-export.patch",
-      "commit": "83eb2ace1e89fce4ecef4654b7b0a127252f56a9",
-      "sha256": "c01dd2f3f6b9cd45cb5171e790a9f867143e0077501e90e7cea0f135f873c4b2"
+      "commit": "ea40d02876a7f9622a1b732739ea5adafbbd2827",
+      "sha256": "a994194d3e30dfd02ebf5db980160d1e5b06d8a66ccb50de3101f42cbaf85e66"
     }
   ],
   "checks": [
@@ -19,17 +19,20 @@
   ],
   "provenance": {
     "patch": "patches/0001-native-agent-session-export.patch",
-    "sha256": "c01dd2f3f6b9cd45cb5171e790a9f867143e0077501e90e7cea0f135f873c4b2",
-    "baseCommit": "e9f0d8855cff6d7e79d87afc15c2defc62214a71",
-    "commit": "83eb2ace1e89fce4ecef4654b7b0a127252f56a9"
+    "sha256": "a994194d3e30dfd02ebf5db980160d1e5b06d8a66ccb50de3101f42cbaf85e66",
+    "baseCommit": "89f85affc20ea22d9a1ddb5821987660368b7b8b",
+    "commit": "ea40d02876a7f9622a1b732739ea5adafbbd2827",
+    "repository": "https://github.com/langchain-ai/deepagents"
   },
   "files": {
-    "PROPOSAL.md": "f7debed9d6f46574ec0067e5704ba77723e36f6e35981a1fa5a30212dd1e9183",
-    "README.md": "e7ca22322d9e616b97b5323277470d2b22ae3ebfe83e4a051bef20754b97ceaf",
+    ".gitattributes": "9976f1d74b4ea85bef7b85c40f9d253267a9b26312905efa19c6651d70779d39",
+    "PROPOSAL.md": "7b5016bee3b1957143868a0ebc8c30d627867e85db435ac650a022865a75ce67",
+    "README.md": "ddfdaee37d3449b6fcc39e88273e16d5451b8a388a0b07a9db38e9c7b1764568",
+    "TEST-RESULTS.md": "799512c9be4ab2f1b77d2981f29427ec69cfa31a248c01fb166cc54a5c00b43c",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
-    "patches/0001-native-agent-session-export.patch": "c01dd2f3f6b9cd45cb5171e790a9f867143e0077501e90e7cea0f135f873c4b2",
+    "patches/0001-native-agent-session-export.patch": "a994194d3e30dfd02ebf5db980160d1e5b06d8a66ccb50de3101f42cbaf85e66",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
-    "samples/asr/session.jsonl": "7d829b8138b621b1223f5eb7c28bc16f46728379cff74c8da916d933dace30b7",
+    "samples/asr/session.jsonl": "49cc045e67d7a5ec6f0a958adafe18b8af07583eeb04f354db9c0b0f2f955c5e",
     "samples/native/native.json": "f196e96681c6ae6968055b7bce3c886eebe520a71bda66d747419f572a54cc2f"
   }
 }

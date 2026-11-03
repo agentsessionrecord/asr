@@ -1,8 +1,9 @@
-{"timestamp":1793361600.0,"message":{"type":"TurnBegin","payload":{"user_input":"Exact\r\n"}}}
-{"timestamp":1793361601.0,"message":{"type":"ContentPart","payload":{"type":"think","think":"Check the fixture.","encrypted":"SYNTHETIC-OPAQUE"}}}
-{"timestamp":1793361602.0,"message":{"type":"ToolCall","payload":{"type":"function","id":"call-1","function":{"name":"read","arguments":"{\"path\":\"fixture.txt\"}"},"extras":null}}}
-{"timestamp":1793361603.0,"message":{"type":"ApprovalRequest","payload":{"id":"approval-1","tool_call_id":"call-1","sender":"read","action":"read","description":"Read synthetic fixture","source_kind":null,"source_id":null,"agent_id":null,"subagent_type":null,"source_description":null,"display":[]}}}
-{"timestamp":1793361604.0,"message":{"type":"ApprovalResponse","payload":{"request_id":"approval-1","response":"approve_for_session","feedback":""}}}
-{"timestamp":1793361605.0,"message":{"type":"ToolResult","payload":{"tool_call_id":"call-1","return_value":{"is_error":false,"output":"Synthetic fixture.\n","message":"","display":[],"extras":null}}}}
-{"timestamp":1793361606.0,"message":{"type":"ContentPart","payload":{"type":"text","text":"SYNTHETIC-OK"}}}
-{"timestamp":1793361607.0,"message":{"type":"TurnEnd","payload":{}}}
+{"type":"metadata","protocol_version":"1.5","created_at":1793361600000}
+{"type":"context.append_message","time":1793361600001,"message":{"role":"user","origin":{"kind":"user"},"content":[{"type":"text","text":"Exact\r\n"}],"toolCalls":[],"id":"prompt-1"}}
+{"type":"context.append_loop_event","time":1793361600002,"event":{"type":"step.begin","uuid":"synthetic-step"}}
+{"type":"context.append_loop_event","time":1793361600003,"event":{"type":"content.part","stepUuid":"synthetic-step","part":{"type":"think","think":"Check the fixture."}}}
+{"type":"context.append_loop_event","time":1793361600004,"event":{"type":"content.part","stepUuid":"synthetic-step","part":{"type":"think","think":"","encrypted":"SYNTHETIC-OPAQUE"}}}
+{"type":"context.append_loop_event","time":1793361600005,"event":{"type":"tool.call","stepUuid":"synthetic-step","toolCallId":"call-1","name":"read","args":{"path":"fixture.txt","n":9007199254740993}}}
+{"type":"context.append_loop_event","time":1793361600006,"event":{"type":"tool.result","toolCallId":"call-1","result":{"output":"Synthetic fixture.\n","isError":false}}}
+{"type":"context.append_loop_event","time":1793361600007,"event":{"type":"step.end","uuid":"synthetic-step"}}
+{"type":"context.append_message","time":1793361600008,"message":{"role":"assistant","content":[{"type":"text","text":"SYNTHETIC-OK"}],"toolCalls":[]}}

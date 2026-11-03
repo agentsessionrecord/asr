@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+if ((process.argv[2] ?? 'kimi-code') === 'kimi-code') {
+  await import('./current-contracts.mjs');
+  process.exit(0);
+}
 /** Check the seven native export patch packages without building upstream agents. */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';

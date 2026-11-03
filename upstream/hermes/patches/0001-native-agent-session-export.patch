@@ -1,25 +1,25 @@
-From 06146ba228f7c9a757e78f72c58625a63eeb8d5c Mon Sep 17 00:00:00 2001
+From fc88f9a0464d394a7876d5bdc625891f545dcc2a Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] feat(cli): export sessions as Agent Session Record
 
 ---
- hermes_cli/session_export_asr.py             | 405 +++++++++++++++++++
- hermes_cli/sessions_cmd.py                   |   9 +
- hermes_cli/subcommands/sessions.py           |  13 +-
- tests/hermes_cli/fixtures/agent_session.json |  66 +++
- tests/hermes_cli/test_session_export_asr.py  | 146 +++++++
- 5 files changed, 637 insertions(+), 2 deletions(-)
+ hermes_cli/session_export_asr.py             | 391 +++++++++++++++++++
+ hermes_cli/sessions_cmd.py                   |  11 +-
+ hermes_cli/subcommands/sessions.py           |   2 +-
+ tests/hermes_cli/fixtures/agent_session.json |  66 ++++
+ tests/hermes_cli/test_session_export_asr.py  | 143 +++++++
+ 5 files changed, 611 insertions(+), 2 deletions(-)
  create mode 100644 hermes_cli/session_export_asr.py
  create mode 100644 tests/hermes_cli/fixtures/agent_session.json
  create mode 100644 tests/hermes_cli/test_session_export_asr.py
 
 diff --git a/hermes_cli/session_export_asr.py b/hermes_cli/session_export_asr.py
 new file mode 100644
-index 00000000..60bce074
+index 00000000..c33a3467
 --- /dev/null
 +++ b/hermes_cli/session_export_asr.py
-@@ -0,0 +1,405 @@
+@@ -0,0 +1,391 @@
 +"""Native Agent Session Record export of durable session rows."""
 +
 +from __future__ import annotations
@@ -363,10 +363,8 @@ index 00000000..60bce074
 +
 +def run_agent_session_export(db, args):
 +    try:
-+        output = getattr(args, "asr_output", None) or args.output
-+        selected = list(getattr(args, "agent_sessions", None) or [])
-+        if args.session_id:
-+            selected.append(args.session_id)
++        output = None if args.output == "-" else args.output
++        selected = [args.session_id] if args.session_id else []
 +        if (
 +            args.only
 +            or args.upload
@@ -377,7 +375,7 @@ index 00000000..60bce074
 +                "agent-session does not support view, upload, deletion or logical-lineage options"
 +            )
 +        if not output and len(selected) != 1:
-+            raise ValueError("stdout requires exactly one --session or --session-id")
++            raise ValueError("stdout requires --session-id")
 +        ids = []
 +        if selected:
 +            for sid in selected:
@@ -393,40 +391,28 @@ index 00000000..60bce074
 +                    "SELECT id FROM sessions ORDER BY started_at, id"
 +                )
 +            ]
-+        if getattr(args, "since", None):
-+            since = datetime.fromisoformat(args.since)
-+            if since.tzinfo is None:
-+                raise ValueError("--since requires a timezone")
-+            changed = {
-+                row[0]
-+                for row in db._read_all(
-+                    "SELECT s.id FROM sessions s WHERE MAX(s.started_at, COALESCE(s.last_activity_at, s.started_at), "
-+                    "COALESCE(s.ended_at, s.started_at), COALESCE((SELECT MAX(timestamp) FROM messages m WHERE m.session_id=s.id), s.started_at)) >= ?",
-+                    (since.timestamp(),),
-+                )
-+            }
-+            ids = [sid for sid in ids if sid in changed]
 +        db.assert_exports_safe(ids)
 +        streams = [(sid, _snapshot(db, sid)) for sid in ids]
 +        if output:
 +            directory = Path(output).expanduser()
-+            directory.mkdir(parents=True, exist_ok=True)
++            directory.mkdir(parents=True, exist_ok=True, mode=0o700)
 +            for sid, stream in streams:
 +                filename = hashlib.sha256(sid.encode()).hexdigest() + ".jsonl"
-+                (directory / filename).write_text(
-+                    stream, encoding="utf-8", newline="\n"
-+                )
++                destination = directory / filename
++                with destination.open("x", encoding="utf-8", newline="\n") as target:
++                    destination.chmod(0o600)
++                    target.write(stream)
 +            print(f"Exported {len(streams)} session(s).", file=sys.stderr)
 +        elif len(streams) == 1:
 +            sys.stdout.write(streams[0][1])
 +        else:
-+            raise ValueError("No selected session changed since --since")
++            raise ValueError("No selected session is available")
 +        return 0
 +    except (ValueError, OSError) as exc:
 +        print(f"ASR export failed: {exc}", file=sys.stderr)
 +        return 1
 diff --git a/hermes_cli/sessions_cmd.py b/hermes_cli/sessions_cmd.py
-index ae92efd1..de54b9ff 100644
+index ae92efd1..6e6ec104 100644
 --- a/hermes_cli/sessions_cmd.py
 +++ b/hermes_cli/sessions_cmd.py
 @@ -367,6 +367,12 @@ def _cmd_list(db, args):
@@ -435,16 +421,19 @@ index ae92efd1..de54b9ff 100644
  def _cmd_export(db, args):
 +    if args.format == "agent-session":
 +        if _any_filter_args(args) or args.dry_run:
-+            print("agent-session uses --session and --since selectors.", file=sys.stderr)
++            print("agent-session uses --session-id or exports all sessions.", file=sys.stderr)
 +            return 1
 +        from hermes_cli.session_export_asr import run_agent_session_export
 +        return run_agent_session_export(db, args)
      from hermes_cli.session_filters import build_prune_filters
      filters = None
      if _any_filter_args(args):
-@@ -1390,6 +1396,9 @@ _DB_HANDLERS = {
+@@ -1388,8 +1394,11 @@ _DB_HANDLERS = {
+ }
  
- def _print_empty_store(action: str, args) -> None:
+ 
+-def _print_empty_store(action: str, args) -> None:
++def _print_empty_store(action: str, args) -> int | None:
      """A profile that never created state.db: report empty instead of opening a writer that creates it."""
 +    if action == "export" and args.format == "agent-session":
 +        print("ASR export failed: session history is unavailable.", file=sys.stderr)
@@ -453,26 +442,10 @@ index ae92efd1..de54b9ff 100644
          print("Total sessions: 0\nTotal messages: 0")
      elif action == "pinned":
 diff --git a/hermes_cli/subcommands/sessions.py b/hermes_cli/subcommands/sessions.py
-index e4180e0c..cbd1a4c9 100644
+index e4180e0c..62fd0dd9 100644
 --- a/hermes_cli/subcommands/sessions.py
 +++ b/hermes_cli/subcommands/sessions.py
-@@ -12,6 +12,15 @@ def _flag(parser, *names, help, **kw):
-     parser.add_argument(*names, action="store_true", help=help, **kw)
- 
- 
-+def _add_agent_session_export_args(parser):
-+    parser.add_argument("--session-id", help="Session ID or unique prefix to export")
-+    parser.add_argument("--session", dest="agent_sessions", action="append",
-+        help="agent-session only: select a session, repeat for several")
-+    parser.add_argument("--output", dest="asr_output",
-+        help="agent-session only: directory for one JSONL file per session")
-+    parser.add_argument("--since", help="agent-session only: changed since an RFC 3339 timestamp")
-+
-+
- def cmd_sessions_lazy(args, **kwargs):
-     """``hermes sessions`` handler; sessions_cmd imports only when the subcommand runs."""
-     from hermes_cli.sessions_cmd import cmd_sessions
-@@ -104,7 +113,7 @@ def build_sessions_parser(subparsers, *, cmd_sessions: Callable) -> None:
+@@ -104,7 +104,7 @@ def build_sessions_parser(subparsers, *, cmd_sessions: Callable) -> None:
              "to write a default-named file into; - for stdout (jsonl/trace only; jsonl requires OUTPUT). "
              "md/qmd: a directory, one file per session (default: <hermes home>/session-exports)")
      sessions_export.add_argument(
@@ -481,15 +454,6 @@ index e4180e0c..cbd1a4c9 100644
          help="Export format (default: jsonl). 'trace' emits Claude Code JSONL "
              "for the Hugging Face Agent Trace Viewer")
      _flag(sessions_export, "--upload",
-@@ -117,7 +126,7 @@ def build_sessions_parser(subparsers, *, cmd_sessions: Callable) -> None:
-     sessions_export.add_argument("--only", choices=["user-prompts"],
-         help="Export only a filtered view (user-prompts: one prompt record "
-             "per line for jsonl, headed sections for md)")
--    sessions_export.add_argument("--session-id", help="Session ID or unique prefix to export")
-+    _add_agent_session_export_args(sessions_export)
-     _add_session_filter_args(
-         sessions_export, "Only export sessions older than AGE (duration like '5h'/'2d', "
-         "bare number of days, or an ISO timestamp). Filtered exports include pinned and archived "
 diff --git a/tests/hermes_cli/fixtures/agent_session.json b/tests/hermes_cli/fixtures/agent_session.json
 new file mode 100644
 index 00000000..c8c6c524
@@ -564,10 +528,10 @@ index 00000000..c8c6c524
 +}
 diff --git a/tests/hermes_cli/test_session_export_asr.py b/tests/hermes_cli/test_session_export_asr.py
 new file mode 100644
-index 00000000..92f66461
+index 00000000..eeb5aa45
 --- /dev/null
 +++ b/tests/hermes_cli/test_session_export_asr.py
-@@ -0,0 +1,146 @@
+@@ -0,0 +1,143 @@
 +"""Native ASR export contracts for durable history and the real session command."""
 +
 +import argparse
@@ -660,7 +624,7 @@ index 00000000..92f66461
 +        db.create_session("other", "cli")
 +    before = hashlib.sha256(path.read_bytes()).digest()
 +    output_dir = tmp_path / "exports"
-+    assert cmd_sessions(parse("--session", "../synthetic-session", "--output", str(output_dir))) == 0
++    assert cmd_sessions(parse("--session-id", "../synthetic-session", str(output_dir))) == 0
 +    files = list(output_dir.glob("*.jsonl"))
 +    assert len(files) == 1
 +    assert len(files[0].stem) == 64
@@ -669,19 +633,18 @@ index 00000000..92f66461
 +    assert result[1]["content"][0]["text"] == "hello\n"
 +    assert hashlib.sha256(path.read_bytes()).digest() == before
 +    assert capsys.readouterr().out == ""
-+    assert cmd_sessions(parse("--session", "other")) == 0
++    assert cmd_sessions(parse("-", "--session-id", "other")) == 0
 +    assert rows(capsys.readouterr().out)[0]["sessionId"] == "other"
 +
 +
 +def test_rejects_ambiguous_stdout_missing_session_and_empty_store(tmp_path, monkeypatch, capsys):
 +    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-+    assert cmd_sessions(parse("--session", "missing")) == 1
++    assert cmd_sessions(parse("--session-id", "missing")) == 1
 +    assert capsys.readouterr().out == ""
 +    with SessionDB(db_path=tmp_path / "state.db") as db:
 +        db.create_session("one", "cli")
 +    assert cmd_sessions(parse()) == 1
-+    assert cmd_sessions(parse("--session", "missing")) == 1
-+    assert cmd_sessions(parse("--session", "one", "--since", "2026-01-01")) == 1
++    assert cmd_sessions(parse("--session-id", "missing")) == 1
 +    assert capsys.readouterr().out == ""
 +
 +
@@ -695,24 +658,23 @@ index 00000000..92f66461
 +        mid = db.append_message("child", "assistant", "abandoned")
 +        db._conn.execute("UPDATE messages SET active=0 WHERE id=?", (mid,))
 +        db._conn.commit()
-+    assert cmd_sessions(parse("--session", "child")) == 0
++    assert cmd_sessions(parse("--session-id", "child")) == 0
 +    result = rows(capsys.readouterr().out)
 +    assert result[0]["parent"] == {"session": "hermes:parent", "kind": "fork"}
 +    assert result[1]["copiedFrom"] == {"session": "hermes:parent"}
 +    assert result[2]["content"][0]["text"] == "abandoned"
 +
 +
-+def test_since_filters_sessions_and_rejects_other_filters(tmp_path, monkeypatch, capsys):
++def test_all_sessions_and_rejects_other_filters(tmp_path, monkeypatch, capsys):
 +    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
 +    with SessionDB(db_path=tmp_path / "state.db") as db:
 +        db.create_session("old", "cli")
 +        db.create_session("new", "cli")
-+        db._conn.execute("UPDATE sessions SET started_at=0, last_activity_at=0 WHERE id='old'")
-+        db._conn.commit()
 +    directory = tmp_path / "exports"
-+    assert cmd_sessions(parse("--output", str(directory), "--since", "2026-01-01T00:00:00Z")) == 0
-+    assert len(list(directory.glob("*.jsonl"))) == 1
-+    assert cmd_sessions(parse("--session", "new", "--model", "example")) == 1
++    assert cmd_sessions(parse(str(directory))) == 0
++    assert len(list(directory.glob("*.jsonl"))) == 2
++    assert cmd_sessions(parse("--session-id", "new", "--model", "example")) == 1
 +    assert capsys.readouterr().out == ""
+-- 
+2.43.0
 
-base-commit: c7c7e0fa92f40c8f526e4a52c0966c128245ffd3

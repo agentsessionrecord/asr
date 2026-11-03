@@ -1,7 +1,7 @@
-From d7d2f835bc5643bccd8306d8c6bce9a14bb59aa6 Mon Sep 17 00:00:00 2001
+From 16a42d6a5292fd31dfa61ee768e4928eb970ed8c Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
-Subject: [PATCH] feat: export native sessions with accurate reasoning content
+Subject: [PATCH] feat(db): export conversations as Agent Session Record
 
 ---
  cmd/shelley-export/main.go |  40 ++++++++
@@ -368,5 +368,3 @@ index 0000000..be53e0e
 +		t.Fatal("derived call was paired with a native result")
 +	}
 +}
-
-base-commit: e8dd9cc6817248188d2be2912680e8555ef72f13

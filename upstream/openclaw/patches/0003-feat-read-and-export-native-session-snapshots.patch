@@ -1,7 +1,7 @@
-From 6feca420fc747d5f71923da33650d8ec0e69fd85 Mon Sep 17 00:00:00 2001
+From a725c709033224d41734fc336d6ad96e6f9c1c5e Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 16:26:16 -0500
-Subject: [PATCH 3/8] feat: read and export native session snapshots
+Subject: [PATCH] feat: read and export native session snapshots
 
 ---
  src/sessions/agent-session-export.source.ts | 311 ++++++++++++++++++++
@@ -478,3 +478,6 @@ index 00000000000..ca879d6d28a
 +  );
 +  return { output: destination, sessions: sessions.length, records: recordCount, bytes };
 +}
+-- 
+2.43.0
+

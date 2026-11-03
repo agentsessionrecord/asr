@@ -1,67 +1,58 @@
-# Pi native export patch
+# Pi ASR extension
 
-## Install
+Source: [https://github.com/earendil-works/pi](https://github.com/earendil-works/pi).
+Pinned base: `8f9446a06027b075bf885189ceb0983565662174`.
 
-Use a separate writable checkout of the upstream project. The supported base is
-`a14cdf90f0a76532f3e20bc3c01872837cef24ba`. [manifest.json](manifest.json) pins
-this base, the ordered patches and their digests. Read [PROPOSAL.md](PROPOSAL.md)
-for the upstream repository, runtime requirements and native build instructions.
-These patches are local source changes. They are not installed by the ASR CLI.
-
-Set `ASR_PACKAGE` to this package's absolute path. Run in a clean upstream
-checkout at the pinned base:
+Install the bundled `extension/` directory as a local Pi extension. Pi core needs
+no change. The source patch adds the same extension as an example with focused tests.
 
 ```sh
-git am "$ASR_PACKAGE"/patches/*.patch
+pi install ./extension
 ```
 
-Build and install the patched agent using its own instructions and the focused
-checks in the proposal. To remove the feature, use a clean unpatched build.
-Existing exported files remain in their output directory.
-
-## Use
-
-Run with the patched agent. Replace example IDs and input paths with a selected
-native session. See the proposal for selection and output options.
+In Pi, use `/export-asr session.asr.jsonl`. The command reads the current saved
+session and writes a new file with mode 600. It refuses to overwrite a file.
+For offline use with Node 22.16 or later:
 
 ```sh
-pi-session-export --session native-session.jsonl --format agent-session --output session.asr.jsonl
+node extension/cli.ts \
+  --session native-session.jsonl --format agent-session --output session.asr.jsonl
 ```
 
-## What it records
+The extension preserves the whole native v3 session tree in file order, including
+abandoned branches. It exports text, supported reasoning, tools, final results,
+summaries, injected messages and identified model calls with inclusive usage.
+It excludes signatures and known credential fields. It does not reconstruct media,
+approvals, edits, commits, child lineage or opaque provider state.
+Corrupt or unsupported input fails before output.
 
-The native v3 session tree is exported in file order, including abandoned branches. It keeps text, reasoning, tools, final results, summaries, injected messages, identified inferences and inclusive usage.
+Native fixture reproduction:
 
-Output uses ASR 0.1 with `producer.method: native`. Known credential fields and
-recognized secret text are excluded. Keep exports private and review content
-before sharing. Pattern filtering cannot identify every secret.
+```sh
+node upstream/pi/reproduce-native.mjs /path/to/patched-checkout
+```
 
-## Limits
+## Package checks
 
-Media, opaque state, approvals, file changes, commits and child lineage are not reconstructed. Failed local settlements without provider identity do not create model calls. Unsupported or corrupt input fails before output.
+The manifest pins the source base, patch commits and file digests. Apply the
+ordered patches in a clean checkout at that base with `git am patches/*.patch`.
+The package is not installed by the ASR CLI.
 
-The [proposal](PROPOSAL.md) describes the source profile and detailed losses.
-Valid ASR does not establish complete source capture.
-
-## Tests and status
-
-Run from the ASR repository root with its Node dependencies installed:
+From the ASR repository root, run:
 
 ```sh
 node upstream/pi/check.mjs
-node upstream/pi/reproduce.mjs /path/to/upstream-checkout
+node upstream/pi/reproduce.mjs /path/to/patched-checkout
 ```
 
-The package check verifies file hashes, patch syntax, synthetic source contracts
-and ASR sample validation. The reproduce command also replays the series in a
-temporary Git index against the pinned source commits. It preserves the source
-checkout. It needs both pinned commits in that checkout and does not build or
-run the agent. Upstream build and test evidence is in the proposal.
+The second command checks replay in a temporary Git index. It preserves the
+checkout and requires the pinned commits. It does not build the agent.
+Native fixture reproduction is a separate check described below.
 
-Live-test status: **partial**.
-The evidence below is from a prior revision. A live run of the current code has not been verified.
-An isolated source CLI run against a local OpenAI-compatible endpoint exported 9 records, including 2 inference records, a tool call and a result. Validation reported zero errors or warnings. The provider key was read from private provider settings. The generated model catalog was hydrated locally and is not part of this patch.
+The refreshed project checks and fixture regeneration are awaiting execution.
+See [verification.json](verification.json) for the current status. Existing
+live evidence is historical and does not validate this revision. No live model
+request was made for this refresh.
 
-The package's [synthetic export](samples/asr/session.jsonl) has zero validator
-errors. Any expected extension or pairing warnings are explained by the proposal
-or printed by the package check. Package checks make no model requests.
+Keep exports private and review them before sharing. Pattern filters cannot
+identify every secret. Valid ASR does not establish complete capture.

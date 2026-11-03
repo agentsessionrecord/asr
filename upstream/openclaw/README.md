@@ -1,68 +1,64 @@
-# OpenClaw native export patch
+# OpenClaw ASR export plugin
 
-## Install
+Source: [https://github.com/openclaw/openclaw](https://github.com/openclaw/openclaw).
+Pinned base: `05a73c2679f5c7bb660e5f391ee89dd5e618f565`.
 
-Use a separate writable checkout of the upstream project. The supported base is
-`15e4d849d5f9a3559132454aeff90fe54781dee9`. [manifest.json](manifest.json) pins
-this base, the ordered patches and their digests. Read [PROPOSAL.md](PROPOSAL.md)
-for the upstream repository, runtime requirements and native build instructions.
-These patches are local source changes. They are not installed by the ASR CLI.
-
-Set `ASR_PACKAGE` to this package's absolute path. Run in a clean upstream
-checkout at the pinned base:
+The primary implementation is the independently installable [plugin](plugin/).
+It uses only public plugin SDK entry points. No core source patch is needed.
+From this package directory, install the local plugin using OpenClaw's plugin CLI:
 
 ```sh
-git am "$ASR_PACKAGE"/patches/*.patch
+openclaw plugins install ./plugin
+openclaw asr-export --agent main --session-key SELECTED_KEY \
+  --session NATIVE_SESSION_ID --output session.asr.jsonl
 ```
 
-Build and install the patched agent using its own instructions and the focused
-checks in the proposal. To remove the feature, use a clean unpatched build.
-Existing exported files remain in their output directory.
+The command reads the retained public transcript projection. It records text and
+tool calls and results. It writes a new file with mode 600. It does not read private
+side stores or invent model calls. Known credential fields and signatures are
+excluded. Parsed unsafe integers are rejected because exact values are unavailable.
+A prefix gap and missing fields describe projection and side-evidence losses.
 
-## Use
-
-Run with the patched agent. Replace example IDs and input paths with a selected
-native session. See the proposal for selection and output options.
+The eight-commit core series is retained as a secondary implementation. It reads
+SQLite snapshots and adds fuller side-store evidence. Apply that series only in
+a separate checkout at the pinned base. Its command is:
 
 ```sh
-openclaw sessions export --format agent-session --agent main --all --output ./asr
 openclaw sessions export --format agent-session --session NATIVE_SESSION_ID
 ```
 
-## What it records
+The secondary path keeps explicit model-call IDs, inclusive usage, offered tools,
+reasoning settings, approvals and verified edit receipts where native data permits.
+PostgreSQL, cold archives and legacy JSONL import are outside that series.
+Neither form supplies a tamper-evident audit chain.
 
-Read-only SQLite session windows supply messages, tools, explicit call IDs, inclusive usage, offered tools, reasoning settings and approvals. Verified receipts can establish applied file changes.
+The public projection fixture is `samples/native/plugin-projection.json`.
+The secondary fixture remains `samples/native/source.json`.
+Run `node --test upstream/openclaw/plugin/transcript.test.mjs` for plugin mapping,
+and `node upstream/openclaw/plugin/check-entry.mjs /path/to/upstream-checkout`
+to check registration against the public SDK sources.
 
-Output uses ASR 0.1 with `producer.method: native`. Known credential fields and
-recognized secret text are excluded. Keep exports private and review content
-before sharing. Pattern filtering cannot identify every secret.
+## Package checks
 
-## Limits
+The manifest pins the source base, patch commits and file digests. Apply the
+ordered patches in a clean checkout at that base with `git am patches/*.patch`.
+The package is not installed by the ASR CLI.
 
-Missing prompts, complete policy history, served models, call settings, attachments and shell edits are not reconstructed. PostgreSQL, cold archives and legacy JSONL import are outside this patch.
-
-The [proposal](PROPOSAL.md) describes the source profile and detailed losses.
-Valid ASR does not establish complete source capture.
-
-## Tests and status
-
-Run from the ASR repository root with its Node dependencies installed:
+From the ASR repository root, run:
 
 ```sh
 node upstream/openclaw/check.mjs
-node upstream/openclaw/reproduce.mjs /path/to/upstream-checkout
+node upstream/openclaw/reproduce.mjs /path/to/patched-checkout
 ```
 
-The package check verifies file hashes, patch syntax, synthetic source contracts
-and ASR sample validation. The reproduce command also replays the series in a
-temporary Git index against the pinned source commits. It preserves the source
-checkout. It needs both pinned commits in that checkout and does not build or
-run the agent. Upstream build and test evidence is in the proposal.
+The second command checks replay in a temporary Git index. It preserves the
+checkout and requires the pinned commits. It does not build the agent.
+Native fixture reproduction is a separate check described below.
 
-Live-test status: **partial**.
-The evidence below is from a prior revision. A live run of the current code has not been verified.
-Fresh scratch session against a local OpenAI-compatible endpoint exported from native SQLite with the current source owner. Nine records validate with zero errors and zero warnings. The full CLI exporter was not rebuilt for this run.
+The refreshed project checks and fixture regeneration are awaiting execution.
+See [verification.json](verification.json) for the current status. Existing
+live evidence is historical and does not validate this revision. No live model
+request was made for this refresh.
 
-The package's [synthetic export](samples/asr/session.jsonl) has zero validator
-errors. Any expected extension or pairing warnings are explained by the proposal
-or printed by the package check. Package checks make no model requests.
+Keep exports private and review them before sharing. Pattern filters cannot
+identify every secret. Valid ASR does not establish complete capture.

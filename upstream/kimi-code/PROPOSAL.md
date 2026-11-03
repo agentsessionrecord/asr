@@ -1,30 +1,15 @@
-# Kimi Code native Agent Session Record export
+# Kimi Code session export
 
-Export a saved session in an open format that search and code history tools can read. The export keeps the source facts available for later review.
+Export saved Kimi Code sessions as Agent Session Record alongside the existing session import support.
 
-Adds an offline `sessions export` command. It also keeps this command available through the archived CLI entry point.
+The patch adds a format option to the existing `kimi export` command through the SDK and engine export service. ASR mode writes a ZIP containing only a manifest and `session.asr.jsonl`. The default diagnostic ZIP remains available. The new mode is gated by `KIMI_CODE_EXPERIMENTAL_AGENT_SESSION_EXPORT`.
 
-Applies to [https://github.com/MoonshotAI/kimi-cli](https://github.com/MoonshotAI/kimi-cli) at `9ab1286b8fe4e6bcd116949a27ce5e0ac3389c82`. The local patch commit is `1a1c083f1d10883182229b0001363a115e8d791f`.
-
-Apply the patch with `git am patches/0001-native-agent-session-export.patch` in a clean checkout of that base.
-
-```text
-kimi sessions export --session SESSION_ID --format agent-session --output exports
+```sh
+KIMI_CODE_EXPERIMENTAL_AGENT_SESSION_EXPORT=1 \
+  kimi export SESSION_ID --format agent-session -o record.zip
+unzip -p record.zip session.asr.jsonl > session.asr.jsonl
 ```
 
-It records user text, assistant text, readable reasoning, assembled tool calls, final tool results, approval decisions and observed plan-mode updates. It preserves wire order and exact text. Streamed pieces are folded at their final observation.
+The reader uses the main agent's `agents/main/wire.jsonl` journal with protocol 1.5. It preserves physical journal order, including retained abandoned work. It keeps explicit human prompts, harness injections, visible reasoning, encrypted reasoning markers, tool calls, and final results. Unsafe integer arguments are kept as decimal strings. Incomplete tails and malformed lines become gaps. Older wire protocols are rejected. Subagents, relationships, media, provider state, usage, settings, approvals, edits, and commits are declared missing. The export is not a redactor. Review conversation content before sharing.
 
-It omits opaque signatures, provider replay state, media, instructions, inference accounting, file changes and commits. Unknown prompt authors stay unknown. It does not infer a person or a policy from an approval response. The complete wire log stays available across compaction.
-
-Supported source: the typed Kimi wire JSON Lines format at this revision. Output uses ASR `0.1` and `producer.method: "native"`. File output is exclusive and private where the command writes a file.
-
-Checks: 3 focused pytest tests. Ruff lint and format. Pyright with zero errors and warnings. The included native fixture and sample are synthetic. The sample passes the reference validator with zero errors.
-
-An isolated source CLI run through the local Responses endpoint exported 7 records with zero validator errors or warnings. The installed entry point was also used for export. The retained evidence contains counts and codes only.
-
-`manifest.json` pins the upstream base, local commit and packaged file hashes. Run `node upstream/kimi-code/check.mjs` from the ASR repository to check this patch package without upstream dependencies.
-
-## Verification scope
-
-The live evidence above is from a prior revision. The current source has focused
-regressions and package checks. Its full agent and model path has not been rerun.
+The patch targets [kimi-code](https://github.com/MoonshotAI/kimi-code) at `444c609e8e6629d43fb7fd571a8db48ce5a41570`. Tests cover exact text, source order, final tool results, and excluded provider state. [TESTS.json](TESTS.json) states which checks ran on this revision.

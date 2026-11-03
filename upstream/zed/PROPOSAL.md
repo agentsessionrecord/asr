@@ -1,44 +1,39 @@
-Human review required: upstream instructions require the README review banner. The human author must remove it after reviewing the source.
+# Saved Zed threads as Agent Session Record
 
-# Zed native export
+Export retained thread content so tools can inspect it without opening the editor.
+The patch adds `DbThread::write_agent_session` and a snapshot example.
 
-Export a saved session in an open format that search and code history tools can read. The export keeps the source facts available for later review.
-
-Applies to `zed-industries/zed` at `14b7b0ef3764d62a85070c8b5ccea105a2ad3235`.
-
-The patch adds `DbThread::write_agent_session` in the agent crate. The example
-reads a saved native `DbThread` JSON snapshot. Supply the database thread ID
-separately because that ID is outside the snapshot type.
-
-```bash
+```sh
 cargo run -p agent --example export_agent_session -- \
   --format agent-session SESSION_ID THREAD.json > session.jsonl
 ```
 
-The export preserves retained text, reasoning, tool calls, structured JSON tool arguments and non-JSON argument
-strings, tool results and native user message IDs. Mentions carry harness
-provenance. Compaction summaries carry a gap for replaced history. Encrypted
-reasoning has no opaque state or signatures. Incomplete calls become gaps.
+Supply the native database thread ID separately from its saved JSON snapshot.
+The export retains text, reasoning summaries, native call IDs, JSON or text
+arguments and recorded tool outcomes. Compaction summaries have gaps for replaced
+history. Opaque reasoning state and signatures are excluded.
 
-Images, model identity, usage, approvals, settings, session relationships and
-per-event timestamps are absent. Tool results follow their native map order.
-The header declares the missing execution order and other losses. No human
-identity or session end is inferred.
+Tool result statuses follow ACP terminal outcomes. Delta's
+`thread append` reads JSON Lines with `schemaVersion`, `sequence`, optional
+`turnSequence` and an ACP v2 `update`. ASR is a separate durable record format.
+This snapshot exporter neither reads nor produces Delta envelopes. An ACP bridge
+must fold updates in sequence order at completion and retain native tool IDs.
+See the [ACP mapping](../../guides/acp.md).
 
-The focused agent test filter passed four tests, including three exporter
-tests. The snapshot example and focused formatting check passed. Only the agent
-crate was selected for compilation. A live GUI agent session was unavailable
-in this headless environment. The patch adds neither a GUI export action nor
-native database discovery. The README review marker is required by the
-upstream contribution instructions and remains for human review.
+Models, usage, approvals, settings, relationships and per-event timestamps are
+missing. Tool results follow their native map order, which does not establish
+execution order. No human authorship or session end is inferred.
+There is no GUI action or database discovery. Output is ASR 0.1.
 
-To reproduce the packaged sample from an already patched checkout, run:
+Source: <https://github.com/zed-industries/zed> at `57dfd54adebb6d4a62cd1c42d397acb667a71c0a`.
 
-```bash
-python3 upstream/zed/reproduce.py /path/to/patched/checkout
+Focused verification commands:
+
+```sh
+cargo test -p agent agent_session --lib
+cargo clippy -p agent --all-targets -- -D warnings
+cargo fmt -p agent --check
 ```
 
-The reproduction uses temporary native fixture files, compares the exported
-records with the packaged sample and runs the ASR validator. It does not start
-inference. The package check runs in repository CI without fetching or compiling
-the upstream project.
+Current results and limitations are recorded in [refresh.json](refresh.json).
+The fixtures are synthetic. No current live inference test is claimed.
