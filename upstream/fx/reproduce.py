@@ -4,7 +4,6 @@ import json
 import os
 from pathlib import Path
 import shutil
-import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -15,9 +14,6 @@ if len(sys.argv) != 2:
     raise SystemExit("usage: reproduce.py PATCHED_CHECKOUT")
 checkout = Path(sys.argv[1]).resolve()
 
-def make_database(path, fixture):
-    with sqlite3.connect(path) as database:
-        database.executescript((package / "samples/native" / fixture).read_text())
 
 with tempfile.TemporaryDirectory(prefix="asr-native-fixture-") as temporary:
     work = Path(temporary)

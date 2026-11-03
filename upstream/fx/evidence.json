@@ -1,20 +1,6 @@
 {
-  "checks": [
-    "zig build test-agent-session -Doptimize=Debug",
-    "zig build -Doptimize=Debug",
-    "zig fmt on changed Zig files",
-    "freshly built binary native fixture export and packaged fixture reproduction"
-  ],
-  "focusedTestsPassed": 2,
-  "newExporterTests": 2,
-  "fixtureReproduction": "passed",
-  "samples": {
-    "samples/asr/session.jsonl": {
-      "records": 3,
-      "errors": 0,
-      "warnings": 0
-    }
-  },
-  "liveTestStatus": "not-live-tested",
-  "liveTestNotes": "Native provider auth requires an environment variable name. A live run could not meet the private provider settings file rule. The freshly built binary exported an upstream synthetic session fixture."
+  "status": "pending",
+  "sourceBase": "e7a69e5cf7da1dace751cfe9038b7a4448e84bcc",
+  "nativeFixture": "synthetic",
+  "liveTestStatus": "not-run-for-refreshed-source"
 }

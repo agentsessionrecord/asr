@@ -1,18 +1,19 @@
-From da4bf913813a01340c731d570b407cc630aa7f92 Mon Sep 17 00:00:00 2001
+From 0a77d57ef0a5433a54e39856d822eca6cfa8cb5a Mon Sep 17 00:00:00 2001
 From: ASR Contributors <contributors@agentsessionrecord.org>
 Date: Sun, 1 Nov 2026 12:59:14 -0500
 Subject: [PATCH] Add native Agent Session Record sessions export
 
 ---
  build.zig                          |   6 ++
- src/builtins/commands.zig          |   3 +-
+ src/builtins/commands.zig          |   7 +-
  src/core/cli/cli_surface.zig       |  21 ++++
  src/core/session/agent_session.zig | 167 +++++++++++++++++++++++++++++
- 4 files changed, 196 insertions(+), 1 deletion(-)
+ tests/e2e/sessions.test.ts         |  11 ++
+ 5 files changed, 210 insertions(+), 2 deletions(-)
  create mode 100644 src/core/session/agent_session.zig
 
 diff --git a/build.zig b/build.zig
-index eb67a52..c39132c 100644
+index eb67a522..c39132c8 100644
 --- a/build.zig
 +++ b/build.zig
 @@ -104,6 +104,12 @@ pub fn build(b: *std.Build) void {
@@ -29,30 +30,29 @@ index eb67a52..c39132c 100644
      run_exe_tests.step.dependOn(b.getInstallStep());
      // Tests launch the installed fx binary, and the session boundary test
 diff --git a/src/builtins/commands.zig b/src/builtins/commands.zig
-index acfabb2..48453df 100644
+index 87150616..ec892cf6 100644
 --- a/src/builtins/commands.zig
 +++ b/src/builtins/commands.zig
-@@ -189,13 +189,14 @@ pub const top_level_specs = [_]TopLevelSpec{
+@@ -360,9 +360,12 @@ pub const top_level_specs = [_]TopLevelSpec{
      .{
          .kind = .sessions,
          .token = "sessions",
 -        .usage = "sessions [--all] [--limit <1-100>] [--cursor <cursor>] [--json] | sessions convert [--json]",
 +        .usage = "sessions [--all] [--limit <1-100>] [--cursor <cursor>] [--json] | sessions convert [--json] | sessions export --format agent-session --session ID",
          .summary = "List saved sessions for the current workspace",
-         .options = &.{
-             .{ .flag = "--all", .description = "List saved sessions across every workspace in this profile" },
-             .{ .flag = "--limit <1-100>", .description = "Set the maximum sessions returned per page" },
-             .{ .flag = "--cursor <cursor>", .description = "Continue from a prior sessions result" },
-             .{ .flag = "convert", .description = "Convert every session saved in the previous format" },
-+            .{ .flag = "export --format agent-session --session ID", .description = "Export retained session history as Agent Session Record JSON Lines" },
-             json_option,
-         },
+-        .subcommands = &.{.{ .usage = "convert", .description = "Convert every session saved in the previous format", .options = &sessions_convert_options }},
++        .subcommands = &.{
++            .{ .usage = "convert", .description = "Convert every session saved in the previous format", .options = &sessions_convert_options },
++            .{ .usage = "export --format agent-session --session ID", .description = "Export retained session history as Agent Session Record JSON Lines" },
++        },
+         .options = &sessions_options,
      },
+     .{
 diff --git a/src/core/cli/cli_surface.zig b/src/core/cli/cli_surface.zig
-index 48e26bd..23349d8 100644
+index 94744666..14cfa2d0 100644
 --- a/src/core/cli/cli_surface.zig
 +++ b/src/core/cli/cli_surface.zig
-@@ -31,6 +31,7 @@ const secret = @import("../auth/secret.zig");
+@@ -43,6 +43,7 @@ const secret = @import("../auth/secret.zig");
  const output_contracts = @import("../output/output_contracts.zig");
  const prompt_policy = @import("../config/prompt_policy.zig");
  const session_codec = @import("../session/session_codec.zig");
@@ -60,7 +60,7 @@ index 48e26bd..23349d8 100644
  const session_store = @import("../session/session_store.zig");
  const session_adapter = @import("../session/session_adapter.zig");
  const skill_contract = @import("../skills/skill_contract.zig");
-@@ -1585,6 +1586,26 @@ fn runNonInteractiveWithDeps(
+@@ -1988,6 +1989,26 @@ fn runNonInteractiveWithDeps(
              return runSessionDetail(alloc, deps, target, opts.format);
          },
          .sessions => |rest| {
@@ -89,7 +89,7 @@ index 48e26bd..23349d8 100644
                      try writeUsageOrJsonError(alloc, cfg.command_catalog, deps, .sessions, "sessions", err, rest);
 diff --git a/src/core/session/agent_session.zig b/src/core/session/agent_session.zig
 new file mode 100644
-index 0000000..98e5c98
+index 00000000..98e5c98e
 --- /dev/null
 +++ b/src/core/session/agent_session.zig
 @@ -0,0 +1,167 @@
@@ -260,6 +260,28 @@ index 0000000..98e5c98
 +    try std.testing.expect(std.mem.find(u8, output.written(), "synthetic-output-handle") == null);
 +    try std.testing.expectError(error.DuplicateToolResult, writeTurn(&output.writer, &sequence, .{ .text = @constCast("") }, execution, &results));
 +}
+diff --git a/tests/e2e/sessions.test.ts b/tests/e2e/sessions.test.ts
+index c4617d1a..7590a3ce 100644
+--- a/tests/e2e/sessions.test.ts
++++ b/tests/e2e/sessions.test.ts
+@@ -306,6 +306,17 @@ test("fx ask saves to v2, resumes by id and by last, and never writes v1", async
+       "closed",
+     ]);
+     expectNoV1Sessions(fixture);
++    const logBeforeExport = readFileSync(join(storeRoot(fixture.home), id, "log.jsonl"));
++    const exported = await command(fixture, gateway, ["sessions", "export", "--format", "agent-session", "--session", id]);
++    expect(exported.code).toBe(0);
++    expect(exported.stderr).toBe("");
++    const records = exported.stdout.trimEnd().split("\n").map((line: string) => JSON.parse(line));
++    expect(records[0].sessionId).toBe(id);
++    expect(records[0].producer.method).toBe("native");
++    expect(records.some((record: any) => record.type === "message" && record.content.some((part: any) => part.text === "V2_FIRST_ANSWER"))).toBe(true);
++    expect(records.some((record: any) => record.type === "inference")).toBe(false);
++    expect(gateway.requests.length).toBe(1);
++    expect(readFileSync(join(storeRoot(fixture.home), id, "log.jsonl"))).toEqual(logBeforeExport);
+     // Owner-only folders and files.
+     expect(statSync(storeRoot(fixture.home)).mode & 0o777).toBe(0o700);
+     expect(statSync(join(storeRoot(fixture.home), id, "log.jsonl")).mode & 0o777).toBe(0o600);
 -- 
 2.43.0
 
