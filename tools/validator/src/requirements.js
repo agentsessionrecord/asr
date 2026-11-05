@@ -160,6 +160,11 @@ export const REQUIREMENTS = {
     "summary": "One result per call ID and pairing only to a unique call",
     "check": "semantic"
   },
+  "ASR-079": {
+    "page": "records",
+    "summary": "Result approval links from stated decisions to a local approval for the same call",
+    "check": "semantic"
+  },
   "ASR-073": {
     "page": "records",
     "summary": "Approval records, source order, reused grants and real lifetimes",

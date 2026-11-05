@@ -71,6 +71,32 @@ test("approvals without calls use subjects and unresolved or ambiguous call link
   assert.ok(validate(lines(header(), call(), call({ id: "second" }), approval())).diagnostics.some(({ code }) => code === "unpaired-approval"));
 });
 
+test("a result names the approval it followed, which must be local and for the same call", () => {
+  const command = approval({ id: "command", by: "user", scope: "once" });
+  const escape = approval({ id: "escape", decision: "denied", subject: "sandbox-escape" });
+  const grant = approval({ id: "grant", callId: undefined, subject: "packages.example.com" });
+  const problems = (output) => output.diagnostics.map(({ severity, requirement, code, line, pointer }) => ({ severity, requirement, code, line, pointer }));
+  for (const records of [
+    [call(), command, escape, result({ approvalId: "command" })],
+    [call(), command, escape, result({ status: "denied", approvalId: "escape" })],
+    [call(), result({ approvalId: "command" }), command],
+    [call(), grant, result({ approvalId: "grant" })],
+    [call(), command, result()],
+  ]) assert.deepEqual(validate(lines(header(), ...records)).diagnostics, []);
+  const dangling = validate(lines(header(), call(), command, message({ id: "note" }), result({ approvalId: "note" })));
+  assert.equal(dangling.valid, false);
+  assert.deepEqual(problems(dangling), [{ severity: "error", requirement: "ASR-079", code: "unresolved-approval", line: 5, pointer: "/approvalId" }]);
+  const other = approval({ id: "other", callId: "c2" });
+  const mismatch = validate(lines(header(), call(), call({ id: "call-2", callId: "c2" }), other, result({ approvalId: "other" }), result({ id: "result-2", callId: "c2" })));
+  assert.deepEqual(problems(mismatch), [{ severity: "error", requirement: "ASR-079", code: "approval-call-mismatch", line: 5, pointer: "/approvalId" }]);
+  const unlinked = result({ approvalId: "command" });
+  delete unlinked.callId;
+  assert.deepEqual(problems(validate(lines(header(), call(), command, unlinked))).filter(({ severity }) => severity === "error"),
+    [{ severity: "error", requirement: "ASR-079", code: "approval-call-mismatch", line: 4, pointer: "/approvalId" }]);
+  assert.deepEqual(validateRecord(result({ approvalId: 7 })).map(({ requirement, code, pointer }) => ({ requirement, code, pointer })),
+    [{ requirement: "ASR-079", code: "schema.type", pointer: "/approvalId" }]);
+});
+
 test("validation never supplies approvals from outcomes or policy settings", () => {
   for (const status of ["completed", "denied", "cancelled"]) {
     const checked = validate(lines(header(), info({ approval: "never", asks: "never" }), call(), result({ status })));

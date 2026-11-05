@@ -1,0 +1,23 @@
+[
+  {
+    "severity": "error",
+    "requirement": "ASR-079",
+    "code": "approval-call-mismatch",
+    "line": 5,
+    "pointer": "/approvalId"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-079",
+    "code": "unresolved-approval",
+    "line": 6,
+    "pointer": "/approvalId"
+  },
+  {
+    "severity": "error",
+    "requirement": "ASR-079",
+    "code": "schema.type",
+    "line": 8,
+    "pointer": "/approvalId"
+  }
+]

@@ -192,6 +192,7 @@ A result records the source's outcome and output.
 | `exec` | O | Shell details, described below |
 | `durationMs` | O | Non-negative number of milliseconds |
 | `subagent` | O | Object with required `session` reference when the child becomes known at completion |
+| `approvalId` | O | `id` of the `approval` record whose decision this result followed |
 
 `exec` can contain `command` as a string or string array, `cwd` as an absolute path, integer `exitCode`, and strings `signal`, `stdout`, `stderr` and combined `output`. These fields are optional. Separate output streams and combined output retain the source's representation.
 
@@ -204,6 +205,10 @@ An absent call input also differs from newly learned arguments. The result prese
 **ASR-026** A file MUST contain at most one `tool_result` per `callId`. Readers MUST pair a result with a call only when exactly one `tool_call` in the file has that `callId`. Otherwise they MUST show the result as unpaired. A call without a result MUST have an unknown outcome.
 
 Fold native result updates into one completed result. Results without a `callId` remain unpaired. Duplicate call IDs make pairing ambiguous even when the calls have distinct `id` values. Readers do not choose a call by proximity or text similarity.
+
+**ASR-079** Producers MUST set `approvalId` only when the source states which decision the result followed, and MUST NOT infer it from order, timing, a shared `callId` or there being only one recorded decision. It MUST name an `approval` record in the same file. When that approval has a `callId`, it MUST equal the result's `callId`.
+
+The named approval is the decision the result followed. A `denied` result can name the denial. Without `approvalId`, which decision applied stays unknown, even when only one decision is recorded.
 
 ```jsonl
 {"type":"tool_result","id":"result-read","callId":"read-1","status":"completed","content":[{"type":"text","text":"def parse(text):\n    return text.split(',')\n"}]}
@@ -238,11 +243,11 @@ An approval records one decision at its source position, or immediately before i
 
 **ASR-073** An `approval` MUST have `decision` and use these field shapes. Producers MUST record only approval decisions the source states, in source order, and MUST NOT infer a decision from a tool's outcome, the agent's settings or the session's mode. They MUST record a reused grant as `by: "policy"` rather than `user`, and MUST set any supplied `scope` from the grant's actual lifetime.
 
-Readers join approvals by `callId` only when exactly one call has that ID. Several decisions can share it. A decision with no tool call has no `callId`. Its `subject` names what was decided, such as a network host or an MCP server, when the source records it. Without a recorded subject, the decision keeps its position and what it concerned stays unknown. For a linked decision, an absent `subject` means the whole call. A narrower request, such as a sandbox escape, keeps its recorded subject.
+Readers join approvals by `callId` only when exactly one call has that ID. Several decisions can share it. A result's `approvalId` names the decision it followed. A decision with no tool call has no `callId`. Its `subject` names what was decided, such as a network host or an MCP server, when the source records it. Without a recorded subject, the decision keeps its position and what it concerned stays unknown. For a linked decision, an absent `subject` means the whole call. A narrower request, such as a sandbox escape, keeps its recorded subject.
 
 ```jsonl
 {"type":"approval","id":"approval-test","callId":"exec-1","decision":"approved","by":"user","scope":"once","native":{"choice":"allow_once"}}
-{"type":"tool_result","id":"result-test","callId":"exec-1","status":"completed","exec":{"command":"pytest","exitCode":0}}
+{"type":"tool_result","id":"result-test","callId":"exec-1","status":"completed","approvalId":"approval-test","exec":{"command":"pytest","exitCode":0}}
 {"type":"approval","id":"approval-host","decision":"approved","subject":"packages.example.com","by":"user","scope":"session"}
 ```
 

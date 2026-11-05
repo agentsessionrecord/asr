@@ -24,6 +24,8 @@ export class ValidationState {
     this.calls = new Map();
     this.results = new Map();
     this.approvals = new Map();
+    this.approvalIds = new Map();
+    this.approvalRefs = [];
     this.inferences = new Set();
     this.inferenceRefs = new Map();
     this.copyBoundaries = new Map();
@@ -80,8 +82,10 @@ export class ValidationState {
         if (this.results.has(record.callId)) this.error("ASR-026", "duplicate-result", line, "/callId", `Result callId duplicates line ${this.results.get(record.callId)[0]}.`);
         append(this.results, record.callId, line);
       } else this.warn("unpaired-result", line, "/callId", "Result has no unique matching tool call.");
+      if (typeof record.approvalId === "string") this.approvalRefs.push({ line, id: record.approvalId, callId: typeof record.callId === "string" ? record.callId : undefined });
     }
     if (record.type === "approval" && typeof record.callId === "string") append(this.approvals, record.callId, line);
+    if (record.type === "approval" && typeof record.id === "string" && !this.approvalIds.has(record.id)) this.approvalIds.set(record.id, typeof record.callId === "string" ? record.callId : undefined);
     if (record.type === "session") {
       const through = record.parent?.copiedThrough;
       if (typeof through === "string") append(this.copyBoundaries, through, line);
@@ -115,6 +119,10 @@ export class ValidationState {
       }
       for (const [id, lines] of this.approvals) if (this.calls.get(id)?.length !== 1) {
         for (const line of lines) this.warn("unpaired-approval", line, "/callId", "Approval has no unique matching tool call.");
+      }
+      for (const { line, id, callId } of this.approvalRefs) {
+        if (!this.approvalIds.has(id)) this.error("ASR-079", "unresolved-approval", line, "/approvalId", "approvalId must name an approval record in this file.");
+        else if (this.approvalIds.get(id) !== undefined && this.approvalIds.get(id) !== callId) this.error("ASR-079", "approval-call-mismatch", line, "/approvalId", "The named approval has a different callId.");
       }
       for (const [id, lines] of this.calls) if (lines.length !== 1 || !this.results.has(id)) {
         for (const line of lines) this.warn("call-without-result", line, "/callId", "Call has no uniquely paired result. Its outcome is unknown.");

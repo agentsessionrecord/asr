@@ -70,7 +70,7 @@ Map operator approvals by `status` first. `allowed` means `approved`, `denied` m
 
 Use unique `approval_id` as record ID and `resolved_at_ms` as decision time. Keep native status, decision and resolver evidence. `resolver_id` can identify a device or channel, so it does not supply `person`. Set `by: user` only for a recorded human answer and `classifier` only for an explicit deciding review. `allow-once` supplies `once`. `allow-always` alone does not establish session or permanent scope.
 
-An explicit post-decision result receipt places the approval immediately before that result. A receipt with `details.status: approval-pending` cannot position a later terminal decision. Keep unpositioned rows in `_meta` and declare `approvals`. Separate stores do not establish a common order by timestamp.
+An explicit post-decision result receipt places the approval immediately before that result. That receipt's `details.approvalId` supplies the result's `approvalId` only when its store row produces that approval record. A pending receipt names its request before any decision, so it supplies no `approvalId`. Finished exec details can omit the ID. A store row whose `source_tool_call_id` matches the call does not establish which decision the result followed. A receipt with `details.status: approval-pending` cannot position a later terminal decision. Keep unpositioned rows in `_meta` and declare `approvals`. Separate stores do not establish a common order by timestamp.
 
 ## Source versions
 

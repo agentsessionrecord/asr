@@ -126,7 +126,7 @@ export function buildSchemas() {
     }),
     tool_result: rule(25, { ...object({
       callId: str, status: str, content: ref("Content"), error: ref("Error"), durationMs: duration,
-      input: {}, inputText: rule(76, str),
+      input: {}, inputText: rule(76, str), approvalId: rule(79, str),
       exec: object({ command: { type: ["string", "array"], items: str }, cwd: ref("AbsolutePath"), exitCode: { type: "integer" }, signal: str, stdout: str, stderr: str, output: str }),
       subagent: object({ session: ref("SessionOnlyRef") }, ["session"]),
     }, ["status"]), allOf: [rule(76, exclusive("input", "inputText"))] }),

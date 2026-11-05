@@ -365,6 +365,7 @@ fn openclaw_revisions_and_positioned_approvals_validate() {
     assert_eq!(r[a]["scope"], "once");
     assert!(r[a].get("by").is_none());
     assert_eq!(r[a + 1]["type"], "tool_result");
+    assert_eq!(r[a + 1]["approvalId"], r[a]["id"]);
     assert_eq!(r.iter().filter(|r| r["type"] == "approval").count(), 1);
     assert_eq!(r.iter().filter(|r| r["type"] == "inference").count(), 1);
     assert_eq!(record(&r, "inference")["usage"]["outputTokens"], 5);
@@ -576,4 +577,87 @@ fn openclaw_database_provenance_overrides_human_sender_metadata() {
         assert_eq!(message["origin"].as_str(), origin);
         assert!(message.get("person").is_none());
     }
+}
+
+#[test]
+fn openclaw_results_name_only_emitted_store_decisions() {
+    let (_temp, o, db) = fixture(Agent::OpenClaw);
+    // Store rows answer five requests. The fixture's `decision` row is gone,
+    // so the result naming it keeps no link. `prompt` reuses an event ID.
+    db.execute_batch("DROP TABLE operator_approvals; CREATE TABLE operator_approvals(approval_id TEXT PRIMARY KEY,source_session_id TEXT,status TEXT,decision TEXT,resolved_at_ms INTEGER,resolver_kind TEXT,terminal_reason TEXT,source_tool_call_id TEXT); INSERT INTO operator_approvals VALUES('approval-run','example','allowed','allow-once',1500,'device',NULL,'exec-1'),('approval-deny','example','denied','deny',1600,'device',NULL,'exec-2'),('prompt','example','allowed','allow-once',1700,'device',NULL,'exec-3'),('approval-wait','example','allowed','allow-once',1800,'runtime','user','exec-4'),('approval-call','example','allowed','allow-once',1900,'runtime','user','exec-5');").unwrap();
+    let call = |id: &str| json!({"type":"toolCall","id":id,"name":"exec","arguments":{"command":"echo approval-test"}});
+    let calls: Vec<_> = (1..=5).map(|n| call(&format!("exec-{n}"))).collect();
+    let assistant = json!({"type":"message","id":"exec-calls","message":{"role":"assistant","responseId":"response-2","model":"requested-model","content":calls}});
+    let result = |call: &str, error: bool, details: Value| json!({"type":"message","id":format!("{call}-result"),"message":{"role":"toolResult","toolCallId":call,"isError":error,"content":[{"type":"text","text":"output"}],"details":details}});
+    let events = [
+        assistant,
+        result(
+            "exec-1",
+            false,
+            json!({"status":"completed","exitCode":0,"aggregated":"approval-test\n","approvalId":"approval-run"}),
+        ),
+        result(
+            "exec-2",
+            true,
+            json!({"status":"failed","reason":"policy-denied","approvalId":"approval-deny"}),
+        ),
+        result(
+            "exec-3",
+            false,
+            json!({"status":"completed","exitCode":0,"approvalId":"prompt"}),
+        ),
+        // OpenClaw 2026.10.10 writes `approvalId` only on a pending receipt,
+        // which comes before the decision. Finished exec details omit it.
+        result(
+            "exec-4",
+            false,
+            json!({"status":"approval-pending","approvalId":"approval-wait","approvalSlug":"wait","host":"gateway","command":"echo approval-test"}),
+        ),
+        result(
+            "exec-5",
+            false,
+            json!({"status":"completed","exitCode":0,"exitSignal":null,"exitReason":"exit","durationMs":12,"aggregated":"approval-test","noOutputTimedOut":false,"cwd":"/work/app"}),
+        ),
+    ];
+    for (seq, event) in (6..).zip(events) {
+        db.execute(
+            "INSERT INTO transcript_events VALUES('example',?1,?2,NULL,NULL)",
+            params![seq, event.to_string()],
+        )
+        .unwrap();
+    }
+    let r = run(&o);
+    let at = |call: &str| {
+        r.iter()
+            .position(|v| v["type"] == "tool_result" && v["callId"] == call)
+            .unwrap()
+    };
+    for (call, status, decision) in [
+        ("exec-1", "completed", "approved"),
+        ("exec-2", "denied", "denied"),
+        ("exec-3", "completed", "approved"),
+    ] {
+        let index = at(call);
+        let approval = &r[index - 1];
+        assert_eq!(r[index]["status"], status);
+        assert_eq!(approval["type"], "approval");
+        assert_eq!(approval["decision"], decision);
+        assert_eq!(approval["callId"], call);
+        assert_eq!(r[index]["approvalId"], approval["id"], "{call}");
+    }
+    // A shared ID is remapped, and the link follows the approval's output ID.
+    assert_ne!(r[at("exec-3")]["approvalId"], "prompt");
+    // A pending receipt or a row for the same call does not state which
+    // decision a result followed.
+    assert_eq!(r[at("exec-4")]["status"], "unknown");
+    for call in ["exec-4", "exec-5"] {
+        assert!(r[at(call)].get("approvalId").is_none(), "{call}");
+    }
+    let missing = r.iter().find(|v| v["id"] == "approval-result").unwrap();
+    assert!(missing.get("approvalId").is_none());
+    assert_eq!(r.iter().filter(|v| v["type"] == "approval").count(), 3);
+    assert!(r.iter().all(|v| !matches!(
+        v["native"]["approval_id"].as_str(),
+        Some("decision" | "approval-wait" | "approval-call")
+    )));
 }

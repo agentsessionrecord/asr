@@ -1,0 +1,8 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"run-1","producer":{"name":"example-export","version":"1","method":"native"}}
+{"type":"tool_call","id":"call-run","callId":"run-1","name":"shell"}
+{"type":"tool_call","id":"call-other","callId":"run-2","name":"shell"}
+{"type":"approval","id":"decision-other","callId":"run-2","decision":"approved","by":"user"}
+{"type":"tool_result","id":"result-run","callId":"run-1","status":"completed","approvalId":"decision-other"}
+{"type":"tool_result","id":"result-other","callId":"run-2","status":"completed","approvalId":"decision-missing"}
+{"type":"tool_call","id":"call-typed","callId":"run-3","name":"shell"}
+{"type":"tool_result","id":"result-typed","callId":"run-3","status":"completed","approvalId":3}

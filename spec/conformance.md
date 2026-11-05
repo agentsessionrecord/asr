@@ -31,6 +31,7 @@ The record schemas live at `schema/v0/agent-session.schema.json` and `schema/v0/
 - Duplicate or malformed record IDs.
 - An inference without `model` when the session does not list `model` in `missing`.
 - More than one `tool_result` for the same `callId`.
+- A `tool_result` whose `approvalId` names no `approval` record in the file, or names one with a different `callId`.
 - Both `commit` and `commitPrefix`, or malformed commit IDs, prefixes or file object IDs.
 - Disagreement between `parents` and `parentCount`, a rewrite pair with identical endpoints, or mixed full commit ID lengths within a `vcs` record or `vcs` annotation payload.
 - A `parent.copiedThrough` that does not name a record after the header in the same file.
@@ -94,6 +95,7 @@ The table lists every numbered requirement in page order. Requirement IDs are st
 | ASR-025 | [Records](records.md) | Recorded tool outcomes, exit codes and model-facing output | fixture |
 | ASR-076 | [Records](records.md) | Effective tool input learned at completion and exclusive forms | schema |
 | ASR-026 | [Records](records.md) | One result per call ID and pairing only to a unique call | semantic |
+| ASR-079 | [Records](records.md) | Result approval links from stated decisions to a local approval for the same call | semantic |
 | ASR-073 | [Records](records.md) | Approval records, source order, reused grants and real lifetimes | fixture |
 | ASR-027 | [Records](records.md) | File changes, move origins and exclusive edit and actor forms | schema |
 | ASR-028 | [Records](records.md) | Applied changes and observed actors | fixture |

@@ -26,7 +26,7 @@ fn subset(expected: &Value, actual: &Value) -> bool {
     match expected {
         Value::Object(o) => o
             .iter()
-            .filter(|(k, _)| !matches!(k.as_str(), "id" | "inferenceId"))
+            .filter(|(k, _)| !matches!(k.as_str(), "id" | "inferenceId" | "approvalId"))
             .all(|(k, v)| actual.get(k).is_some_and(|a| subset(v, a))),
         Value::Array(a) => actual
             .as_array()
@@ -131,9 +131,11 @@ fn all_published_worked_examples_preserve_their_documented_core_facts_and_links(
             pairs.push((expected, matches[0]));
         }
         for (expected, actual) in &pairs {
-            if let Some(link) = expected["inferenceId"].as_str() {
-                let target = pairs.iter().find(|(e, _)| e["id"] == link).unwrap().1;
-                assert_eq!(actual["inferenceId"], target["id"], "{}", agent.name());
+            for field in ["inferenceId", "approvalId"] {
+                if let Some(link) = expected[field].as_str() {
+                    let target = pairs.iter().find(|(e, _)| e["id"] == link).unwrap().1;
+                    assert_eq!(actual[field], target["id"], "{} {field}", agent.name());
+                }
             }
         }
     }

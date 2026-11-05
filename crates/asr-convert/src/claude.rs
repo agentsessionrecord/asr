@@ -263,12 +263,17 @@ fn user(s: &Spool, c: &mut Context, v: &Value) -> Result<()> {
             None if output.is_object() => "completed",
             None => "unknown",
         };
-        if let Some(call) = call {
-            approval(s, c, call, v.get("permissionDecision"))?;
-        }
+        // The decision stored on the result line is the one this result followed.
+        let followed = match call {
+            Some(call) => approval(s, c, call, v.get("permissionDecision"))?,
+            None => None,
+        };
         let mut r = json!({"type":"tool_result","status":status});
         if let Some(call) = call {
             r["callId"] = json!(call);
+        }
+        if let Some(id) = followed {
+            r["approvalId"] = json!(id);
         }
         if let Some(content) = block.get("content") {
             r["content"] = json!(parts(content, c.agent));
@@ -350,15 +355,20 @@ fn prompt_origin(v: &Value, r: &mut Value, agent: Agent) {
         }
     }
 }
-fn approval(s: &Spool, c: &mut Context, call: &str, native: Option<&Value>) -> Result<()> {
+fn approval(
+    s: &Spool,
+    c: &mut Context,
+    call: &str,
+    native: Option<&Value>,
+) -> Result<Option<String>> {
     let Some(native) = native else {
-        return Ok(());
+        return Ok(None);
     };
     let decision = match native["decision"].as_str() {
         Some("accept" | "allow") => "approved",
         Some("reject" | "deny") => "denied",
         Some("abort" | "cancelled") => "cancelled",
-        _ => return Ok(()),
+        _ => return Ok(None),
     };
     let mut r = json!({"type":"approval","callId":call,"decision":decision,"native":native});
     if decision != "cancelled" {
@@ -379,11 +389,11 @@ fn approval(s: &Spool, c: &mut Context, call: &str, native: Option<&Value>) -> R
     }
     // A result snapshot has no independent decision position or timestamp.
     let timestamp = c.source.as_object_mut().unwrap().remove("ts");
-    c.emit(s, r, None, Some(&format!("approval:{call}:{}", native)))?;
+    let id = c.emit_id(s, r, None, Some(&format!("approval:{call}:{}", native)))?;
     if let Some(ts) = timestamp {
         c.source["ts"] = ts;
     }
-    Ok(())
+    Ok(Some(id))
 }
 fn file_change(
     s: &Spool,

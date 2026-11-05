@@ -92,6 +92,7 @@ provide complete, readable sessions and annotations that validate without errors
 | `identity-empty-fields` | Supplied identity IDs, email addresses and names are non-empty. |
 | `approvals-valid`, `approvals-shapes` | Approval records have a required string decision, optional facts and any native JSON. |
 | `approval-disconnect`, `approval-settings-change`, `approval-no-call`, `approval-unpaired` | Decisions survive unfinished calls, span settings changes and can name a subject without a call. Unresolved call IDs warn. |
+| `approval-link-valid`, `approval-link-invalid` | A result names the decision it followed, including a denial. The named record is a local approval for the same call. |
 | `structured-policy-valid` | Native approval and sandbox policies retain objects, arrays, booleans and numbers. Null clears a setting. |
 | `asks-valid`, `asks-shapes`, `asks-policy-change` | Asking summaries are optional open strings. A native policy change can omit the summary. |
 | `external-sandbox-valid`, `external-sandbox-shapes` | Outer boundaries have optional string kind/source and any native JSON. |

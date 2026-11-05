@@ -283,6 +283,74 @@ fn approval_snapshots_follow_repeated_results_without_prefix_collisions() {
     let notice = data.iter().position(|v| v["id"] == "notice").unwrap();
     assert!(other < notice && notice < last - 2);
     assert_eq!(data[other - 1]["callId"], "run;other");
+    // The completed result follows the decision stored on its final line.
+    let followed = data
+        .iter()
+        .find(|v| v["id"] == data[last]["approvalId"])
+        .unwrap();
+    assert_eq!(followed["native"]["source"], "user");
+    assert_eq!(followed["callId"], "run");
+    assert_eq!(data[other]["approvalId"], data[other - 1]["id"]);
+}
+#[test]
+fn claude_results_name_the_decision_stored_on_their_line() {
+    let decision =
+        |value: &str, source: &str| json!({"decision":value,"source":source,"reasonType":"mode"});
+    let result = |uuid: &str, call: &str, error: bool, permission: Option<Value>| {
+        let mut line = json!({"type":"user","sessionId":"decisions","uuid":uuid,"timestamp":"2026-11-05T12:00:02Z","message":{"content":[{"type":"tool_result","tool_use_id":call,"content":"output","is_error":error}]}});
+        if let Some(permission) = permission {
+            line["permissionDecision"] = permission;
+        }
+        line
+    };
+    let (_, data) = synthetic(
+        Agent::ClaudeCode,
+        &[
+            json!({"type":"user","sessionId":"decisions","uuid":"prompt","message":{"content":"List the files."}}),
+            json!({"type":"assistant","sessionId":"decisions","uuid":"calls","message":{"id":"response","model":"model","content":[
+                {"type":"tool_use","id":"run","name":"Bash","input":{"command":"ls"}},
+                {"type":"tool_use","id":"write","name":"Bash","input":{"command":"touch x"}},
+                {"type":"tool_use","id":"plain","name":"Read","input":{"file_path":"/work/a"}},
+                {"type":"tool_use","id":"unknown","name":"Read","input":{"file_path":"/work/b"}}]}}),
+            result(
+                "run-result",
+                "run",
+                false,
+                Some(decision("accept", "config")),
+            ),
+            result(
+                "write-result",
+                "write",
+                true,
+                Some(json!({"decision":"reject","source":"user_reject"})),
+            ),
+            result("plain-result", "plain", false, None),
+            result(
+                "unknown-result",
+                "unknown",
+                false,
+                Some(decision("ask", "config")),
+            ),
+        ],
+    );
+    let at = |call: &str| {
+        data.iter()
+            .position(|v| v["type"] == "tool_result" && v["callId"] == call)
+            .unwrap()
+    };
+    for (call, decision) in [("run", "approved"), ("write", "denied")] {
+        let index = at(call);
+        let approval = &data[index - 1];
+        assert_eq!(approval["type"], "approval");
+        assert_eq!(approval["decision"], decision);
+        assert_eq!(approval["callId"], data[index]["callId"]);
+        assert_eq!(data[index]["approvalId"], approval["id"]);
+    }
+    assert_eq!(data[at("run") - 1]["by"], "mode");
+    for call in ["plain", "unknown"] {
+        assert!(data[at(call)].get("approvalId").is_none(), "{call}");
+    }
+    assert_eq!(data.iter().filter(|v| v["type"] == "approval").count(), 2);
 }
 #[test]
 fn malformed_source_recovers_and_incomplete_tail_is_deferred() {

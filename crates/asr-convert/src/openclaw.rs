@@ -276,6 +276,14 @@ pub(crate) fn convert(s: &Spool, c: &mut Context, v: &Value) -> Result<()> {
                 if let Some(duration) = q::count(&details["durationMs"]) {
                     r["durationMs"] = json!(duration);
                 }
+                // The result names its decision. The link is kept at output only
+                // if that decision's store row produced an approval for this call.
+                let approval = details["approvalId"]
+                    .as_str()
+                    .filter(|_| status != "unknown");
+                if let Some(approval) = approval {
+                    r["approvalId"] = json!(approval);
+                }
                 q::receipt(
                     s,
                     c,
@@ -283,10 +291,7 @@ pub(crate) fn convert(s: &Spool, c: &mut Context, v: &Value) -> Result<()> {
                     root.as_deref(),
                     root.as_ref().map(|id| format!("result:{id}")).as_deref(),
                 )?;
-                if let Some(approval) = details["approvalId"]
-                    .as_str()
-                    .filter(|_| status != "unknown")
-                {
+                if let Some(approval) = approval {
                     s.save(
                         &format!("approval-position:{approval}"),
                         &json!({"pos":c.pos,"slot":c.slot-1,"callId":m["toolCallId"]}),

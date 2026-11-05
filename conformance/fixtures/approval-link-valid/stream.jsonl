@@ -1,0 +1,11 @@
+{"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"run-1","producer":{"name":"example-export","version":"1","method":"native"}}
+{"type":"tool_call","id":"call-run","callId":"run-1","name":"shell","input":{"command":"make test"}}
+{"type":"approval","id":"decision-command","callId":"run-1","decision":"approved","by":"user","scope":"once"}
+{"type":"approval","id":"decision-escape","callId":"run-1","decision":"denied","subject":"sandbox-escape","by":"user"}
+{"type":"tool_result","id":"result-run","callId":"run-1","status":"denied","approvalId":"decision-escape"}
+{"type":"tool_call","id":"call-fetch","callId":"fetch-1","name":"fetch","input":{"url":"https://packages.example.com/index"}}
+{"type":"approval","id":"decision-host","decision":"approved","subject":"packages.example.com","by":"policy","scope":"session"}
+{"type":"tool_result","id":"result-fetch","callId":"fetch-1","status":"completed","approvalId":"decision-host"}
+{"type":"tool_call","id":"call-read","callId":"read-1","name":"read_file","input":{"path":"README.md"}}
+{"type":"approval","id":"decision-read","callId":"read-1","decision":"approved","by":"mode"}
+{"type":"tool_result","id":"result-read","callId":"read-1","status":"completed"}

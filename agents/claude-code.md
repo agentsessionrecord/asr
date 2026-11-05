@@ -67,7 +67,7 @@ List `exit_codes` because transcript shell results lack numeric exit codes. Repo
 |---|---|
 | Messages | Prompts, replies and injected context. Repeated `uuid` entries use the last snapshot |
 | Tool calls | `tool_use.id`, input and linked `tool_result.tool_use_id`. Shell escape requests remain native input |
-| Approvals | Result-row `permissionDecision` holds `decision`, `source` and optional `reasonType`. Emit an `approval` record before the result. `accept` maps to `approved`, `reject` to `denied`. An explicit unanswered abort maps to `cancelled`. See the decider and scope limits below |
+| Approvals | Result-row `permissionDecision` holds `decision`, `source` and optional `reasonType`. Emit an `approval` record before the result and name it in the result's `approvalId`. `accept` maps to `approved`, `reject` to `denied`. An explicit unanswered abort maps to `cancelled`. See the decider and scope limits below |
 | Agent settings and asking | `permissionMode` and mode metadata record changes. `default`, `acceptEdits` and `plan` support `asks: sometimes`. See the limits below for modes that suppress ordinary prompts |
 | External sandbox | Detection and cloud launcher markers exist, but their persistence is not documented. Omit `externalSandbox` from ordinary transcript conversion |
 | Triggers | `origin.kind: scheduled` maps to `scheduled`, `channel` to `external`. Keep `scheduledTaskId`, `scheduledFireId` and `fireReason` in `_meta`. Peer input keeps agent authorship. Other webhook distinctions are not documented |
@@ -115,6 +115,6 @@ The ASR stream is:
 {"type":"inference","id":"response-1","model":{"id":"example-model"},"usage":{"inputTokens":10,"outputTokens":5}}
 {"type":"tool_call","id":"assistant-1","inferenceId":"response-1","callId":"edit-1","name":"Edit","kind":"edit","requestedBy":"model","input":{"file_path":"/work/parser.py","old_string":"limit = int(value)\n","new_string":"limit = int(value or \"0\")\n"}}
 {"type":"approval","id":"result-1:approval:1","callId":"edit-1","decision":"approved","by":"mode","native":{"decision":"accept","source":"config","reasonType":"mode"}}
-{"type":"tool_result","id":"result-1","callId":"edit-1","status":"completed","content":[{"type":"text","text":"Replacement applied."}]}
+{"type":"tool_result","id":"result-1","callId":"edit-1","status":"completed","approvalId":"result-1:approval:1","content":[{"type":"text","text":"Replacement applied."}]}
 {"type":"file_change","id":"result-1:change","callId":"edit-1","path":"/work/parser.py","op":"modify","status":"applied","edits":[{"oldText":"limit = int(value)\n","newText":"limit = int(value or \"0\")\n"}]}
 ```

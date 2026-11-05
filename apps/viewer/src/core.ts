@@ -314,7 +314,7 @@ export function sectionsFor(r: ASRRecord): Section[] {
       }
     }
     if (r.type === 'message') for (const key of ['phase', 'status', 'person']) add(key, r[key]);
-    else for (const key of ['exec', 'error', 'durationMs']) add(key, r[key]);
+    else for (const key of ['exec', 'error', 'durationMs', 'approvalId']) add(key, r[key]);
   }
   if (['tool_call', 'tool_result'].includes(r.type)) {
     if (has(r, 'input')) add(r.type === 'tool_result' ? 'Effective input learned at completion' : 'Recorded input', r.input);

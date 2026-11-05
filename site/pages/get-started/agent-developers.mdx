@@ -25,7 +25,7 @@ Check: a search finds the sample prompt and tool output, and each paired result 
 
 An agent sees facts that a converter reading logs later often cannot recover. Write each one at the position where it happens.
 
-Write an `approval` record when each decision is made, even if the call never finishes. Set `by` to who or what decided and `scope` to how long the grant really lasts. Use `subject` for a request narrower than the call, such as a sandbox escape, or for a decision with no call, such as a network host. Add `person` when a known person answered.
+Write an `approval` record when each decision is made, even if the call never finishes. Set `by` to who or what decided and `scope` to how long the grant really lasts. Use `subject` for a request narrower than the call, such as a sandbox escape, or for a decision with no call, such as a network host. Add `person` when a known person answered. When a tool runs or is refused because of a decision, set the result's `approvalId` to that approval's `id`.
 
 Write a `session_info` with `agentSettings` at the start and at each change. Keep `mode`, `approval` and `sandbox` verbatim from your own settings. Add `asks` when the policy settles whether a person is asked before file changes or commands, and supply it again after each policy change. Add `externalSandbox` when a setting, a launcher marker or the agent's own detection places the agent in a container, VM or remote host. Add configured `modelSettings`. Write `session_info.tools` with the full list whenever the tools offered to the model change.
 

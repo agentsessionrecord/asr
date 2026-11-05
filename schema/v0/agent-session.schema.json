@@ -1392,6 +1392,10 @@
           "type": "string",
           "x-asr": "ASR-076"
         },
+        "approvalId": {
+          "type": "string",
+          "x-asr": "ASR-079"
+        },
         "exec": {
           "type": "object",
           "properties": {

@@ -123,10 +123,20 @@ impl Context {
     pub fn emit(
         &mut self,
         s: &Spool,
-        mut value: Value,
+        value: Value,
         native: Option<&str>,
         fold: Option<&str>,
     ) -> Result<()> {
+        self.emit_id(s, value, native, fold).map(drop)
+    }
+    /// Emit a record and return its staged ID for later references.
+    pub fn emit_id(
+        &mut self,
+        s: &Spool,
+        mut value: Value,
+        native: Option<&str>,
+        fold: Option<&str>,
+    ) -> Result<String> {
         normalize_reasoning(&mut value);
         let slot = self.slot;
         self.slot += 1;
@@ -140,7 +150,11 @@ impl Context {
             fold.unwrap_or(&format!("{}:{slot}", self.ordinal)),
             value["type"].as_str().unwrap_or("record"),
         ]);
-        value["id"] = json!(native.filter(|v| valid_id(v)).unwrap_or(&derived));
+        let id = native
+            .filter(|v| valid_id(v))
+            .unwrap_or(&derived)
+            .to_owned();
+        value["id"] = json!(id);
         if self.redacted {
             value["truncated"] = json!(true);
             self.loss("redacted_content");
@@ -154,7 +168,8 @@ impl Context {
             self.loss("record_size_limit");
             value = json!({"type":"gap","id":derived,"reason":"not_retained","count":1,"detail":"A converted record exceeded the configured size limit."});
         }
-        s.emit(self.pos, slot, value, fold)
+        s.emit(self.pos, slot, value, fold)?;
+        Ok(id)
     }
     pub fn vendor(&mut self, s: &Spool, value: &Value) -> Result<()> {
         self.emit(s,json!({"type":format!("{}/event",self.agent.domain()),"_meta":{self.agent.domain():{"native":value}}}),None,None)
@@ -501,6 +516,14 @@ pub fn finish(
 
 fn output_record(s: &Spool, session: &str, mut value: Value, pos: u64, slot: u64) -> Result<Value> {
     value["id"] = json!(output_id(s, session, &value, pos, slot)?);
+    if value["type"] == "tool_result" && value.get("approvalId").is_some() {
+        match output_approval(s, session, &value)? {
+            Some(id) => value["approvalId"] = json!(id),
+            None => {
+                value.as_object_mut().unwrap().remove("approvalId");
+            }
+        }
+    }
     if let Some(reference) = value["inferenceId"].as_str() {
         use rusqlite::OptionalExtension;
         let target: Option<(u64, u64, String)> =
@@ -520,6 +543,38 @@ fn output_record(s: &Spool, session: &str, mut value: Value, pos: u64, slot: u64
         }
     }
     Ok(value)
+}
+
+/// Keep a staged approval link only when it names exactly one emitted approval
+/// for the same call. A dropped, replaced or missing approval removes the link.
+fn output_approval(s: &Spool, session: &str, result: &Value) -> Result<Option<String>> {
+    let Some(reference) = result["approvalId"].as_str() else {
+        return Ok(None);
+    };
+    let mut statement = s.db.prepare_cached(
+        "SELECT pos,slot,value FROM projected WHERE json_extract(value,'$.id')=?1 \
+        AND json_extract(value,'$.type')='approval' LIMIT 2",
+    )?;
+    let mut rows = statement.query([reference])?;
+    let mut found = None;
+    while let Some(row) = rows.next()? {
+        if found.is_some() {
+            return Ok(None);
+        }
+        let raw = row.get_ref(2)?.as_str().map_err(rusqlite::Error::from)?;
+        found = Some((
+            row.get::<_, u64>(0)?,
+            row.get::<_, u64>(1)?,
+            serde_json::from_str::<Value>(raw)?,
+        ));
+    }
+    let Some((pos, slot, approval)) = found else {
+        return Ok(None);
+    };
+    if approval.get("callId").is_some() && approval["callId"] != result["callId"] {
+        return Ok(None);
+    }
+    output_id(s, session, &approval, pos, slot).map(Some)
 }
 
 fn output_id(s: &Spool, session: &str, value: &Value, pos: u64, slot: u64) -> Result<String> {
