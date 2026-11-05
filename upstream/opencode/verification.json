@@ -12,5 +12,25 @@
     "validatorWarnings": 0,
     "exactPackagedSampleReplay": true
   },
-  "liveModelRun": "not performed"
+  "liveModelRun": {
+    "date": "2026-11-05",
+    "head": "5ecdd85463e37bb7915dc342b6b4a653d9a8fadf",
+    "modelFamily": "Claude",
+    "endpoint": "OpenAI-compatible chat completions",
+    "recordingEnvironment": "OPENCODE_AGENT_SESSION_HISTORY=1",
+    "command": "opencode session export SESSION_ID --format agent-session",
+    "durableEvents": 36,
+    "records": 16,
+    "recordTypes": {
+      "session": 1,
+      "session_info": 1,
+      "message": 3,
+      "tool_call": 4,
+      "tool_result": 4,
+      "inference": 3
+    },
+    "callsAndResultsPaired": true,
+    "validatorErrors": 0,
+    "validatorWarnings": 0
+  }
 }

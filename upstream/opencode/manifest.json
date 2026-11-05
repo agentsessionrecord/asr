@@ -30,14 +30,14 @@
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
     "PROPOSAL.md": "a9b0bc66a0ed354d3226321f19a85acb17a967f2b966580e8119a6aa869083fc",
-    "README.md": "919043bfda150e2fc93ba56abd5be18e460d50d6803b57c856edb4412870691c",
+    "README.md": "8a9fb5d73438f51a60874055dea7052d9aae5e9faeea4a7f56e3d90c332ff9ca",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "check.test.mjs": "b55217d792ef55cabb91c692bcecd32c2270e2a65259687592c8d399a29d14f9",
     "patches/0001-native-agent-session-export.patch": "b8c92753f7d92e6bb0e3980b9752da7d4c05e9361b0316d8f0371d69cc6b2cc0",
     "reproduce.mjs": "dc58d410046142ecc03fcc7eb695bc1ba4dcef3e367364a512b1b106f5db5d5f",
     "samples/asr/session.jsonl": "802a2bf80a04fcfb50e1fe9a8103be9c36b38e1709af9b9e47f9046e6d65a976",
     "samples/native/native.json": "4f1f33ee54bba0d6763853b78388f379bf5789343ff6f7972cb67874338cb1fe",
-    "verification.json": "2223e58da59ae97132a56be3789f531ad650ffd6b4797e700911b54c72b9570a",
+    "verification.json": "813e9b798952674216ffa010f626ebf59bd18f1fcd1d0475cc1bd67c8f765f4d",
     "verify-native.mjs": "2d5fcfb2b9dd64e22d9de1dc883f19d722543824bd1d69dc1369467b1a5079d7"
   }
 }

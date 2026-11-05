@@ -6,7 +6,27 @@
   "head": "1df6bd1c2f54dec7c61db494a98a23b4e3b49fed",
   "nativeChecks": "Seven export tests, CLI binary build, type check, Clippy and format pass.",
   "sampleStatus": "Fresh native export matches the packaged synthetic sample.",
-  "liveTestStatus": "not-live-tested",
+  "liveTestStatus": "passed",
+  "liveTestNotes": "On 2026-11-05 the patched CLI completed an isolated session with a Claude model through an OpenAI-compatible endpoint. The agent read two files, edited one and ran its unit test. The export validated with 12 records, 0 errors and 0 warnings.",
+  "liveRun": {
+    "date": "2026-11-05",
+    "head": "1df6bd1c2f54dec7c61db494a98a23b4e3b49fed",
+    "modelFamily": "Claude",
+    "endpoint": "OpenAI-compatible chat completions",
+    "command": "goose session export --format agent-session --session-id SESSION_ID",
+    "nativeMessages": 9,
+    "records": 12,
+    "recordTypes": {
+      "session": 1,
+      "message": 4,
+      "tool_call": 3,
+      "tool_result": 3,
+      "session_info": 1
+    },
+    "callsAndResultsPaired": true,
+    "errors": 0,
+    "warnings": 0
+  },
   "notes": "Local exploratory patch. Upstream submission requires a Ready issue. ASR import is separate work.",
   "patchReplay": {
     "method": "temporary Git index",

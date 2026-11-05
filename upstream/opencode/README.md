@@ -43,8 +43,11 @@ reference validator with zero errors and zero warnings.
 [verification.json](verification.json) records the checked source revision and
 focused results. See [PROPOSAL.md](PROPOSAL.md) for the scope.
 
-Current live-model status is unverified. Earlier live evidence is partial and
-applies to an older revision. No model run was performed for this refresh.
+On 2026-11-05 the patched source CLI completed an isolated session with a Claude
+model through an OpenAI-compatible endpoint, with
+`OPENCODE_AGENT_SESSION_HISTORY=1` set before recording. The agent read files,
+edited one and ran a test. Its export validated with 16 records, 0 errors and 0
+warnings. [verification.json](verification.json) records the counts.
 
 Submission prerequisites: Feature request and design approval are required
 before submission. Issue #59904 is discussing export formats.

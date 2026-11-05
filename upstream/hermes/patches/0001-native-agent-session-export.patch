@@ -1,4 +1,4 @@
-From fc88f9a0464d394a7876d5bdc625891f545dcc2a Mon Sep 17 00:00:00 2001
+From 068b180376ccb84bf5fe9a14e1e15bf9ca86c851 Mon Sep 17 00:00:00 2001
 From: Wills Manley <216224554+willsmanley@users.noreply.github.com>
 Date: Sun, 1 Nov 2026 15:33:28 -0500
 Subject: [PATCH] feat(cli): export sessions as Agent Session Record
@@ -8,15 +8,15 @@ Subject: [PATCH] feat(cli): export sessions as Agent Session Record
  hermes_cli/sessions_cmd.py                   |  11 +-
  hermes_cli/subcommands/sessions.py           |   2 +-
  tests/hermes_cli/fixtures/agent_session.json |  66 ++++
- tests/hermes_cli/test_session_export_asr.py  | 143 +++++++
- 5 files changed, 611 insertions(+), 2 deletions(-)
+ tests/hermes_cli/test_session_export_asr.py  | 155 ++++++++
+ 5 files changed, 623 insertions(+), 2 deletions(-)
  create mode 100644 hermes_cli/session_export_asr.py
  create mode 100644 tests/hermes_cli/fixtures/agent_session.json
  create mode 100644 tests/hermes_cli/test_session_export_asr.py
 
 diff --git a/hermes_cli/session_export_asr.py b/hermes_cli/session_export_asr.py
 new file mode 100644
-index 00000000..c33a3467
+index 00000000..8e220c5b
 --- /dev/null
 +++ b/hermes_cli/session_export_asr.py
 @@ -0,0 +1,391 @@
@@ -106,7 +106,7 @@ index 00000000..c33a3467
 +    if content is None:
 +        return []
 +    if isinstance(content, str):
-+        return [{"type": "text", "text": content}]
++        return [{"type": "text", "text": content}] if content else []
 +    if not isinstance(content, list):
 +        raise ValueError("Unsupported native content")
 +    parts = []
@@ -528,10 +528,10 @@ index 00000000..c8c6c524
 +}
 diff --git a/tests/hermes_cli/test_session_export_asr.py b/tests/hermes_cli/test_session_export_asr.py
 new file mode 100644
-index 00000000..eeb5aa45
+index 00000000..8671f961
 --- /dev/null
 +++ b/tests/hermes_cli/test_session_export_asr.py
-@@ -0,0 +1,143 @@
+@@ -0,0 +1,155 @@
 +"""Native ASR export contracts for durable history and the real session command."""
 +
 +import argparse
@@ -592,6 +592,18 @@ index 00000000..eeb5aa45
 +    assert "endedAt" not in result[0]
 +    assert not any(row["type"] in ("approval", "inference") for row in result)
 +    assert render_agent_session(session, messages) == output
++
++
++def test_tool_call_only_turn_stored_with_empty_text_has_no_message():
++    session = {"id": "synthetic-hermes"}
++    messages = [
++        {"id": 1, "role": "assistant", "content": "", "tool_calls": [
++            {"id": "read-1", "function": {"name": "read_file", "arguments": "{}"}}]},
++        {"id": 2, "role": "tool", "tool_call_id": "read-1", "content": "done"},
++    ]
++    result = rows(render_agent_session(session, messages))
++    assert [row["type"] for row in result[1:]] == ["tool_call", "tool_result", "session_info"]
++    assert result[1]["id"] == "1"
 +
 +
 +def test_redaction_corruption_compaction_and_copies():

@@ -60,5 +60,7 @@ checkout. It needs both pinned commits in that checkout and does not build or
 run the agent. Upstream build and test evidence is in the proposal.
 
 Current project verification and fixture results are in [refresh.json](refresh.json).
-No current live inference test is claimed. Historical live evidence does not
-certify this refreshed source.
+On 2026-11-05 the patched CLI completed an isolated session with a Claude model
+through an OpenAI-compatible endpoint. The agent read files, edited one and ran a
+test. Its export validated with 12 records, 0 errors and 0 warnings. The counts
+are in refresh.json.

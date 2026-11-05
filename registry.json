@@ -648,8 +648,8 @@
       "status": "built",
       "location": "upstream/opencode",
       "revision": "5ecdd85463e37bb7915dc342b6b4a653d9a8fadf",
-      "liveTestStatus": "not-live-tested",
-      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "liveTestStatus": "passed",
+      "liveTestNotes": "On 2026-11-05 the patched source CLI completed an isolated session with a Claude model through an OpenAI-compatible endpoint, recording with OPENCODE_AGENT_SESSION_HISTORY=1. The agent read files, edited one and ran a test. The export validated with 16 records, 0 errors and 0 warnings. Counts are in upstream/opencode/verification.json.",
       "notes": "opencode session export SESSION_ID --format agent-session uses the existing command. OPENCODE_AGENT_SESSION_HISTORY=1 must be enabled before recording. Design approval is required."
     },
     {
@@ -699,8 +699,8 @@
       "language": "Rust",
       "status": "built",
       "location": "upstream/goose",
-      "liveTestStatus": "not-live-tested",
-      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "liveTestStatus": "passed",
+      "liveTestNotes": "On 2026-11-05 the patched CLI completed an isolated session with a Claude model through an OpenAI-compatible endpoint. The agent read files, edited one and ran a test. The export validated with 12 records, 0 errors and 0 warnings. Counts are in upstream/goose/refresh.json.",
       "notes": "Repository aaif-goose/goose. goose session export --session-id selects the existing format menu. A Ready issue is required before contribution.",
       "revision": "1df6bd1c2f54dec7c61db494a98a23b4e3b49fed"
     },
@@ -712,10 +712,10 @@
       "language": "Python",
       "status": "built",
       "location": "upstream/hermes",
-      "liveTestStatus": "not-live-tested",
-      "liveTestNotes": "No current model run was performed for the refreshed source. Earlier live evidence is historical. Current synthetic and project verification is recorded in the package.",
+      "liveTestStatus": "passed",
+      "liveTestNotes": "On 2026-11-05 the patched CLI completed an isolated session with a Claude model through an OpenAI-compatible endpoint. The agent read files, edited one and ran a test. The export validated with 13 records, 0 errors and 0 warnings. Counts are in upstream/hermes/TEST-RESULTS.md.",
       "notes": "Existing sessions export format menu uses --session-id and positional output. It reads retained SQLite history. Feature approval remains an upstream gate.",
-      "revision": "fc88f9a0464d394a7876d5bdc625891f545dcc2a"
+      "revision": "068b180376ccb84bf5fe9a14e1e15bf9ca86c851"
     },
     {
       "id": "cline-native-export-patch",

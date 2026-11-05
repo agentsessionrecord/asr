@@ -10,18 +10,21 @@ extension, NanoClaw a skill and DeepSeek Harness a community plugin.
 
 Project checks are the agent's own build, tests, lint and type check for the
 changed code, plus validation of a synthetic session exported by the patched
-agent. No package has been tested against a live model.
+agent. The OpenCode, Goose and Hermes packages were also tested with a live
+Claude model on November 5, 2026. In each run the patched agent read files,
+edited one and ran a test, and its export validated with no errors. No other
+package has been tested against a live model.
 
 | Tool README | Project checks | Live-test status |
 | --- | --- | --- |
 | [Codex native export design feedback](https://github.com/agentsessionrecord/asr/blob/main/upstream/codex/README.md) | Pass | `not-live-tested` |
 | [OpenClaw ASR export plugin](https://github.com/agentsessionrecord/asr/blob/main/upstream/openclaw/README.md) | Partial. Full lint fails on 20 files the change does not touch | `not-live-tested` |
-| [OpenCode native ASR export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/opencode/README.md) | Pass | `not-live-tested` |
+| [OpenCode native ASR export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/opencode/README.md) | Pass | `passed` |
 | [Kilo Code native ASR export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/kilo/README.md) | Pass | `not-live-tested` |
 | [Gemini CLI native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/gemini-cli/README.md) | Pass | `not-live-tested` |
 | [Qwen Code native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/qwen-code/README.md) | Pass | `not-live-tested` |
-| [Goose native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/goose/README.md) | Pass | `not-live-tested` |
-| [Hermes native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/hermes/README.md) | Pass | `not-live-tested` |
+| [Goose native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/goose/README.md) | Pass | `passed` |
+| [Hermes native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/hermes/README.md) | Pass | `passed` |
 | [Cline native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/cline/README.md) | Pass | `not-live-tested` |
 | [OpenHands Canvas ASR export](https://github.com/agentsessionrecord/asr/blob/main/upstream/openhands/README.md) | Pass. Canvas end-to-end run not done | `not-live-tested` |
 | [Deep Agents Code ASR export](https://github.com/agentsessionrecord/asr/blob/main/upstream/deepagents/README.md) | Pass | `not-live-tested` |

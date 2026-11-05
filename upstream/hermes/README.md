@@ -33,4 +33,4 @@ node upstream/hermes/reproduce.mjs /path/to/patched-checkout
 
 The package check verifies digests, patch syntax, synthetic source contracts and sample validation. Reproduction replays patches in a temporary index and compares the resulting tree with the pinned head. It preserves the source checkout and makes no model requests.
 
-See [TEST-RESULTS.md](TEST-RESULTS.md) for current project checks. Earlier live evidence is partial and predates this refresh. A live run of the refreshed code has not been verified.
+See [TEST-RESULTS.md](TEST-RESULTS.md) for current project checks and the live run. On 2026-11-05 the patched CLI completed an isolated session with a Claude model through an OpenAI-compatible endpoint. The agent read files, edited one and ran a test. Its export validated with 13 records, 0 errors and 0 warnings.

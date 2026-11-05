@@ -38,4 +38,5 @@ cargo fmt -p goose -p goose-cli --check
 ```
 
 Current results and limitations are recorded in [refresh.json](refresh.json).
-The fixtures are synthetic. No current live inference test is claimed.
+The fixtures are synthetic. [refresh.json](refresh.json) also records a live
+session exported by the patched CLI.

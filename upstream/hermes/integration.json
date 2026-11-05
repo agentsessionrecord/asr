@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-03",
+  "date": "2026-11-05",
   "status": "passed",
   "checks": [
     {
@@ -13,7 +13,7 @@
       "status": "passed"
     },
     {
-      "command": "PYTHONPATH=. HERMES_HOME={scratch}/hermes-home HERMES_RUNTIME_DIR={scratch}/hermes-runtime python3 {scratch}/native-python.py hermes",
+      "command": "PYTHONPATH=. HERMES_HOME={scratch}/hermes-home HERMES_RUNTIME_DIR={scratch}/hermes-runtime python3 {scratch}/sample-replay.py {package}/samples/native/native.json {package}/samples/asr/session.jsonl",
       "exit": 0,
       "status": "passed"
     }
@@ -25,9 +25,28 @@
     "warnings": 0,
     "counts": {}
   },
-  "liveTestStatus": "not-live-tested",
-  "liveTestNotes": "No current model run. Earlier live evidence is historical.",
-  "notes": "The project check script passes all 14 checks with its pinned Ruff. The focused export suite passes 10 tests.",
+  "liveTestStatus": "passed",
+  "liveTestNotes": "On 2026-11-05 the patched CLI completed an isolated session with a Claude model through an OpenAI-compatible endpoint. The agent read two files, edited one and ran its unit test. The export validated with 13 records, 0 errors and 0 warnings.",
+  "liveRun": {
+    "date": "2026-11-05",
+    "head": "068b180376ccb84bf5fe9a14e1e15bf9ca86c851",
+    "modelFamily": "Claude",
+    "endpoint": "OpenAI-compatible chat completions",
+    "command": "hermes sessions export --format agent-session --session-id SESSION_ID",
+    "nativeRows": 8,
+    "records": 13,
+    "recordTypes": {
+      "session": 1,
+      "message": 3,
+      "tool_call": 4,
+      "tool_result": 4,
+      "session_info": 1
+    },
+    "callsAndResultsPaired": true,
+    "errors": 0,
+    "warnings": 0
+  },
+  "notes": "The project check script passes all 14 checks with its pinned Ruff. The focused export suite passes 11 tests.",
   "packageCheck": "passed",
   "patchReplay": "passed"
 }
