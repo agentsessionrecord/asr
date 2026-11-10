@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-Every record includes the [envelope](format.md#envelope). The tables below add fields for each type. R means required, O means optional and C means conditional. Times use RFC 3339. All listed enums are open. The examples are record excerpts unless they include a session header.
+Agent Session Record (ASR) has ten core record types. Each record has the [envelope](format.md#envelope) fields plus the fields in its table below. In the Req column, R means required, O optional and C conditional. Times use RFC 3339, and listed enum values are open.
 
 ## `session`
 
@@ -30,9 +30,9 @@ The first line identifies the session and how it was recorded.
 
 **ASR-019** A `session` MUST use these field shapes, including the required agent and producer fields. Every supplied `user` or `person` object MUST contain at least one of `id`, `email` or `name`, and each of those fields MUST be a non-empty string when present. Producers MUST take each identity from a real source and MUST NOT guess it. Readers MUST NOT use `user` as proof of prompt or commit authorship. A recorded repository `head` MUST be the full commit ID at the start, and a repository `remote` MUST contain no credentials.
 
-`producer.method` is `native` when the agent writes or exports ASR, `converter` when software converts an existing file, or `recorder` when software observes a live connection or hooks. `producer.source` names the native format read or, for a recorder, the API or connection observed, such as `anthropic-messages` or `openai-responses`. Repository branches and HEADs describe the start of the session when recorded, not the state at export time.
+`producer.method` is `native` when the agent writes or exports ASR, `converter` when software converts an existing file, or `recorder` when software observes a live connection or hooks. `producer.source` names the native format read or, for a recorder, the API or connection observed, such as `anthropic-messages` or `openai-responses`. Recorded repository branches and HEADs describe the start of the session, not the state at export time.
 
-The shared identity shape is used by `session.user`, `message.person` and `approval.person`. Use `source` to say where the identity came from.
+`session.user`, `message.person` and `approval.person` share this identity shape.
 
 | Field | Req | Meaning |
 |---|---|---|
@@ -41,9 +41,9 @@ The shared identity shape is used by `session.user`, `message.person` and `appro
 | `name` | O | Non-empty string with the person's recorded name |
 | `source` | O | String naming the identity source, as described below |
 
-The known sources are `agent_account` for the account signed in to the agent, `git` for repository or user Git configuration, `os` for the operating-system user, and `configured` for an identity set by whoever runs the converter or exporter. The set is open.
+The known sources are `agent_account` for the account signed in to the agent, `git` for repository or user Git configuration, `os` for the operating-system user, and `configured` for an identity set by whoever runs the converter or exporter.
 
-Readers use `user` as a grouping and access label. Message `author` still says who wrote each message. The label does not establish who typed a prompt or made a commit. Identity fields are personal data, so the [safety rules](missing-data.md#safety) apply. Teams and departments can be joined from a company directory, as described in the [company guide](../guides/organizations.md).
+Readers use `user` to group sessions and control access. Each message's `author` still says who wrote it. Identity fields are personal data, so the [safety rules](missing-data.md#safety) apply. Teams and departments can be joined from a company directory, as described in the [company guide](../guides/organizations.md).
 
 ```jsonl
 {"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent","version":"1.0"},"sessionId":"session-7","producer":{"name":"example-converter","version":"1.0","method":"converter","source":"example-jsonl"},"cwd":"/work/app","repos":[{"path":"/work/app","remote":"https://example.com/team/app.git","branch":"fix/empty"}]}
@@ -51,7 +51,7 @@ Readers use `user` as a grouping and access label. Message `author` still says w
 
 ## `session_info`
 
-This record adds facts while a writer appends to the stream. It also carries session totals reported by the source.
+A `session_info` record adds or updates session facts at its position in the stream, including session totals reported by the source.
 
 | Field | Req | Meaning |
 |---|---|---|
@@ -66,9 +66,11 @@ This record adds facts while a writer appends to the stream. It also carries ses
 
 **ASR-020** A `session_info` MUST contain at least one field from this table and use these field shapes. Readers MUST replace supplied values without erasing omitted fields, except `repos`, which adds repositories, and `missing`, which adds losses. They MUST apply `agentSettings` and its `modelSettings` updates one field at a time, treating a field set to `null` as clearing that fact to unknown, and replacing a supplied `externalSandbox` object as a whole. A producer that supplies `externalSandbox` MUST include every fact in it that it still knows. Producers MUST preserve `mode`, `approval` and `sandbox` verbatim from the source, record `modelSettings` only from configured values stated by the source, and emit a new `session_info` when the source records a change.
 
-Each supplied `usage` or `cost` object replaces the earlier total of that kind. Omitted fields do not erase earlier facts. `includesSubagents: true` says the usage total includes children, `false` says it excludes them, and absence leaves that scope unknown. Do not add child usage to a total that includes children or has unknown scope. The cost total has no separate scope flag.
+Each supplied `usage` or `cost` object replaces the earlier total of that kind. `includesSubagents: true` says the usage total includes children, `false` says it excludes them, and absence leaves that scope unknown. Do not add child usage to a total that includes children or has unknown scope. The cost total has no separate scope flag.
 
-`agentSettings` records the agent's operating mode, policies and configured model settings. All fields are optional and accept `null` to clear their value. Fields within `modelSettings` also accept `null`. Clearing `modelSettings` itself clears all its configured values.
+An ended session can resume under the same identity. End of file says nothing about whether the session ended.
+
+`agentSettings` holds the agent's mode, policies and configured model settings. Every field is optional and accepts `null`, which clears it. Fields inside `modelSettings` accept `null` too, and setting `modelSettings` itself to `null` clears all its configured values.
 
 | Field | Req | Meaning |
 |---|---|---|
@@ -79,15 +81,15 @@ Each supplied `usage` or `cost` object replaces the earlier total of that kind. 
 | `externalSandbox` | O | Object describing a recorded outer boundary, as described below |
 | `modelSettings` | O | Configured model settings, using the same fields as [inference settings](#inference) |
 
-A record supplying only `agentSettings.mode` keeps the recorded `approval` and `sandbox` values. An empty `agentSettings` or `modelSettings` object changes nothing. The native fields have no shared policy vocabulary. Readers can display them and compare them within one agent.
+The settings in effect for a record come from the `session_info` updates before it in file order, so a mode change is written where it happened. Omitted fields keep their last supplied values, subject to the `asks` rule below. For example, an update that supplies only `agentSettings.mode` keeps the recorded `approval` and `sandbox` values. An empty `agentSettings` or `modelSettings` object changes nothing. Within a supplied `externalSandbox`, omitted facts become unknown, and an empty `externalSandbox` clears them all.
 
-The settings in effect for a record come from the `session_info` updates before it in file order. A mode change belongs at that point in the stream. Omitted fields retain their last supplied values, subject to the `asks` rule below. Within a supplied `externalSandbox`, omitted facts become unknown. Supplying an empty `externalSandbox` clears its facts.
+The native fields have no shared policy vocabulary across agents. Readers can display them and compare them within one agent.
 
-`modelSettings` holds configured values. `inference.settings` holds values the source recorded for a call or its containing turn. Readers do not treat the configured values as what a call sent or fill absent call settings from them.
+`modelSettings` holds configured values. `inference.settings` holds values the source recorded for a call or its containing turn. Readers do not treat configured values as what a call sent, and do not fill absent call settings from them.
 
-`asks` describes whether a person is asked before actions that change files or run commands. `always` means every such action requires a person, `sometimes` means some can require a person, and `never` means no person is asked. Rules can still refuse actions. It describes what the recorded policy can require, not how many prompts happened. The native `approval` and `sandbox` values remain the primary evidence.
+`asks` says whether the recorded policy can require a person to approve actions that change files or run commands. `always` means every such action needs a person, `sometimes` means some can, and `never` means no person is asked. Rules can still refuse actions. `asks` describes the policy, not how many prompts happened. The native `approval` and `sandbox` values remain the primary evidence.
 
-The optional `externalSandbox` object records a boundary outside the agent process, such as a container, VM or remote host the agent and its work ran in. A sandbox used only by some tools does not establish that boundary.
+`externalSandbox` records a boundary outside the agent process, such as a container, VM or remote host that the agent and its work ran in. A sandbox used only by some tools does not establish that boundary.
 
 | Field | Req | Meaning |
 |---|---|---|
@@ -97,7 +99,7 @@ The optional `externalSandbox` object records a boundary outside the agent proce
 
 **ASR-072** Producers MUST derive `asks` only from settings recorded for the session or observed in effect by a live writer, and MUST omit it when they cannot derive it. They MUST NOT fill it from configuration read at conversion time, documented defaults or tool outcomes. When `mode`, `approval` or `sandbox` changes without a supplied `asks`, readers MUST treat the earlier `asks` as unknown. Producers MUST supply `asks` again when they can still establish it. Producers MUST record `externalSandbox` only when the source states an outer boundary, at the position where it applies.
 
-A latest-value snapshot does not establish an earlier boundary.
+A source that shows only the latest value does not establish that the boundary applied earlier.
 
 Each entry in `tools` describes a tool offered to the model.
 
@@ -112,17 +114,13 @@ Each entry in `tools` describes a tool offered to the model.
 
 An empty `tools` array records an empty list. An omitted array keeps the last supplied list, or leaves it unknown if none was recorded. A partial list does not establish that an unlisted tool was unavailable. Tool definitions can contain private instructions, so the [safety rules](missing-data.md#safety) apply.
 
-An ended session can resume under the same identity. End of file says nothing about whether the session ended.
-
 ```jsonl
 {"type":"session_info","id":"info-1","title":"Handle empty input","endedAt":"2026-10-26T14:03:10Z","usage":{"inputTokens":1200,"outputTokens":180,"includesSubagents":false},"cost":{"amount":0.004,"currency":"USD","source":"provider_reported"}}
 ```
 
 ## `message`
 
-A message keeps the content stored by the source. Its role does not identify its author.
-
-Record the system prompt and developer instructions as messages with `role: system` or `developer` and `origin: instructions`, at their position in the stream.
+A message holds content as the source stored it. Record the system prompt and developer instructions as messages with `role: system` or `developer` and `origin: instructions`, at their position in the stream.
 
 | Field | Req | Meaning |
 |---|---|---|
@@ -139,9 +137,9 @@ Record the system prompt and developer instructions as messages with `role: syst
 
 **ASR-022** Producers MUST use `author: "human"` only when the source distinguishes a person's input. They MUST record a compaction summary with `origin: "compaction"`, and readers MUST NOT treat it as a person's prompt or derive edits or commits from its text. A `gap` MUST follow when compaction destroyed earlier history.
 
-A harness can inject a message with `role: "user"`. That role alone does not establish human authorship. Part-level `author` and `origin` override the message values for mixed content.
+A harness can inject a message with `role: "user"`, so the role alone does not establish human authorship. Mixed content can set `author` and `origin` on each [content part](format.md#content-parts).
 
-`person` identifies the person when the source records one per message, such as in a group chat. It does not replace `author`. `author: "human"` says a person wrote the message, while `person` says which one.
+`person` names the person when the source records one per message, as in a group chat. `author: "human"` says a person wrote the message, and `person` says which one.
 
 `origin` says how a message arrived, while `author` says who wrote it. `scheduled` means a schedule or timer started the message. `external` means an outside event delivered it, such as a webhook, chat channel message or issue event. A scheduled prompt written by a person can have `author: "human"` and `origin: "scheduled"` when the source records both. If the source records the trigger on the session, put it on the run's first message. Keep schedule, delivery and channel IDs in `_meta` under the agent's reverse-DNS key.
 
@@ -151,7 +149,7 @@ A harness can inject a message with `role: "user"`. That role alone does not est
 
 ## `tool_call`
 
-A call records a tool request. The call's `id` identifies this record, while `callId` links the request to its result and effects.
+A `tool_call` records a tool request. Its `id` identifies the record, and `callId` links the request to its result and effects.
 
 | Field | Req | Meaning |
 |---|---|---|
@@ -169,9 +167,9 @@ A call records a tool request. The call's `id` identifies this record, while `ca
 
 **ASR-024** Producers MUST keep recorded call IDs and tool names. They MUST take `kind` from the source or a fixed name-to-kind map in converter notes, and MUST NOT infer `requestedBy: "model"` from its absence.
 
-The known kinds are `read`, `edit`, `delete`, `move`, `search`, `execute`, `think`, `fetch`, `switch_mode` and `other`. `requestedBy: "code"` means a program the model wrote requested the call. `locations` identifies files read or targeted by the call and supports searches for sessions that read a file. The `line` follows ACP's 1-based line numbering when recorded. A missing `name` produces a validator warning.
+The known kinds are `read`, `edit`, `delete`, `move`, `search`, `execute`, `think`, `fetch`, `switch_mode` and `other`. `requestedBy: "code"` means a program the model wrote requested the call. `locations` lists files the call read or targeted, so readers can find the sessions that read a file. A recorded `line` is 1-based, as in ACP. A missing `name` produces a validator warning.
 
-`input` holds the arguments the tool received. When a hook or client rewrote them and the model's original request is recorded, keep that original under the agent's reverse-DNS key in `_meta`. A live writer can supply arguments learned at completion on the result.
+`input` holds the arguments the tool received. When a hook or client rewrote them and the model's original request is recorded, keep that original under the agent's reverse-DNS key in `_meta`. A live writer that learns the arguments only at completion can put them on the [result](#tool_result).
 
 ```jsonl
 {"type":"tool_call","id":"call-read","callId":"read-1","name":"read_file","kind":"read","input":{"path":"/work/app/src/parser.py"},"requestedBy":"model","locations":[{"path":"/work/app/src/parser.py","line":1}]}
@@ -179,7 +177,7 @@ The known kinds are `read`, `edit`, `delete`, `move`, `search`, `execute`, `thin
 
 ## `tool_result`
 
-A result records the source's outcome and output.
+A `tool_result` records the outcome and output as the source reported them.
 
 | Field | Req | Meaning |
 |---|---|---|
@@ -194,13 +192,13 @@ A result records the source's outcome and output.
 | `subagent` | O | Object with required `session` reference when the child becomes known at completion |
 | `approvalId` | O | `id` of the `approval` record whose decision this result followed |
 
-`exec` can contain `command` as a string or string array, `cwd` as an absolute path, integer `exitCode`, and strings `signal`, `stdout`, `stderr` and combined `output`. These fields are optional. Separate output streams and combined output retain the source's representation.
+`exec` has these optional fields: `command` as a string or string array, `cwd` as an absolute path, integer `exitCode`, and strings `signal`, `stdout`, `stderr` and combined `output`. Keep separate or combined output as the source recorded it.
 
 **ASR-025** A `tool_result` MUST have the source's `status` and use these field shapes. Producers MUST NOT derive status from exit codes or output text unless the source does, MUST record an exit code only when supplied by the source, and MUST use the model-facing result for `content` when the source stores both model-facing and display forms.
 
 **ASR-076** A live writer MAY supply `tool_result.input` or `inputText` when it learns the arguments only at completion and they differ from the call's recorded input. A result MUST NOT contain both fields. Readers MUST use the result's supplied arguments as the effective input for its uniquely paired call.
 
-An absent call input also differs from newly learned arguments. The result preserves those arguments without rewriting the call. An empty string or JSON `null` is a supplied argument value.
+If the call recorded no input, arguments learned at completion count as different. The result keeps them without rewriting the call. An empty string or JSON `null` counts as a supplied value.
 
 **ASR-026** A file MUST contain at most one `tool_result` per `callId`. Readers MUST pair a result with a call only when exactly one `tool_call` in the file has that `callId`. Otherwise they MUST show the result as unpaired. A call without a result MUST have an unknown outcome.
 
@@ -208,7 +206,7 @@ Fold native result updates into one completed result. Results without a `callId`
 
 **ASR-079** Producers MUST set `approvalId` only when the source states which decision the result followed, and MUST NOT infer it from order, timing, a shared `callId` or there being only one recorded decision. It MUST name an `approval` record in the same file. When that approval has a `callId`, it MUST equal the result's `callId`.
 
-The named approval is the decision the result followed. A `denied` result can name the denial. Without `approvalId`, which decision applied stays unknown, even when only one decision is recorded.
+A `denied` result can name the denial. Without `approvalId`, which decision applied stays unknown, even when only one decision is recorded.
 
 ```jsonl
 {"type":"tool_result","id":"result-read","callId":"read-1","status":"completed","content":[{"type":"text","text":"def parse(text):\n    return text.split(',')\n"}]}
@@ -216,7 +214,7 @@ The named approval is the decision the result followed. A `denied` result can na
 
 ## `approval`
 
-An approval records one decision at its source position, or immediately before its result under the [folding and snapshot rule](format.md#file-format-and-order). Its envelope supplies its own ID and optional time. One call can have several decisions, such as a command approval followed by a sandbox escape. Write each as a separate record, even if the call never finishes.
+An `approval` records one decision. It goes at its source position, or just before its result under the [folding and snapshot rule](format.md#file-format-and-order). Like any record, it has its own ID and optional time. One call can have several decisions, such as a command approval followed by a sandbox escape. Write each as a separate record, even if the call never finishes.
 
 | Field | Req | Meaning |
 |---|---|---|
@@ -239,11 +237,11 @@ An approval records one decision at its source position, or immediately before i
 | `classifier` | An automatic reviewer decided |
 | `fallback` | No person was available, so the agent applied its default |
 
-`once` covers this request. `session` lasts until the session ends, including thread or conversation grants. `always` is kept beyond the session. Some agents label session grants "always", so a converter note establishes the actual lifetime. Without a recorded decision, the answer stays unknown. Approval does not establish execution or success.
+`once` covers this request. `session` lasts until the session ends, including thread or conversation grants. `always` is kept beyond the session. Some agents label session grants "always", so the converter notes give the actual lifetime. Without a recorded decision, the answer stays unknown. Approval does not establish execution or success.
 
 **ASR-073** An `approval` MUST have `decision` and use these field shapes. Producers MUST record only approval decisions the source states, in source order, and MUST NOT infer a decision from a tool's outcome, the agent's settings or the session's mode. They MUST record a reused grant as `by: "policy"` rather than `user`, and MUST set any supplied `scope` from the grant's actual lifetime.
 
-Readers join approvals by `callId` only when exactly one call has that ID. Several decisions can share it. A result's `approvalId` names the decision it followed. A decision with no tool call has no `callId`. Its `subject` names what was decided, such as a network host or an MCP server, when the source records it. Without a recorded subject, the decision keeps its position and what it concerned stays unknown. For a linked decision, an absent `subject` means the whole call. A narrower request, such as a sandbox escape, keeps its recorded subject.
+Readers join approvals to a call by `callId` only when exactly one call has that ID. Several decisions can share a `callId`. For a decision linked to a call, an absent `subject` means the whole call, and a narrower request such as a sandbox escape keeps its recorded subject. A decision with no tool call has no `callId`. Its `subject` names what was decided, such as a network host or an MCP server, when the source records it. Without a recorded subject, the decision keeps its position and what it concerned stays unknown.
 
 ```jsonl
 {"type":"approval","id":"approval-test","callId":"exec-1","decision":"approved","by":"user","scope":"once","native":{"choice":"allow_once"}}
@@ -253,7 +251,7 @@ Readers join approvals by `callId` only when exactly one call has that ID. Sever
 
 ## `file_change`
 
-This record describes one file. A call that changes several files produces one record per file with the same `callId`.
+A `file_change` describes one file. A call that changes several files produces one record per file, all with the same `callId`.
 
 | Field | Req | Meaning |
 |---|---|---|
@@ -288,7 +286,7 @@ Full text or an object ID supplies an exact file state, a patch supplies hunks, 
 
 ## `vcs`
 
-This record describes a version-control action the session performed or a pull request it referred to or looked up.
+A `vcs` record describes a version-control action the session performed, or a pull request it referred to or looked up.
 
 | Field | Req | Meaning |
 |---|---|---|
@@ -310,9 +308,9 @@ This record describes a version-control action the session performed or a pull r
 
 The known actions are `commit`, `amend`, `merge`, `rebase`, `cherry_pick`, `revert`, `reset`, `checkout`, `branch_create`, `push`, `pr_open`, `pr_merge` and `pr_link`.
 
-`evidence: "observed"` means structured data from the harness, a tool or a repository hook. `parsed_output` means facts parsed from command output. `reported` means a stored association without a record of the action itself. These values describe how the fact is known.
+`evidence` says how the fact is known. `observed` means structured data from the harness, a tool or a repository hook. `parsed_output` means facts parsed from command output. `reported` means a stored association without a record of the action itself.
 
-`pr` has optional strings `url`, `repository` and `state`, an integer `number` of at least 1, full commit IDs `headCommit` and `mergeCommit`, and an array of full IDs `commits`. It identifies the pull request by `url`, or by both `repository` and `number`. The known states are `open`, `closed` and `merged`. `commits` lists observed member commits without claiming that the list is complete.
+`pr` has optional strings `url`, `repository` and `state`, an integer `number` of at least 1, full commit IDs `headCommit` and `mergeCommit`, and an array of full IDs `commits`. The known states are `open`, `closed` and `merged`. `commits` lists observed member commits without claiming that the list is complete.
 
 **ASR-031** A `vcs` MUST have `action`, `status` and `evidence` and use these field shapes. Full commit IDs throughout ASR MUST be 40 or 64 lowercase hexadecimal digits. A record MUST NOT contain both `commit` and `commitPrefix`, or both `callId` and `actor`. A `pr` object MUST have `url` or both `repository` and `number`.
 
@@ -330,7 +328,7 @@ A `pr_link` can record a merge commit learned through a forge query during the s
 
 ## `inference`
 
-An inference is one model call. Its record `id` is the target of an `inferenceId` on messages or tool calls it produced.
+An `inference` records one model call. Messages and tool calls it produced point to its `id` with `inferenceId`.
 
 | Field | Req | Meaning |
 |---|---|---|
@@ -346,7 +344,7 @@ An inference is one model call. Its record `id` is the target of an `inferenceId
 
 When a derived ID is used for the inference, keep the provider response ID under the agent's reverse-DNS key in `_meta`. That ID can join the call to vendor usage and audit exports.
 
-A source without model-call boundaries omits these records and lists `usage` in `missing`, or supplies recorded totals in `session_info`. It does not divide a session total among guessed calls.
+When the source has no model-call boundaries, the producer omits these records and lists `usage` in `missing`, or supplies recorded totals in `session_info`. It does not divide a session total among guessed calls.
 
 **ASR-035** An `inference` MUST use these field shapes. When the source identifies a model call but not its model, producers MUST omit `model` and list `model` in `missing`. A supplied `model` MUST have at least one of `id` and `requested`. `id` MUST identify the model reported as having served the call, and `requested` MUST identify the requested alias or configured model. Producers MUST NOT copy either value into the other. Producers MUST record only settings stated by the source for this call or its containing turn, apply recorded turn settings to each inference in that turn, and MUST NOT fill in unstated defaults.
 
@@ -363,9 +361,7 @@ Other settings go in the inference record's `_meta` under the agent's reverse-DN
 
 ### Usage and cost
 
-All fields in the usage object are optional non-negative integers.
-
-Usage the source reports for part of a turn without call boundaries stays under the agent's key in `_meta`.
+All fields in the usage object are optional non-negative integers. Usage the source reports for part of a turn without call boundaries stays under the agent's key in `_meta`.
 
 | Field | Meaning |
 |---|---|
@@ -377,7 +373,7 @@ Usage the source reports for part of a turn without call boundaries stays under 
 
 **ASR-036** Producers MUST normalize usage to these inclusive totals, preserve reported zero values, and MUST NOT substitute zero for an unknown count.
 
-Follow the source's accounting rules in its [converter notes](../agents/index.md). A mapping can define a total as the base count plus each supplied optional component. Apply that formula even when an optional component is absent, while leaving that component's field absent. A count lost through truncation or corruption remains unknown. Do not add cache or reasoning again when the source total includes it. This matches [OpenTelemetry GenAI usage conventions](../guides/otel.md).
+Follow the source's accounting rules in its [converter notes](../agents/index.md). A mapping can define a total as the base count plus each supplied optional component. Apply that formula even when an optional component is absent, while leaving that component's field absent. A count lost through truncation or corruption remains unknown. Do not add cache or reasoning again when the source total includes it. These inclusive totals match the [OpenTelemetry GenAI usage conventions](../guides/otel.md).
 
 Cost has required numeric `amount` and ISO 4217 `currency`, with optional `source`. Its known source values are `provider_reported`, `harness_estimated` and `converter_estimated`.
 
@@ -385,7 +381,7 @@ Cost has required numeric `amount` and ISO 4217 `currency`, with optional `sourc
 
 **ASR-038** Readers MUST sum per-call figures using the [copy credit rule](sessions.md#copies-and-credit) and MUST NOT add `session_info` totals to those figures or sum successive session totals.
 
-Cache and reasoning counts are parts of the inclusive totals. Adding them to those totals would count them twice. Report cost by model and currency without treating unknown calls as free.
+Cache and reasoning counts are already inside the inclusive totals, so adding them would count them twice. Report cost by model and currency without treating unknown calls as free.
 
 ```jsonl
 {"type":"inference","id":"model-call-1","model":{"provider":"example","id":"example-model-1","requested":"default"},"usage":{"inputTokens":1200,"cacheReadTokens":200,"outputTokens":180,"reasoningTokens":40},"cost":{"amount":0.004,"currency":"USD","source":"provider_reported"},"stopReason":"tool_use"}

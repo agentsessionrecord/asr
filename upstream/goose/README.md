@@ -1,66 +1,21 @@
-# Goose native export patch
+# Agent Session Record export for Goose
 
-## Install
-
-Use a separate writable checkout of the upstream project. The supported base is
-`0aa212e61d43e35ee2875ca5aa23c28ebac882c7`. [manifest.json](manifest.json) pins
-this base, the ordered patches and their digests. Read [PROPOSAL.md](PROPOSAL.md)
-for the upstream repository, runtime requirements and native build instructions.
-These patches are local source changes. They are not installed by the ASR CLI.
-
-Set `ASR_PACKAGE` to this package's absolute path. Run in a clean upstream
-checkout at the pinned base:
-
-```sh
-git am "$ASR_PACKAGE"/patches/*.patch
-```
-
-Build and install the patched agent using its own instructions and the focused
-checks in the proposal. To remove the feature, use a clean unpatched build.
-Existing exported files remain in their output directory.
-
-## Use
-
-Run with the patched agent. Replace example IDs and input paths with a selected
-native session. See the proposal for selection and output options.
+This patch adds ASR to the `session export` command in [Goose](https://github.com/aaif-goose/goose). The pinned base is `0aa212e61d43e35ee2875ca5aa23c28ebac882c7`. [Apply the patches](../README.md#apply-a-patch) in a clean checkout at that base. The [proposal](PROPOSAL.md) gives runtime requirements, build steps and output options.
 
 ```sh
 goose session export --format agent-session --session-id SESSION_ID
 goose session export --format agent-session --session-id SESSION_ID --output exports
 ```
 
-## What it records
+The export keeps persisted messages in insertion order, tool calls, final results as the model saw them, reasoning and explicit confirmations. A stored installation namespace keeps native local IDs distinct. Known credential fields and recognized secret text are left out. Usage, model-call boundaries, exit codes, file edits, commits, copies and child sessions are incomplete. Native sanitization and hidden history cannot be reversed, and the command exports one session at a time.
 
-Persisted messages in insertion order, tool calls, final model-facing results, reasoning and explicit confirmations. A stored installation namespace distinguishes native local IDs.
-
-Output uses ASR 0.1 with `producer.method: native`. Known credential fields and
-recognized secret text are excluded. Keep exports private and review content
-before sharing. Pattern filtering cannot identify every secret.
-
-## Limits
-
-Usage, model-call boundaries, exit codes, file edits, commits, copies and child sessions are incomplete. Native sanitization and hidden history cannot be reversed. Selection supports one session at a time.
-
-The [proposal](PROPOSAL.md) describes the source profile and detailed losses.
-Valid ASR does not establish complete source capture.
-
-## Tests and status
-
-Run from the ASR repository root with its Node dependencies installed:
+## Checks
 
 ```sh
 node upstream/goose/check.mjs
 node upstream/goose/reproduce.mjs /path/to/upstream-checkout
 ```
 
-The package check verifies file hashes, patch syntax, synthetic source contracts
-and ASR sample validation. The reproduce command also replays the series in a
-temporary Git index against the pinned source commits. It preserves the source
-checkout. It needs both pinned commits in that checkout and does not build or
-run the agent. Upstream build and test evidence is in the proposal.
+See [package checks](../README.md#check-a-package). Seven export tests, the CLI binary build, type check, Clippy and format checks pass, and [refresh.json](refresh.json) has the results.
 
-Current project verification and fixture results are in [refresh.json](refresh.json).
-On 2026-11-05 the patched CLI completed an isolated session with a Claude model
-through an OpenAI-compatible endpoint. The agent read files, edited one and ran a
-test. Its export validated with 12 records, 0 errors and 0 warnings. The counts
-are in refresh.json.
+On 2026-11-05 the patched CLI completed an isolated session with a Claude model through an OpenAI-compatible endpoint. The agent read files, edited one and ran a test. Its export validated with 12 records, 0 errors and 0 warnings.

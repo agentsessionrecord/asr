@@ -25,7 +25,7 @@
     "files": {
       ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
       "PROPOSAL.md": "30d3bb5871b608c1716f29fad7ef4671e8a15086ae6f303e19185d70e12618c3",
-      "README.md": "7cd77fe1b0fb5961325dc99aff6ad9cbaca0bfc4e45305ec85d332dd30578cb5",
+      "README.md": "a1afa4fc7cc963dc18d46f84a3a4ef0f2beb5dd4913b9f90a578d74ab2863906",
       "TESTS.json": "10a114cb8d67b5aabb4ed492ae3a62941e6caef2188da3686b8d0c58e26790f0",
       "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
       "contracts.mjs": "c8dcc15d3acd0db28be4e1b95daf16a650e6a1bdd793abb7295dffd2a0a86602",
@@ -40,7 +40,7 @@
   "files": {
     ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
     "PROPOSAL.md": "30d3bb5871b608c1716f29fad7ef4671e8a15086ae6f303e19185d70e12618c3",
-    "README.md": "7cd77fe1b0fb5961325dc99aff6ad9cbaca0bfc4e45305ec85d332dd30578cb5",
+    "README.md": "a1afa4fc7cc963dc18d46f84a3a4ef0f2beb5dd4913b9f90a578d74ab2863906",
     "TESTS.json": "10a114cb8d67b5aabb4ed492ae3a62941e6caef2188da3686b8d0c58e26790f0",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "contracts.mjs": "c8dcc15d3acd0db28be4e1b95daf16a650e6a1bdd793abb7295dffd2a0a86602",

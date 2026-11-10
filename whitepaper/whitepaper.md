@@ -19,53 +19,39 @@ Wills Manley
 
 ## Abstract
 
-Agent Session Record (ASR) is an open format for recording what an AI agent did in a session. It stores prompts, replies, tool calls, file edits and commits in JSON Lines. Converters give native agent logs a common shape, so tools can search work across agents and connect a line of code to the session behind it.
+Agent Session Record (ASR) is an open file format for coding agent sessions. Each session is a JSON Lines file of prompts, replies, tool calls, file edits and commits. Converters turn each agent's native logs into ASR, so one tool can search sessions from many agents and trace a line of code back to the session that produced it.
 
-The core answers a small set of practical questions. Which session edited this line, from which prompt, with which model? Which session made the commit? What failed, and what happened next? ASR keeps the facts needed to investigate those questions while making missing information visible. It works alongside live agent protocols, Git attribution notes and telemetry. This paper describes the format, its use for blame, and the path from native logs to useful readers.
+The format is built around a few questions. Which session edited this line, from which prompt, with which model? Which session made the commit? What failed, and what happened next? ASR keeps the facts needed to answer them and makes missing information explicit.
 
-## 1. The gap between protocols, notes and telemetry
+## 1. Agent logs and related standards
 
-An agent can finish a change in minutes. The code may need explanation months later. Git retains the file history, but the commit message rarely includes the complete request, the rejected approach or the test output that shaped the result. Those facts live in an agent's session storage, if they remain available at all.
+Code an agent wrote in minutes may need explaining months later. Git keeps the file history, but a commit message rarely includes the request, the rejected approach or the test output behind the change. Those live in the agent's session logs, if they survive at all.
 
-Each agent chooses a storage format for its own needs. Some append events to JSONL. Others update a document or store messages and parts in a database. A reader must understand how the source identifies sessions, joins tool calls to results and records changes. That work repeats for every search engine, code review tool and session viewer.
+Each agent stores sessions its own way, as appended JSONL, an updated document or rows in a database. A tool that reads them has to learn how each agent identifies sessions, joins tool calls to results and records changes, and every search engine, review tool and session viewer repeats that work.
 
-Several useful standards cover adjacent parts of the problem. The Agent Client Protocol (ACP) connects an editor or another client to a running agent [[1](#ref-1)]. The Model Context Protocol (MCP) supplies common shapes for tool interactions and content [[2](#ref-2)]. These protocols help software cooperate during execution. A live connection does not by itself define the durable record available afterward. Most agent sessions run without an ACP connection, so there is often nothing live to record. Converters cover them from native logs.
+Nearby standards cover other parts of the problem. The Agent Client Protocol (ACP) connects an editor or other client to a running agent [[1](#ref-1)], and the Model Context Protocol (MCP) defines shapes for tool interactions and content [[2](#ref-2)]. Both help software cooperate while an agent runs, but a live connection doesn't define what is kept afterward, and most sessions run without ACP at all. Git AI records line attribution in Git notes [[3](#ref-3)], without the request, model call, edit and result behind the line. OpenTelemetry's GenAI conventions describe model and tool operations for monitoring [[4](#ref-4)], and capture and sampling choices decide how much content is kept.
 
-Git AI records line attribution in Git notes [[3](#ref-3)]. A note can connect a line to an agent session without putting the transcript into repository history. It does not replace the session's account of the request, model call, edit and result. OpenTelemetry's GenAI conventions describe model and tool operations for monitoring [[4](#ref-4)]. Their spans answer timing and usage questions, while capture and sampling choices affect which content is retained.
+ASR is the session record alongside these. It reuses MCP content and ACP tool shapes, can supply the session behind a Git AI attribution, and can export recorded operations to OpenTelemetry. Agents keep their native storage. A converter for each log format states that format's limits, and readers can use its output without understanding the agent's database or release history.
 
-ASR occupies the record layer alongside these tools. It reuses familiar content shapes, can supply the session behind a Git AI attribution, and can export recorded operations to OpenTelemetry. A common file format gives each integration one shape to read without making every agent change its native storage.
+## 2. The questions ASR answers
 
-The boundary matters for adoption. A converter can serve an existing log format. A reader can accept its output without understanding that agent's database or release history. The converter remains responsible for explaining the source's limits, and the reader remains responsible for checking repository facts before presenting blame.
+The first question is about a line of code: which session edited it, from which prompt, and with which model. The answer can show the intended behavior, the constraints the agent had and the checks it ran. Related questions widen the search to the sessions that made a commit or pull request, or that read or changed a file. Indexed tool locations, file changes and version control actions answer these without relying on a file name appearing in prose, and full-text search over prompts, replies and tool output covers the rest.
 
-## 2. The questions a record should answer
+Within a session, file order gives the sequence of work. Sorting by timestamps can scramble a source that records delayed events or copied history. Per-call usage can be grouped by model, while session totals stay separate so they aren't added to the calls they already include. Parent pointers connect a subagent to the session that started it, and outcomes learned later, such as a revert or a merge, go in annotations joined to the session.
 
-The first question is about a line of code. A reviewer needs to find the session that edited it, the prompt connected to that work, and the model behind the causing tool call. The answer can reveal the intended behavior, the available constraints and the checks performed at the time.
+A field belongs in the core when it helps answer these questions and is cheap for a converter or agent to produce. Other details can stay in vendor data or an extension.
 
-The next questions widen the search. Which sessions made a commit or pull request, and what else did they do? Which sessions read or changed a file? A reader can index tool locations, file changes and version control actions to find those sessions without relying on a filename appearing in prose.
+## 3. The format
 
-Full-text search also matters. Prompts, replies and tool input and output contain details that structured fields cannot anticipate. An error message can lead to an earlier failed attempt. A phrase from a requirement can lead to the session that implemented it. The same query should work across agents.
+An ASR session is a UTF-8 JSON Lines file with one completed record per line. The first line is the only `session` record. It gives format version `0.1`, the agent, its native session ID and the producer that wrote the file, and can add the user who ran it, the working directory, repositories and known missing data. The user is a grouping label, not proof of who wrote a message or made a commit.
 
-Once a session is found, file order provides the sequence of recorded work. A failed tool and the next action can explain how the agent responded. Timestamps help when present, but sorting by them can scramble a source that records delayed events or copied history. A reader uses the order the source retained.
+The core has ten record types. `session_info` adds totals, settings, offered tools and losses found later. `message` carries content, including system and developer instructions at their recorded position. `tool_call` and `tool_result` describe tool activity and outcomes. `approval` records one decision when it happens, even when the call never finishes or the grant has no call. `file_change` records one changed file, and `vcs` records version control and pull request actions. `inference` describes one recorded model call, and `gap` marks missing history.
 
-Usage and cost support a different view of the same work. Per-call figures can be grouped by model, while session totals can be shown as the source reports them. The distinction prevents a total from being added to the calls it already includes. Unknown cost stays unknown rather than appearing as a free call.
+Settings apply from their position in the file. Native approval and sandbox policies are kept verbatim. An optional `asks` summary says whether the policy can require a person before file changes or commands, and becomes unknown when the policy changes without a new summary. Configured model settings never fill in settings a call didn't record.
 
-Delegation introduces another question. Which session started a subagent, with what task, and what came back? Parent pointers and tool links can connect the files without requiring them to be stored together. Copied context is distinguishable from work the child performed itself.
+Every record has a type and a unique ID, kept from the source where possible or derived deterministically. A session reference combines the agent name with the native session ID, and a fragment cites one record within it.
 
-Later outcomes complete the picture. A change may be kept, reverted, merged or abandoned after the session ends. Those facts belong in annotations that can be joined to the session. The original record remains an account of what happened during the work, while later services can add what they learn.
-
-These questions bound the core. A field earns its place by helping answer them at a low cost to a converter or agent. Additional details can remain vendor data or belong to an extension. A reader should not need a complete model of an agent's runtime to search its work.
-
-## 3. The format in brief
-
-An ASR session is a UTF-8 JSON Lines file. Each line contains one completed record and ends with a newline. The first line is the sole `session` record. It identifies format version `0.1`, the agent, its native session ID and the producer that wrote the file. Optional fields describe the user who ran it, working directory, repositories and known missing data. The user is a grouping label, not proof of message or commit authorship.
-
-The core has ten record types. `session_info` adds session facts, totals, settings, offered tools and discovered losses. `message` carries content, including system and developer instructions at their recorded position. `tool_call` and `tool_result` describe activity and outcomes. `approval` records one decision when it happens, even when the call never finishes or the grant has no call. `file_change` records one changed file. `vcs` records version control and pull request actions. `inference` describes one recorded model call, including settings when the source supplies them. `gap` marks missing history.
-
-Settings apply by position. Native approval and sandbox policies retain any recorded JSON value. The optional `asks` summary describes whether policy can require a person before file changes or commands. A policy change without a supplied summary makes it unknown. Configured model settings merge field by field and do not supply absent call settings. A supplied tool list or outer boundary replaces the whole value. The boundary encloses the agent process and its work, rather than selected tools alone.
-
-Every record has a type and a unique ID. Record IDs remain native where possible, or are derived deterministically from source identities or positions. A session reference combines the agent name with its native session ID. An installation namespace is added only when IDs can repeat across installations. A record fragment gives a precise citation within that session.
-
-The following excerpt is a field-identical subset of the [quick tour](https://agentsessionrecord.org/get-started/quick-tour), using a fictional agent fixing an empty-input case. Other records from the session are omitted. The edit is linked to a tool call, and the tool call is linked to the model call that produced it.
+The excerpt below comes unchanged from the [quick tour](https://agentsessionrecord.org/get-started/quick-tour), in which a fictional agent fixes an empty-input case. The edit links to a tool call, and the tool call links to the model call that produced it.
 
 ```jsonl
 {"type":"session","id":"session","formatVersion":"0.1","agent":{"name":"com.example.coder","version":"1.0"},"sessionId":"parser-42","producer":{"name":"example-export","version":"1.0","method":"native"},"cwd":"/work/parser","repos":[{"path":"/work/parser","remote":"https://github.com/example/parser","branch":"fix-empty-limit"}],"missing":["reasoning"]}
@@ -76,79 +62,59 @@ The following excerpt is a field-identical subset of the [quick tour](https://ag
 {"type":"file_change","id":"change","path":"/work/parser/parser.py","op":"modify","status":"applied","callId":"edit-1","edits":[{"oldText":"    return int(value)\n","newText":"    return int(value or \"0\")\n"}]}
 ```
 
-The replacement text supports a check of which added lines survive. The full tour also keeps the short commit ID that Git printed. A reader resolves and checks that ID in the real repository. A statement in a final reply would remain searchable text without establishing either fact.
+The replacement text lets a reader check which added lines survive in a commit. The full tour also keeps the short commit ID Git printed, which a reader resolves in the real repository. A claim in the final reply stays searchable text and establishes neither fact.
 
-Paths are plain strings. Producers prefer absolute paths. Relative paths use the session's starting working directory. Paths embedded in tool arguments, commands or patches stay as recorded. Repository paths help the reader select the repository to inspect, but they do not replace verification against Git.
+Paths are plain strings, preferably absolute, and relative paths resolve against the starting working directory. An absent field means unknown, while a recorded zero, false or empty string is a real value. The header lists known losses, later `session_info.missing` updates can only add to them, and shortened text carries `truncated: true`. A reader reports a malformed line and continues, and treats an unterminated final line as incomplete.
 
-Missing data has explicit meaning. An absent field is unknown. A recorded zero, false value or empty string remains a real value where the field's shape allows it. The header lists known losses, and later `session_info.missing` updates add to that list without removing losses. Shortened text carries `truncated: true`, and gaps locate missing history. A reader reports a malformed line and continues. An unterminated final line is incomplete rather than a finished record.
+Live writers append and never change complete lines, while converters may re-export a whole file. Open enums, vendor metadata and namespaced record types let details pass through tools that don't understand them.
 
-Live writers append without changing complete lines. Converters may re-export an entire file. Readers interpret file order and preserve unknown data when storing it. Open enums, vendor metadata and namespaced record types allow details to survive tools that do not understand them yet.
+## 4. Blame
 
-## 4. Blame separates editing from committing
+Git blame identifies the commit that introduced a line at a path [[5](#ref-5)]. ASR blame starts there, checks session evidence against the repository's objects and gives two separate answers, edited by and committed by. A session can commit another session's or a person's changes, a person can commit an agent's edits, and an agent can rebase a branch without writing any of its lines. Treating any of these as authorship would hide who did the work.
 
-Git blame identifies the commit that introduced a line at a path [[5](#ref-5)]. That is the starting point for ASR blame. The session evidence is then checked against repository objects to determine what a session actually did.
+Commit credit needs an original version control record for an action that can produce the commit, with `vcs.status` set to `completed` and evidence from an observed operation or parsed command output. Only when the status is `unknown` can a uniquely paired completed tool result establish success. A push, a checkout, a stored association or a commit mentioned in a message doesn't count.
 
-Committed by and edited by are different answers. A session can make a commit containing changes from another session or a person. A person can commit an agent's edits. An agent can rebase a branch without writing the lines being rebased. Treating any of those actions as line authorship would conceal the division of work.
+A full recorded commit ID can be compared directly. A short ID must resolve uniquely in the repository, its recorded subject must match, the repository's parent count must fit the action, and the commit must be reachable from a local branch or tag. Recorded parent fields are optional but must match when present. Git provides the object lookup [[6](#ref-6)]. If any check fails, the reader gives no commit credit.
 
-A committed-by result requires an original version control record for an action that can produce the commit. Its evidence comes from an observed operation or parsed command output, with `vcs.status` set to `completed`. Only `unknown` falls back to a uniquely paired completed tool result. A stored association, a push, a checkout or a commit mentioned in a message cannot establish that result.
+Edit credit starts from original, applied file changes for the path. The commit's added lines are all lines of a root commit, otherwise its diff from the first parent. Before and after states limit credit to lines the edit added, because a matching final file can't tell an edit apart from uncommitted changes already in the worktree. A recorded patch supplies added lines directly, and a text replacement contributes only what it adds, not unchanged context.
 
-A full recorded commit ID can be compared directly. A short ID needs more checks. It must resolve uniquely in the repository, its recorded subject must match and its repository parent count must fit the action, and the commit must be reachable from a local branch or tag. Recorded parent fields are optional, but must match when present. Git provides the object resolution mechanisms [[6](#ref-6)]. A failed check means the reader does not give commit credit.
+Repeated snippets and ambiguous matches leave lines unattributed. When several recorded changes survive at the same line, the latest wins if its order is established, and earlier matches stay visible as alternatives. Competing sessions with no established order stay unresolved. A known human edit credits a person, and an external edit with no known actor stays untracked. A match is evidence, not proof.
 
-Edited-by results start from original, applied file changes for the path. The commit adds all lines for a root commit, or the diff from its first parent otherwise. Before and after states limit credit to lines the edit added. A final blob match alone cannot distinguish an edit from dirty worktree changes. A recorded patch supplies added lines. Text replacements contribute only additions between old and new text, excluding unchanged context.
+Rewritten commits need one more join. Recorded old-to-new pairs, from sessions or annotations, connect amends, rebases and cherry-picks back to commits that existed during sessions. The reader checks both objects, carries verified commit credit forward and rechecks surviving edits. It never infers a rewrite from similar patches or subjects, and performing a rewrite doesn't make a session the editor of the rewritten lines.
 
-Repeated snippets and ambiguous matches leave lines unattributed. When several recorded changes survive at the same line, the latest surviving change wins when its order is established. Earlier matches remain visible as alternatives. Competing sessions with no established order remain unresolved. A known human edit credits a person. An observed external edit with no known actor stays untracked. A match is evidence rather than proof of authorship.
+Pull requests add candidates through recorded member commits or a merge commit, which a later forge annotation can also supply. For a single-parent squash or rebase merge, the landed commit is the merge commit itself, and the reader compares its added lines directly with recorded edits.
 
-Commit rewrites require another join. Recorded old-to-new pairs connect amendments, rebases and cherry-picks to commits that existed during sessions. The reader follows those pairs back from the blamed commit. It checks both objects, carries verified commit history forward and rechecks surviving edits, including pairs supplied by annotations. It does not infer a rewrite from similar patches or subjects. A session that performs the rewrite does not become the editor of the rewritten lines.
-
-Pull requests can connect work across those operations. Recorded member commits or a merge commit supply repository candidates. A later forge annotation can add a merge result. For a single-parent squash or rebase merge, the landed commit is the merge commit itself. The reader compares its added lines directly with recorded edits. The absence of a one-to-one commit rewrite does not prevent a surviving edit from being found.
-
-An attribution view links the edit to its causing call and model call, when available. The served model is shown when recorded. A configured alias remains labeled as the requested model. The associated prompt gives context, while authorship markers distinguish a person's request from injected instructions or a compaction summary.
-
-Git AI notes can be written from these edited-by results. The note carries line attribution, and its session join key helps locate the ASR record. Its tool names and lack of an installation namespace need careful handling when joining sessions. A note is a useful candidate source, but its presence does not replace the underlying checks.
+An attribution view links the edit to its tool call, model call and prompt. It shows the served model when recorded, labels a configured alias as the requested model, and uses authorship markers to separate a person's request from injected instructions or a compaction summary. Git AI notes can be written from these edited-by results. In the other direction, a note's session key helps find the ASR file, but the note is a candidate to check, not a substitute for the checks.
 
 ## 5. How sessions get in
 
-Converters are the first path into ASR. They read native files after the work and write completed records. This path needs no agent vendor to adopt a protocol or change its runtime. It also makes existing sessions useful immediately, within the limits of the data still retained.
+Converters come first. They read native files after the work, so no agent vendor has to adopt a protocol or change its runtime, and existing sessions become useful right away within the limits of what the logs still hold. A converter keeps source order, joins calls through documented IDs and copies recorded text. It maps edits and commits only where the source establishes them, and doesn't fill missing timestamps from file modification times or invent model calls from message boundaries.
 
-A converter's job is specific. It identifies the native session, keeps source order, joins calls through documented IDs and copies recorded text. It maps edit and commit evidence only where the source establishes those facts. It does not fill missing timestamps from file modification times or invent model calls from message boundaries.
+Converter notes make the mapping reviewable. They give storage locations, identity rules, edit evidence, usage arithmetic and supported source versions, with a native sample, because structural validation alone can't show that an export matches the native file.
 
-Converter notes make that work reviewable. They name storage locations and format names, identity rules, edit evidence, usage arithmetic and supported source versions. A native sample lets a reviewer inspect the mapping. If a source description lacks the field needed for a join, the notes say so. Structural validation alone cannot establish that an export faithfully represents the native file.
+An agent can also export ASR itself, through a stable export command that hides changes to its internal storage or by writing ASR next to its native log. Either way it can supply facts a converter can't safely recover. Recording an ACP connection is a third path. The recorder folds streaming updates into completed records and can miss model-call boundaries, event times or the exact tool output the model saw, so those limits stay visible in the file.
 
-Agent-provided export is the next path. A stable export command can hide changes in internal storage and supply facts that a separate converter cannot safely recover. An agent can also write ASR beside its native log, retaining internal state in its own format while publishing the facts useful to outside readers.
+Producers also need a reason to write the format, and useful readers provide it. SARIF defines a common format for static analysis results [[7](#ref-7)], and GitHub code scanning accepts SARIF files from analysis tools [[8](#ref-8)], and that consumer gives analysis tools a concrete reason to write SARIF. ASR needs the same relationship, where each new converter makes another agent's sessions available to every tool that searches and explains code.
 
-Recording an ACP connection is another path. It captures what the client and agent exchange, including messages and tools. The recorder folds streaming updates into completed records. It can miss model-call boundaries, source event times or the form of tool output shown to the model. Those limits stay visible in the resulting file.
+A converter that supports search over messages and tool activity for one well-documented agent should take about a day. Blame needs documented edit and commit payloads, or native samples where they aren't documented.
 
-A useful reader is as important as a writer. If a tool can search many agents and connect results to code, a new converter immediately makes another source available to that tool. Without such readers, a format can be technically implementable while offering little reason to export it.
+## 6. Limits
 
-SARIF provides a useful example of this relationship. The standard defines a common representation for static analysis results [[7](#ref-7)]. GitHub code scanning accepts supported SARIF files from analysis tools [[8](#ref-8)]. A substantial consumer gives producers a concrete benefit from writing the format. ASR seeks the same practical relationship between converters and tools that search and explain code.
+ASR doesn't reconstruct the exact request a model saw, since agents can inject instructions, prune context or keep provider state that an export doesn't contain. It doesn't define replay or resume, which depend on an agent's execution state. It records a reasoning summary, or notes that reasoning is unavailable, and doesn't keep encrypted reasoning or opaque provider bytes.
 
-A converter that supports search over messages and tool activity for one well-documented agent should take about a day. Blame support depends on documented edit and commit payloads. Undocumented payloads need native samples before a converter can map them. Review seeks evidence of conversion coverage across agent versions and blame results on real repositories, including ambiguous and unknown answers. No coverage or attribution rate is claimed here.
+It doesn't replace telemetry. A model call can have usage without usable timing, so an exporter emits a span only when recorded endpoints or a documented start and duration support it.
 
-## 6. What ASR does not provide
+It doesn't put transcripts in Git. Commit trailers and attribution notes point to sessions, and the files stay in storage with suitable access controls. A URL is a locator that may expire or need authentication, not the session's identity.
 
-ASR does not reconstruct the exact request a model saw. Native systems can inject instructions, prune context or retain provider state that a session export does not contain. A sequence of messages and calls can explain recorded work without serving as an exact model input.
+A valid file isn't necessarily complete or safe to share. Prompts, tool definitions and tool output are untrusted and can contain private information. Producers exclude known secrets, and readers never run commands or fetch URIs found in a session. Redaction produces a new file that names the redactor as its producer, with an optional digest of the source bytes.
 
-It does not define replay or resume. Those operations depend on an agent's execution state and native contracts. Encrypted reasoning and opaque provider state are not a portable substitute. ASR records a reasoning summary or an indication that reasoning is unavailable without retaining opaque provider bytes.
+## 7. Extensions and annotations
 
-It also does not replace telemetry. A model call can have usage without usable timing. An exporter emits a span only when recorded endpoints or a documented start and duration support it. Session totals remain distinct from per-call totals. Exported monitoring data reflects those limits.
+Vendor fields go in `_meta` under reverse-DNS keys, and vendor record types have namespaced names. Storage tools keep them and readers ignore meanings they don't understand. Named extensions can add records and fields without changing what core records mean.
 
-The format does not put transcripts in Git. Commit trailers and attribution notes can refer to sessions, while the session files stay in storage with appropriate access controls. A URL is a locator that may expire or require authentication. It is not the session's identity.
+Facts learned after a session, such as a summary, test result, title or outcome, go in a separate `.annotations.jsonl` file. Each line names its target session, when the fact was learned and its source. Readers apply corrections first, take the latest remaining summary, outcome or title, and keep all remaining test and VCS facts. An annotation can supply a merge commit or rewrite pairs but can't establish blame by itself. A test service, forge sync or person can add facts without editing the session file.
 
-Finally, validity does not establish completeness or safety to share. Prompts, tool definitions and tool output are untrusted content and can contain private information. Producers exclude known secrets. Readers never run commands or fetch URIs found in a stream. Redaction produces a new file whose producer identifies the redactor. An optional digest links its exact source bytes, and known losses remain visible to its readers.
-
-## 7. Extensions, annotations and review
-
-The core can stay small while additional detail remains available. Vendor fields live in `_meta` under reverse-DNS keys. Vendor record types have namespaced names. Storage tools preserve them, and readers ignore meanings they do not understand. Named extensions can add records and fields without changing what core records mean.
-
-Annotations handle facts learned after the session. A separate `.annotations.jsonl` file can record a summary, a test result, a title or an outcome. Each line identifies its target session, the time the fact was learned, its source and its payload. A correcting annotation can name the earlier annotation it supersedes.
-
-Readers join annotations by session reference and apply corrections first. The latest remaining time selects a current summary, outcome or title. Independent test and VCS facts all remain available. An annotation can supply a pull request's merge commit or recorded rewrite pairs. It cannot establish blame by itself. Keeping these facts separate allows a test service, forge sync or person to update the view without editing the historical stream.
-
-The governance rule follows the target questions. A feature belongs in the core when it helps answer them and is cheap for a converter or agent to produce. Proposals need both useful reader behavior and source data that can support it. Guides and converter notes can be corrected independently of the core format version.
-
-Review is most useful when it follows one real piece of work. A sample can show a failed call, a person's commit of an agent edit, copied context or a squash merge. The review asks whether the file preserves the available facts and whether a reader reaches a warranted answer. Cases that remain unknown are as useful as cases that match.
-
-The specification, guides and examples are published for that review [[9](#ref-9)]. Implementations can begin with search and add blame where the source and repository support it. The result is a shared record of agent work that stays useful across changes in agents, models and storage.
+The specification, guides and examples are published at agentsessionrecord.org [[9](#ref-9)]. An implementation can start with search and add blame where the source and repository support it.
 
 ## Disclosure
 

@@ -83,7 +83,7 @@
   "files": {
     ".gitattributes": "feeab3231951b683b59f27bf05a3d3feb324a87543375f52d572a6a7d9d71681",
     "PROPOSAL.md": "088b29be8a99ce25b53745c9dbab4dfd92e5bc511b27b0e39ae8dc124b7cdaa7",
-    "README.md": "a228dcbf7319705c1083f32d5ea08d352f7e712f405739a83e597443aee04600",
+    "README.md": "c645ae8df70cf8123a01da601d7fda85c56082427207cd12e0844bcefb91034c",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "contracts.mjs": "e380dc768ab0482bce98a1384c945187f215126e2034526422ffb580a8fc7f95",
     "patches/0001-feat-define-session-export-records-and-tool-mappings.patch": "2957f0d3532d017b72880cb273d25fe37912bbaf1484d91c81e0fe0c6f5887f5",

@@ -25,7 +25,7 @@
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
     "PROPOSAL.md": "cd17c67d420151b58e0813a0754ff6191b7fc1dacf12a6176dbc470b823be1c0",
-    "README.md": "a3e4e2b83af1918584f10c9241fb20cadd254f240a4a718024be73d1dfd8436f",
+    "README.md": "d974c85463283d8317e24797b3bb6c78582f2d5c6ad61ff2b557f80726c33822",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "discovery.json": "c0642d895b2968be0085e68f16eeb7876a013a1eb0fa9c7c6fb0e6b2e45c5f54",
     "patches/0001-native-agent-session-export.patch": "eb01347f60dd72ef891279b81971b08f198ffae43ae51f834015aba560049755",

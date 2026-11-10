@@ -25,7 +25,16 @@
   <br>
 </div>
 
-Agent Session Record (ASR) is an open format for recording what an AI agent did in a session. It keeps prompts, replies, tool calls, file edits and commits in JSON Lines, so tools can search work across agents and connect code to the session behind it.
+Coding agents all log the same things: prompts, replies, tool calls, file edits and commits. Each one uses its own format. Agent Session Record (ASR) is one open format for the exported session, so an agent exports once and any tool can read it. [ACP](https://agentclientprotocol.com/) covers steering an agent while it runs. ASR covers the session file it exports.
+
+ASR is a file format, not a service. Session files stay on your machine unless you choose to share them. Use them to search past sessions across agents, find the session behind a line of code, or move history between tools.
+
+Sessions are JSON Lines because agents append while they run and the file survives a crash. The [tables exporter](exporters/tables/) writes Parquet for analysis across many sessions.
+
+```sh
+cargo install --path crates/asr-cli --locked
+asr convert --agent claude-code ~/.claude/projects --out sessions
+```
 
 ## Tools
 
@@ -37,15 +46,14 @@ See the [tools guide](site/pages/tools/) for setup, examples and test status.
 - [Exporters](exporters/): send records to search, tables and observability tools.
 - [Native export patches](upstream/README.md): proposals and local patch packages for agent maintainers.
 
-Build the CLI with `cargo install --path crates/asr-cli --locked`. Read the
-[tools contribution guide](CONTRIBUTING-tools.md) for dependencies and checks.
+Read the [tools contribution guide](CONTRIBUTING-tools.md) for dependencies and checks.
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
-| `spec/` | Eight normative core pages. |
-| `guides/` | Guides for integrations, company use, audits and replay. They add no requirements. |
+| `spec/` | The specification. |
+| `guides/` | Guides for integrations, replay, company use and audits. |
 | `agents/` | Agent names, the JSON list and converter notes. |
 | `schema/v0/` | Schemas for session records, annotations, discovery files and collection manifests. |
 | `examples/` | Example session streams, annotations and a collection manifest. |

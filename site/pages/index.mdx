@@ -1,50 +1,34 @@
 ---
 title: "Agent Session Record"
-description: "An open format for searching agent sessions and tracing code to the work that produced it."
+description: "An open file format for coding agent sessions."
 ---
 
-Agent Session Record (ASR) is an open format for recording what an AI agent did in a session. It keeps prompts, replies, tool calls, file edits and commits in one shape across agents.
+Every coding agent logs its sessions. Claude Code, Codex, Cursor, opencode and the rest record the same things: prompts, replies, tool calls, file edits and commits. Each one uses its own format, so a tool that searches or analyzes agent history ends up maintaining 40 or 50 parsers.
 
-Use it to find the session behind a line of code, search past work, or see what happened before a test failed. The current format is **version 0.1**, and [later changes keep 0.1 files readable](/spec/format#versions).
+Agent Session Record (ASR) is one open format for the exported session. [ACP](https://agentclientprotocol.com/) covers how an editor steers an agent while it runs. ASR covers the session file the agent exports. An agent exports once, and any tool can read it.
 
-## What you can ask
+ASR is a file format, not a service. Your session files stay on your machine, and nothing is uploaded or shared unless you choose to.
 
-- Which session wrote this line, from which prompt, with which model?
-- Which sessions made this commit or pull request?
-- Which sessions read or changed this file?
-- What failed, what happened next, and what did the model calls cost?
+## What you can do with it
 
-A reader that checks the [quick tour](/get-started/quick-tour) against its repository can give this answer:
+You can search past sessions from all your agents at once, find the session and prompt behind a line of code, or move your history to another tool.
 
-```text
-The changed return statement in parser.py
-Edited by session com.example.coder:parser-42
-Prompt: Make an empty limit mean zero. Run the parser tests and commit the fix.
-Model: code-model-1
-Committed by the same session as a1b2c3d
-```
-
-A record can be incomplete. Missing fields mean unknown. A converter reports known losses, and a reader shows gaps instead of filling them in.
-
-## A record of the work
-
-One session is one JSON Lines file. These are the tour's first three records: the session header, the prompt and one model call, called an inference. The tour uses a fictional agent and repository.
+Each session is one JSON Lines file. Here is the file edit from the [quick tour](/get-started/quick-tour), where an agent fixes a parser bug:
 
 ```jsonl
-{"type":"session","id":"session","formatVersion":"0.1","agent":{"name":"com.example.coder","version":"1.0"},"sessionId":"parser-42","producer":{"name":"example-export","version":"1.0","method":"native"},"cwd":"/work/parser","repos":[{"path":"/work/parser","remote":"https://github.com/example/parser","branch":"fix-empty-limit"}],"missing":["reasoning"]}
-{"type":"message","id":"prompt","turnId":"turn-1","role":"user","author":"human","origin":"prompt","content":[{"type":"text","text":"Make an empty limit mean zero. Run the parser tests and commit the fix."}]}
-{"type":"inference","id":"model-edit","turnId":"turn-1","model":{"provider":"example","id":"code-model-1"},"usage":{"inputTokens":820,"outputTokens":64}}
+{"type":"file_change","id":"change","path":"/work/parser/parser.py","op":"modify","status":"applied","callId":"edit-1","edits":[{"oldText":"    return int(value)\n","newText":"    return int(value or \"0\")\n"}]}
 ```
 
-The [tour](/get-started/quick-tour) continues with the edit, tests and commit that support the answer.
+## Why JSON Lines
 
-## Start with the logs you have
+Agents append one line at a time while they run, so the file is still readable after a crash. To analyze many sessions at once, export them to Parquet tables with the [tables exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/tables/).
 
-Converters read an agent's native logs after a session. Agents can also provide an export command or write ASR beside their own log. A recorder can capture the traffic on an [ACP connection](/guides/acp).
+## Try it
 
-<CardGroup cols={2}>
-  <Card title="Quick tour" icon="route" href="/get-started/quick-tour">Follow a prompt through an edit, tests and a commit.</Card>
-  <Card title="For agent developers" icon="code" href="/get-started/agent-developers">Export the facts your agent already records.</Card>
-  <Card title="For tool builders" icon="wrench" href="/get-started/tool-builders">Build search, blame and cost views.</Card>
-  <Card title="Specification" icon="book" href="/spec/overview">Read the core format and its rules.</Card>
-</CardGroup>
+The [`asr` command line tool](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-cli/README.md) converts the logs your agents already keep. It reads logs from 44 agents. This converts your Claude Code history:
+
+```sh
+asr convert --agent claude-code ~/.claude/projects --out sessions
+```
+
+Next, follow one session through the [quick tour](/get-started/quick-tour) or read the [specification](/spec/overview).

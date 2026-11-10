@@ -3,28 +3,18 @@ title: "Governance"
 description: "How the core, guides and agent list are maintained."
 ---
 
-ASR is an open specification maintained in its [public repository](https://github.com/agentsessionrecord/asr). Wills Manley maintains it. Issues and pull requests are the place to propose changes and review their effect on producers and readers.
+Agent Session Record (ASR) is an open specification maintained by Wills Manley in its [public repository](https://github.com/agentsessionrecord/asr). Changes go through issues and pull requests.
 
 ## What belongs in the core
 
-A feature belongs in the core when it helps answer the questions in the [overview](/spec/overview) and is cheap for a converter or agent to produce.
+A feature belongs in the core when it helps answer the questions in the [overview](/spec/overview) and is cheap for a converter or agent to produce. A proposal should name the reader question and the native data that answers it without guessing. Review weighs implementation cost, behavior with missing data and whether readers will interpret the result consistently, and covers schemas, examples and validator behavior along with the text.
 
-A proposal should show both sides. It should identify a useful reader question and native data that can answer it without guessing. Review considers the implementation cost, behavior with missing data, and whether readers can interpret the result consistently.
+Data specific to one agent belongs in `_meta` or a namespaced record type. A feature readers can ignore without changing core meanings can go in a named extension, and storage tools keep its data.
 
 ## Guides and agent notes
 
-Guides add no requirements. They explain how ASR connects to other tools. Converter notes describe particular source versions and their limits. Adding an agent to the list reserves a short name. It does not certify a converter or claim that every version is supported.
+Only the specification sets requirements. Guides explain integrations, and converter notes describe specific source versions and their limits, with a source or sample for each native fact. Listing an agent reserves its short name. It doesn't certify a converter or claim support for every version. These pages can change without a new `formatVersion`.
 
-Corrections to those pages can be made without changing `formatVersion`. Native facts need a source or a sample that supports the mapping.
+## Versions
 
-## Extensions and compatibility
-
-Vendor data uses `_meta` and namespaced record types. Named extensions can add records and fields while preserving core meanings. Readers can ignore an extension and still interpret the core. Storage tools preserve unknown data.
-
-Core changes are reviewed together with schemas, examples and validation behavior. Version decisions consider what writers produce and what readers can understand.
-
-## Stability during 0.1
-
-Agent makers can build on version 0.1 now. The [Versions section](/spec/format#versions) defines stable requirement IDs and meanings, optional additions and a new format version for breaking changes. Readers ignore unfamiliar data and storage tools keep it. The tools in this repository keep reading 0.1 files.
-
-Send feedback through [issues](https://github.com/agentsessionrecord/asr/issues) and [pull requests](https://github.com/agentsessionrecord/asr/pulls).
+Agent makers can build on 0.1 now. See [Versions](/spec/format#versions) for the compatibility rules.

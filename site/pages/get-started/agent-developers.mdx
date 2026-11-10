@@ -1,66 +1,51 @@
 ---
 title: "For agent developers"
-description: "Export a useful record from the facts your agent already stores."
+description: "Export your agent's sessions as ASR, or convert its existing logs."
 ---
 
-ASR lets search and blame tools read your agent's sessions. Start with one saved native log and the [worked example](/agents/claude-code#worked-example). A harness is the program that runs the agent. Its export command or a file written beside its native log can use the same mapping.
+A converter can read your agent's native logs after each session, or the agent can export Agent Session Record (ASR) itself, with an export command or a file written next to its native log. Both produce the same records.
 
-## 1. Write the header
+Start by mapping one saved native log by hand. The [Claude Code worked example](/agents/claude-code#worked-example) shows native lines beside the ASR they produce, and the [writer libraries](/tools/record#writer-libraries-and-shared-recorder-cores) serialize records from facts you supply.
 
-Write a `session` record first. Keep the native `sessionId` verbatim and use the short name in the [agent list](/agents), or a reverse-DNS name under a domain you control. Add `namespace` only when session IDs repeat across installations.
+## Write the header
 
-Use `producer.method: "converter"` for a tool that reads logs later, `native` for the agent's own writer or export, and `recorder` for a live observer. `producer.source` names the native format as a string.
+The first record is the `session` header. Copy the native `sessionId` exactly. For `agent.name`, use the short name from the [agent list](/agents) or a reverse-DNS name under a domain you control, and add `namespace` only if session IDs can repeat across installations. Set `producer.method` to `native` for the agent's own export, `converter` for a tool that reads logs later, or `recorder` for a live observer, and name the native format in `producer.source`.
 
-Check: the first line identifies the same session as the native sample and names the software that exported it.
+## Write messages and tool calls
 
-## 2. Emit messages and tools
+Write completed items in source order. Keep native record IDs when they're unique, and otherwise derive stable IDs from native IDs or positions. Set a message's `author` only when the source says who wrote it, since a `user` role alone doesn't mean a person typed it.
 
-Write completed items in source order. Keep source record IDs when unique, otherwise derive stable IDs from native IDs or positions. Preserve message role, content and known author. Link calls and results through `callId`, with at most one result per call ID.
+Link each `tool_call` to its `tool_result` with `callId`, with at most one result per call ID. Write an `inference` record only for a model call the log records, and keep the served model separate from the requested one. Other useful native details can go in `_meta` under a reverse-DNS key.
 
-Note: a `user` role alone does not identify a person. Duplicate call IDs leave results unpaired. Emit `inference` only for a recorded model call, and keep served and requested models distinct. Store useful native details in `_meta` under reverse-DNS keys.
+## Add edits and commits
 
-Check: a search finds the sample prompt and tool output, and each paired result leads to the right native request.
+Write one `file_change` per changed file, with the path, the edit text and the `callId` of the tool that made it. Mark it `applied` only when the log shows the edit happened. Write a `vcs` record only for a commit the agent made, not one mentioned in a reply. If Git printed a short ID, store it in `commitPrefix` and leave out parents you don't know. Keep records copied from another session marked as copies so they aren't counted twice. See [Records](/spec/records) and [Code links and blame](/spec/code).
 
-## 3. Record what the agent knows live
+## Declare what's missing
 
-An agent sees facts that a converter reading logs later often cannot recover. Write each one at the position where it happens.
+List known losses in the header's `missing`, or in a later `session_info.missing` when a live writer finds one mid-session. Write a `gap` where history is missing, set `truncated: true` on shortened text, and leave out any time, model, cost or exit code you don't have. A compaction summary gets `origin: "compaction"`, followed by a `gap` if compaction destroyed history. Exclude known secrets, since passing validation doesn't make a file safe to share.
 
-Write an `approval` record when each decision is made, even if the call never finishes. Set `by` to who or what decided and `scope` to how long the grant really lasts. Use `subject` for a request narrower than the call, such as a sandbox escape, or for a decision with no call, such as a network host. Add `person` when a known person answered. When a tool runs or is refused because of a decision, set the result's `approvalId` to that approval's `id`.
+## Record what only the running agent knows
 
-Write a `session_info` with `agentSettings` at the start and at each change. Keep `mode`, `approval` and `sandbox` verbatim from your own settings. Add `asks` when the policy settles whether a person is asked before file changes or commands, and supply it again after each policy change. Add `externalSandbox` when a setting, a launcher marker or the agent's own detection places the agent in a container, VM or remote host. Add configured `modelSettings`. Write `session_info.tools` with the full list whenever the tools offered to the model change.
+An agent writing ASR as it runs can record facts a converter usually can't recover. Write each one where it happens:
 
-Record the system prompt and developer instructions as messages with `origin: "instructions"` where they apply. Put the settings each model call sent in `inference.settings`. Mark a run started by a schedule with `origin: "scheduled"` and one started by a webhook, chat message or issue event with `origin: "external"`, and keep their IDs in `_meta`.
+- each `approval` decision, with who decided and how long the grant lasts, and the `approvalId` on the result that followed it
+- `session_info.agentSettings` at the start and at each change, with your own `mode`, `approval` and `sandbox` values verbatim
+- the offered tools in `session_info.tools`, and instructions as messages with `origin: "instructions"`
+- the settings each model call sent, in `inference.settings`
+- `origin: "scheduled"` or `"external"` for runs started by a schedule or an outside event
+- subagent links, with `tool_call.subagent` in the parent and `parent` in the child's header
 
-Set `session.user` from the signed-in account and `message.person` when a known person sent a message, such as in a group chat. When the agent starts a subagent, write `tool_call.subagent` in the parent and a `parent` with `kind: "subagent"` in the child's header. A fork's header uses `kind: "fork"` and names the last shared `record`.
+Record only what the agent established. Don't infer an approval from a tool's outcome or a permissive mode, and record a reused grant as `by: "policy"`. [Records](/spec/records) defines each field.
 
-Note: record only what the agent established. Do not infer an approval from a tool outcome or a permissive mode. A reused grant is `by: "policy"`. `modelSettings` holds configured values, while `inference.settings` holds what a call sent. Instructions and tool definitions can hold private text, so exclude known secrets.
-
-Check: for each tool call in the sample, a reader can find the instructions, tool list and settings in effect before it, and every decision about it with who decided and for how long.
-
-## 4. Add edits and commit actions
-
-Map recorded file changes to one `file_change` per file. Keep the causing `callId`, path and edit text. Record commit actions with their outcome and evidence. Follow [Records](/spec/records) and [Code links and blame](/spec/code).
-
-Note: requested input alone does not establish an applied edit. A commit mentioned in a reply is not a commit action. A short printed ID needs no invented parent count. Keep copied records marked so they receive no duplicate credit.
-
-Check: the sample edit leads to its tool call and prompt. Where native evidence supports commit credit, the reader can check it against the repository.
-
-## 5. Declare losses
-
-List known losses in the header's `missing`. A live writer that finds a loss after the header, such as a dropped hook event, adds it in the next `session_info.missing`. Use a `gap` where history is missing and `truncated: true` where text was shortened. Leave an unavailable time, model, cost or exit code absent.
-
-Note: a compaction summary has `origin: "compaction"`. It is not a human prompt or evidence of edits. A gap follows when compaction destroyed history. Exclude known secrets, and write redacted exports to new files. Validation does not mean a file is safe to share.
-
-Check: every known omission in the native sample is visible as an absent field, declared loss, gap or shortened record.
-
-## 6. Validate and publish the mapping
-
-Use the [converter notes template](/agents#converter-notes-template). Publish a sample native file and the source versions each mapping supports. Validate the output and check the joins against that sample. A validator can check structure, but it cannot establish that the export matches the source.
+## Validate and publish the mapping
 
 ```sh
 node tools/validator/bin/asr-validate.js sample.jsonl
 ```
 
-Check: the sample validates and its messages, tools and supported edits agree with the native file. You have a first converter when one native sample validates and a reader can follow its edit from tool call to prompt. A source without edit evidence can support search while declaring `file_changes` missing.
+The validator checks structure and links, not whether the export matches the source, so compare the messages, tools and edits with the native file yourself. Publish the sample and the source versions the mapping supports, using the [converter notes template](/agents#converter-notes-template).
 
-The [integration guide](/guides/integration) describes an export command and discovery file. For a live editor connection, use the [ACP recording guide](/guides/acp).
+You have a first converter when a sample validates and a reader can follow its edit back to the prompt. A source with no edit evidence can still support search if it lists `file_changes` in `missing`.
+
+The [integration guide](/guides/integration) describes an export command and a discovery file, and the [ACP recording guide](/guides/acp) covers recording a live editor connection.

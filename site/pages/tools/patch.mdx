@@ -1,19 +1,11 @@
 ---
 title: "Native export integrations"
-description: "Source patches, plugins, extensions and skills that add ASR export to agents."
+description: "Source patches, plugins, extensions and skills that add native export to agents."
 ---
 
-Each package adds ASR export to one agent. It is pinned to the upstream commit
-it applies to, and its README covers installation, commands, checks and what
-the export leaves out. Most are source patches. OpenClaw uses a plugin, Pi an
-extension, NanoClaw a skill and DeepSeek Harness a community plugin.
+Each package adds Agent Session Record (ASR) export to one agent and is pinned to the upstream commit it applies to. Most are source patches. OpenClaw uses a plugin, Pi an extension, NanoClaw a skill and DeepSeek Harness a community plugin. Each README covers setup, commands and checks. The [package overview](https://github.com/agentsessionrecord/asr/blob/main/upstream/README.md) explains the layout and the package checks.
 
-Project checks are the agent's own build, tests, lint and type check for the
-changed code, plus validation of a synthetic session exported by the patched
-agent. The OpenCode, Goose and Hermes packages were also tested with a live
-Claude model on November 5, 2026. In each run the patched agent read files,
-edited one and ran a test, and its export validated with no errors. No other
-package has been tested against a live model.
+Project checks are the agent's own build, tests, lint and type check for the changed code, plus validation of a synthetic session exported by the patched agent. The OpenCode, Goose and Hermes packages were also tested with a live Claude model on November 5, 2026. In each run the patched agent read files, edited one and ran a test, and its export validated with no errors. No other package has been tested against a live model.
 
 | Tool README | Project checks | Live-test status |
 | --- | --- | --- |
@@ -43,33 +35,6 @@ package has been tested against a live model.
 | [Mistral Vibe native export patch](https://github.com/agentsessionrecord/asr/blob/main/upstream/mistral-vibe/README.md) | Pass | `not-live-tested` |
 | [Pi ASR export extension](https://github.com/agentsessionrecord/asr/blob/main/upstream/pi/extension/README.md) | Partial. Type check and build fail on one file the change does not touch | `not-live-tested` |
 
-## Commands and capture limits
+As an example, the OpenCode patch adds `opencode session export SESSION_ID --format agent-session`. It needs `OPENCODE_AGENT_SESSION_HISTORY=1` set before the session is recorded, and an existing server has to restart with that setting.
 
-OpenCode uses `opencode session export SESSION_ID --format agent-session`.
-Enable `OPENCODE_AGENT_SESSION_HISTORY=1` before recording and restart an existing
-server. Kilo uses `kilo export SESSION_ID --format agent-session`. Its V1 and V2
-snapshot paths declare incomplete capture. Qwen Code uses
-`/export agent-session [directory]`.
-
-Codex uses `/export --format agent-session PATH` for saved local rollout
-history. Markdown remains the default. Goose uses
-`goose session export --session-id`. ForgeCode uses
-`conversation dump --format agent-session`.
-
-Xum exports one selected chat segment and declares the earlier part of the chat
-missing. The NanoClaw skill exports one selected Claude SDK continuation,
-including retained tools and identified model calls. The operator confirms
-which NanoClaw session it belongs to. It does not capture mailbox delivery or
-other providers. fx's homepage is [fx.sh](https://fx.sh).
-
-Kimi Code uses `KIMI_CODE_EXPERIMENTAL_AGENT_SESSION_EXPORT=1 kimi export --format agent-session`.
-The ZIP contains only its manifest and ASR. Hermes uses the existing
-`--session-id` selector and positional output in its sessions export command.
-
-OpenHands exports from Canvas 1.35.0. Warp exports saved conversations from its
-persistence crate and leaves out recognized secrets. Grok Build's
-`events.jsonl` telemetry and `updates.jsonl` ACP stream are separate sources.
-
-Stored history can lack approvals, model inputs, usage, file changes, commits
-and relationships. Each integration declares those losses. Successful
-validation does not establish complete capture or suitability for sharing.
+Stored history can lack approvals, model inputs, usage, file changes, commits and relationships, and each export declares what it leaves out. A valid export does not show that capture was complete or that the file is safe to share.

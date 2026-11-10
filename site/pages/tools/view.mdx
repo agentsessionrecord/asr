@@ -1,15 +1,11 @@
 ---
 title: "View sessions and line evidence"
-description: "Read an offline ASR timeline or find evidence behind a Git line."
+description: "Read a session timeline offline or find the session behind a Git line."
 ---
 
-Build the static viewer and open `apps/viewer/dist/index.html` directly in a
-current browser. Choose local files or a folder. The page needs no server and
-makes no remote requests. The viewer README gives the build command.
+The viewer is a static page for reading Agent Session Record (ASR) files. Build it as its README describes, open `apps/viewer/dist/index.html` in a current browser and choose local files or a folder. It needs no server and makes no network requests. The CLI has no `asr view` command.
 
-The CLI has no `asr view` command. Editor plugins use the installed `asr blame`
-command and bundle the same offline viewer. GitHub and GitLab integrations
-produce review summaries from configured local stores.
+The editor plugins call `asr blame` and bundle the same viewer. The GitHub and GitLab apps build review summaries from local stores you configure.
 
 | Tool README | Live-test status |
 | --- | --- |
@@ -21,21 +17,8 @@ produce review summaries from configured local stores.
 
 ## What the views show
 
-The timeline follows file order and shows recorded messages, tools, decisions,
-model calls, changes, settings and gaps. Links resolve only against available
-files. Copies keep their markers and receive no duplicate work or cost credit.
-The editor and review views keep edit evidence separate from commit evidence.
-They show citations, recorded prompts, labeled model evidence and unresolved links.
+The timeline shows messages, tool calls, decisions, model calls, changes, settings and gaps in file order, without counting copied records twice. The editor and review views keep edit evidence apart from commit evidence. Recorded commands and URLs are shown as text and never run or loaded. The viewer does not validate files or convert native logs.
 
-Commands and URLs in records remain text. The viewer does not execute commands,
-load recorded resources, validate files or infer source completeness. It has no
-native log converter. Oversized lines remain available through raw byte paging.
+## Test results
 
-## Test evidence
-
-The viewer passed offline Chromium tests with every sample and example stream,
-hostile content and a 220 MiB synthetic file. VS Code 1.109.0 passed extension
-host checks. JetBrains used the IntelliJ IDEA Community 2025.1.4 platform harness.
-Its JCEF dialog rendering remains untested. GitHub and GitLab use local HTTP
-mocks and synthetic repositories. Hosted service behavior is not live-tested.
-Read each README for its storage limits, trust settings and checks.
+The viewer passed offline Chromium tests with every sample file, hostile content and a 220 MiB file. The VS Code extension passed host checks on VS Code 1.109.0. The JetBrains plugin was tested in the IntelliJ platform harness, but its JCEF dialog rendering was not. The GitHub and GitLab apps were tested only against local mocks and synthetic repositories.

@@ -1,27 +1,21 @@
-# Shelley ASR export
+# Agent Session Record export for Shelley
 
-The patch adds a small standalone database export command and `DB.WriteAgentSession`. It opens an existing `shelley.db` in read-only mode. It changes neither the database schema nor saved messages.
-
-Source: https://github.com/boldsoftware/shelley. Pinned base: `3df54607e37a808362437f96f17d1d276b74684a`.
-
-Apply `patches/*.patch` with `git am` in a clean writable checkout at the pinned base. Build the patched source using its own instructions.
+This patch adds a small standalone export command and `DB.WriteAgentSession` to [Shelley](https://github.com/boldsoftware/shelley) for ASR output. It opens an existing `shelley.db` read-only and changes neither the schema nor saved messages. The pinned base is `3df54607e37a808362437f96f17d1d276b74684a`. [Apply the patch](../README.md#apply-a-patch) in a clean checkout at that base. Building needs Go 1.27.3.
 
 ```sh
 go run ./cmd/shelley-export --db /path/to/shelley.db \
   --session SESSION_ID --format agent-session > session.asr.jsonl
 ```
 
-Native sequence order supplies text, retained reasoning, supported inline images, tool arguments, IDs, final results, and timestamps. Repeated tool results fold into the last result at its completion position. Human authorship is supplied only when the native row records a user email. Opaque reasoning and provider metadata are excluded. Unsupported content becomes a gap. Models, usage, approvals, settings, file changes, commits, and relationships are declared missing. The export is not a redactor. Review conversation content before sharing.
+Native sequence order supplies text, retained reasoning, supported inline images, tool arguments, IDs, final results and timestamps. Repeated tool results fold into the last result at its completion position. Human authorship is set only when the native row records a user email. Opaque reasoning and provider metadata are left out, and unsupported content becomes a gap. Models, usage, approvals, settings, file changes, commits and relationships are declared missing. The export does no redaction, so review the content before sharing. The command does not use the web UI.
 
-Go 1.27.3 is required. Focused checks are `go test ./db ./cmd/shelley-export`, `go vet ./db ./cmd/shelley-export`, and `go build ./cmd/shelley-export`. `python3 upstream/shelley/reproduce.py /path/to/patched-checkout` creates a synthetic database, runs the native command, compares the sample, and validates it. The standalone command does not use the web UI.
-
-Run these package checks from the ASR repository:
+## Checks
 
 ```sh
 node upstream/shelley/check.mjs
 node upstream/shelley/reproduce.mjs /path/to/patched-checkout
 ```
 
-Package reproduction replays the patch in a temporary Git index. It preserves the checkout and does not compile the agent. [TESTS.json](TESTS.json) records the current verification scope. No current model session was run.
+See [package checks](../README.md#check-a-package). The focused upstream checks are `go test ./db ./cmd/shelley-export`, `go vet ./db ./cmd/shelley-export` and `go build ./cmd/shelley-export`. `python3 upstream/shelley/reproduce.py /path/to/patched-checkout` creates a synthetic database, runs the native command, compares the sample and validates it. [TESTS.json](TESTS.json) records the current scope. No live model run covers this revision.
 
-Shelley requires a CLA. The export preserves immutable messages and needs no schema review. The database location is documented by shelley.dev, which currently offers no export.
+Shelley requires a CLA. The patch needs no schema review. The shelley.dev docs give the database location and offer no export.

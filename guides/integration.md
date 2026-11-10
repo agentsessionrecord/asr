@@ -3,11 +3,9 @@ title: "Integration"
 description: "Commit trailers, an export command convention and session discovery."
 ---
 
-This guide describes small interfaces for finding and exporting ASR sessions. It adds no requirements. An agent can produce valid ASR without implementing them.
-
 ## The Agent-Session trailer
 
-A commit message can carry one `Agent-Session` trailer per contributing session:
+A commit message can name each Agent Session Record (ASR) session that contributed to it with an `Agent-Session` trailer:
 
 ```text
 Handle empty limits
@@ -16,17 +14,15 @@ Agent-Session: com.example.coder:parser-42#commit
 Agent-Session-Url: https://sessions.example.com/parser-42
 ```
 
-The trailer value is a [session reference](../spec/format.md), optionally ending in a record fragment. Keep it separate from the URL or commentary. For printable ASCII trailers, percent-encode non-ASCII UTF-8 bytes as well as the reference grammar's reserved characters. Use uppercase hexadecimal escapes.
+The value is a [session reference](../spec/format.md#identity-and-session-references), optionally with a record fragment, and nothing else. Trailers are printable ASCII, so percent-encode non-ASCII UTF-8 bytes as well as the reference grammar's reserved characters, using uppercase hexadecimal. Write one trailer per session. An optional `Agent-Session-Url` goes right after its session's trailer. The URL can change, expire or require access, so it locates the session but doesn't identify it.
 
-Several sessions can contribute to one commit. Write each session once. An optional `Agent-Session-Url` immediately follows its session trailer. It is a locator and can change, expire or require access. It is not the session's identity.
+A trailer tells a reader which session to check, not who committed or wrote anything. Apply the [committed-by checks](../spec/code.md#committed-by) and inspect the surviving edits before claiming authorship.
 
-The trailer helps a reader find a candidate session. Apply the [committed-by checks](../spec/code.md#committed-by) and inspect surviving edits before claiming authorship. A trailer alone establishes neither.
-
-Add trailers when making a commit if the repository's user has enabled them. Do not rewrite existing commits merely to insert links. Squash merges may omit trailers, so readers also use recorded pull request and commit associations.
+Add trailers when the repository's user has turned them on, and don't rewrite existing commits to add them. Squash merges can drop trailers, so readers also use the recorded pull request and commit associations.
 
 ## Export command convention
 
-An agent can offer a command with this shape:
+An agent can offer an export command with this shape:
 
 ```text
 <agent> sessions export --format agent-session
@@ -35,21 +31,15 @@ An agent can offer a command with this shape:
     [--output <directory>]
 ```
 
-With exactly one `--session` and no output directory, write that session's JSONL stream to standard output. With `--output`, write one `.jsonl` file per selected session. `--since` selects sessions changed since the supplied time. Reject ambiguous multi-session output to standard output rather than mixing session headers.
+With exactly one `--session` and no `--output`, the command writes that session's JSONL stream to standard output. With `--output`, it writes one `.jsonl` file per selected session. `--since` selects sessions changed since the given time. If a request would send several sessions to standard output, reject it rather than mix their headers.
 
-Choose filenames safely without interpreting session IDs as paths. Identity comes from each file's header. This convention defines a directory of files and does not require a manifest.
+Choose filenames safely and never treat a session ID as a path. Each file's header carries its identity, so the directory needs no manifest. Write diagnostics to standard error, exit with zero on success and nonzero on failure, and report unavailable source files instead of writing them out as empty sessions.
 
-Write diagnostics to standard error. Exit with zero on success and nonzero on failure. Report unavailable source files without turning missing facts into empty successful sessions.
-
-A converter can re-export a whole file as its source changes. Keep record IDs deterministic across exports where the native identity is unchanged. A live writer appends complete lines. Readers should distinguish an appended file from a replacement export when updating an index.
-
-An agent's own export uses `producer.method: native`. A separate tool reading logs uses `converter`. Both identify the source format they read when applicable and list known losses.
+A converter can re-export a whole file as its source changes, while a live writer appends complete lines. Keep record IDs the same across exports wherever the native identity is unchanged. The [tool-builder guide](../site/pages/get-started/tool-builders.mdx#updates-and-retention) covers how readers handle both.
 
 ## Discovery file
 
-An agent can describe its source at `$XDG_CONFIG_HOME/agent-sessions/sources/<agent>.json`. The default is `~/.config/agent-sessions/sources/<agent>.json`. On Windows, use `%APPDATA%\agent-sessions\sources\<agent>.json`.
-
-The [discovery schema](https://agentsessionrecord.org/schema/v0/discovery.schema.json) describes these fields:
+An agent can describe its sessions in `$XDG_CONFIG_HOME/agent-sessions/sources/<agent>.json`, which defaults to `~/.config/agent-sessions/sources/<agent>.json`. On Windows the file is `%APPDATA%\agent-sessions\sources\<agent>.json`. The [discovery schema](https://agentsessionrecord.org/schema/v0/discovery.schema.json) defines these fields:
 
 | Field | Meaning |
 |---|---|
@@ -61,16 +51,16 @@ The [discovery schema](https://agentsessionrecord.org/schema/v0/discovery.schema
 | `supportsDeletionHook` | Whether the agent can notify consumers before deleting native sessions. |
 | `_meta` | Vendor data under reverse-DNS keys. |
 
-A discovery file advertises a source. It does not authorize running its command. A tool should let the user enable the source, check which executable it names, and invoke the argument array without shell evaluation. Never execute a command found inside a session stream.
+A discovery file advertises a source but doesn't authorize running its command. Let the user enable the source and check which executable it names, then run the argument array without a shell. Never run a command found inside a session stream.
 
-Native storage may move between releases. Keep source paths and supported versions current. A converter can also accept a user-selected source without a discovery file.
+Native storage can move between releases, so keep `nativePaths` and `formatVersions` current. A converter can also read a source the user picks without any discovery file.
 
-`supportsDeletionHook: true` advertises a notification before native sessions are deleted. It does not define a hook transport, register a consumer or guarantee delivery. On notification, update source availability and apply the store's retention policy to indexed text and retained exports. Without a hook, reconcile availability during refresh. Deletion of a native file does not itself delete a separately retained export. The [tool-builder guide](../site/pages/get-started/tool-builders.mdx#updates-and-retention) covers index updates and storage.
+`supportsDeletionHook: true` says the agent can send a notification before it deletes native sessions. It doesn't define a hook transport, register a consumer or guarantee delivery. The [tool-builder guide](../site/pages/get-started/tool-builders.mdx#updates-and-retention) covers what a reader does when a source is deleted.
 
 ## Later facts and access
 
-Write facts learned after a session to a separate file ending in `.annotations.jsonl`. A forge sync can record a merge, and a test service can record an outcome. Join those records through the session reference. See [Annotations](../spec/annotations.md).
+Facts learned after a session, such as a merge recorded by a forge sync or a test service's result, go in a separate `.annotations.jsonl` file and join the session by its reference. See [Annotations](../spec/annotations.md).
 
-Keep transcript content out of commit messages and Git notes. A reference can itself disclose that a session exists, so make publishing links a deliberate repository setting. Apply access control to any service that resolves session URLs. A valid stream is not necessarily safe to publish.
+Keep transcript content out of commit messages and Git notes. Even a bare reference reveals that a session exists, so publish links only when the repository has chosen to, and put access control on any service that resolves session URLs. A stream that validates can still be unsafe to publish.
 
-For line attribution notes, use the [Git AI guide](git-ai.md). For exporting a live connection, use the [ACP guide](acp.md).
+The [Git AI guide](git-ai.md) covers line attribution notes, and the [ACP guide](acp.md) covers recording a live connection.

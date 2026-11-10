@@ -1,11 +1,9 @@
 ---
-title: "Export ASR"
-description: "Create traces, tables, search bundles, eval datasets and Git notes from ASR."
+title: "Export to other formats"
+description: "Create traces, tables, search indexes, eval datasets and Git notes from sessions."
 ---
 
-Exporters read existing ASR streams and keep citations back to source records.
-Choose the output for your query or destination. Each README gives its local
-installation, command, content policy and loader instructions.
+Exporters turn Agent Session Record (ASR) files into other formats and keep citations back to the source records.
 
 | Tool README | Live-test status |
 | --- | --- |
@@ -19,39 +17,22 @@ installation, command, content policy and loader instructions.
 | [OpenTelemetry exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/otel/README.md) | `partial` |
 | [Phoenix observability exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/phoenix/README.md) | `partial` |
 
-## Choose an output
+## Outputs
 
-OpenTelemetry produces OTLP traces and logs. Tables produce Parquet and Arrow
-with DuckDB queries and loader examples for ClickHouse, BigQuery and Snowflake.
-SIEM output follows OCSF and provides request files for Splunk, Datadog and Elastic.
-Search writes OpenSearch or Elasticsearch bulk data and citation-preserving
-vector chunks for Qdrant. Vector creation requires an explicit embedding command.
-Git notes and Git AI export keep edit evidence distinct from commit evidence.
+- OpenTelemetry: OTLP traces and logs.
+- Tables: Parquet and Arrow, with DuckDB queries and loader examples for ClickHouse, BigQuery and Snowflake.
+- SIEM: OCSF events, with request files for Splunk, Datadog and Elastic.
+- Search: OpenSearch or Elasticsearch bulk data, and vector chunks for Qdrant. Vectors need an embedding command you supply.
+- Git notes and Git AI: edit evidence kept apart from commit evidence.
+- `Langfuse`, Braintrust and Phoenix: trace and dataset import files.
+- Evals: dataset rows with source citations. Ordinary observed output is never marked as a passed test or a verified expected answer.
 
-The `Langfuse`, Braintrust and Phoenix exporters write trace and dataset import
-files. Evals produce portable dataset rows with source citations. Ordinary
-observed output does not become a passed test or a verified expected answer.
+## Limits
 
-## Reader and content limits
+Missing models, costs, counts, outcomes and times stay unknown. Copied records add no usage, and session totals are kept apart from the sum of model calls.
 
-Missing models, costs, counts, outcomes and times stay unknown. Copies add no
-duplicate usage. Session totals stay separate from sums of model calls.
-Operation timestamps require the documented source meaning. A nearby timestamp
-does not establish an interval.
+Content defaults and memory limits differ by exporter. Some can send data to a destination when you configure them to, and others only write local files. Check the README before you include content or run a loader. Exporting does not make private data safe to share.
 
-Content defaults and memory limits differ by exporter. Some commands can send
-data or load a destination when explicitly configured. Others only write local
-files. Review the selected README before including content or using a loader.
-These exports do not make private source data safe to share.
+## Test results
 
-## Test evidence
-
-OpenTelemetry used local OTLP endpoints. Tables exercised DuckDB and local
-ClickHouse. Search exercised local OpenSearch and Qdrant containers, with
-synthetic embeddings. Phoenix used a local service. Git notes used synthetic
-repositories. SIEM exercised local protocol endpoints.
-
-Production Splunk, Datadog, Elasticsearch, BigQuery, Snowflake, Git AI and hosted
-observability services remain untested. The `Langfuse` and Braintrust SDK contracts
-were checked locally. A `passed` local protocol test does not qualify every
-listed service or a production embedding model.
+All exporter tests ran against local services, local containers or synthetic repositories, with synthetic embeddings for search. Production Splunk, Datadog, Elasticsearch, BigQuery, Snowflake, Git AI, hosted observability services and production embedding models are untested.

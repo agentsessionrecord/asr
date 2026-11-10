@@ -1,32 +1,15 @@
 ---
-title: "Record new work"
-description: "Capture supported agent hooks, gateway traffic and Agent Client Protocol exchanges."
+title: "Record new sessions"
+description: "Capture sessions through agent hooks, model gateways and Agent Client Protocol messages."
 ---
 
-Choose a recorder for the boundary you can observe. Agent plugins see native
-callbacks. Gateway recorders see model traffic. ACP capture sees editor-to-agent
-messages. Their capture limits differ.
+Recorders write Agent Session Record (ASR) files while an agent runs. Agent plugins use the agent's own hooks, gateway recorders see model traffic and the ACP recorder sees the messages between an editor and the agent.
 
-Most hook plugins omit content by default. Where supported, `ASR_CONTENT=full`
-retains available text after known-secret filtering. Set a private
-`ASR_OUTPUT_DIR` and read the selected README before enabling capture.
-Gateway traffic includes prompts and model-facing output. Filtering cannot
-identify every secret.
+Most hook plugins leave out content by default. Where supported, `ASR_CONTENT=full` keeps the available text after filtering known secrets. Set `ASR_OUTPUT_DIR` to a private directory before you turn capture on. Gateway traffic includes prompts and the output sent to the model, and filtering cannot catch every secret.
 
 ## Agent plugins
 
-Test status comes from the [repository registry](https://github.com/agentsessionrecord/asr/blob/main/registry.json).
-`passed` names a tested path. `partial` means only part of the host path ran.
-`not-live-tested` means no qualifying host or service run is recorded.
-`not-applicable` applies to offline tools and shared libraries.
-Read each README for the version, test scope and remaining limits.
-
-The OpenCode package serves OpenCode, Kilo Code and MiMoCode. The Kimi recorder
-supports separate Python 1.52 and 2.x contracts. Its live run covers 2.4.1.
-Cline's run covers normal CLI act mode and the SDK local host. VS Code and CLI
-yolo mode are untested. Mux requires managed installation, MCP enabling and
-trusted workspace hooks. The Codex recorder's host run predates its latest
-storage fixes. Those fixes have synthetic regression coverage.
+The OpenCode package also serves Kilo Code and MiMoCode. Each README gives the tested version, test scope and remaining limits. See [live-test status](/tools#live-test-status) for what the statuses mean.
 
 | Tool README | Live-test status |
 | --- | --- |
@@ -65,11 +48,7 @@ storage fixes. Those fixes have synthetic regression coverage.
 | [Qwen Code hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/qwen-code/README.md) | `partial` |
 | [Tabnine CLI hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/tabnine/README.md) | `not-live-tested` |
 
-Hook payloads can omit final arguments, final output, approval choices or
-session lifetime. The READMEs state which facts are available. A turn stop does
-not establish session end. Calls without a native join key remain unpaired.
-Capture can stop at storage limits or lose callbacks. Loss markers describe
-observed failures and do not establish complete delivery.
+Hook payloads can leave out final arguments, final output, approval choices or the end of the session, and calls with no native ID to join on stay unpaired. Capture can also stop at storage limits or miss callbacks. Loss markers record only the failures a recorder saw.
 
 ## Gateway and ACP recorders
 
@@ -82,18 +61,11 @@ observed failures and do not establish complete delivery.
 | [LiteLLM gateway recorder](https://github.com/agentsessionrecord/asr/blob/main/recorders/litellm/README.md) | `partial` |
 | [Portkey logging hook recorder](https://github.com/agentsessionrecord/asr/blob/main/recorders/portkey/README.md) | `not-live-tested` |
 
-LiteLLM's local host run predates its latest capture fixes. Those fixes were
-checked with synthetic regressions. Envoy, Portkey and Helicone have local
-protocol tests, without a full gateway run. Cloudflare uses offline encrypted
-Logpush input. Its hosted gateway was not deployed or exercised.
-A gateway cannot see tool effects that are never sent through model traffic.
-Trace IDs alone do not establish an agent's session identity.
+Envoy, Portkey and Helicone have local protocol tests but no full gateway run. Cloudflare was tested with offline encrypted Logpush input, not a deployed gateway. A gateway cannot see tool effects that never pass through model traffic, and trace IDs alone do not identify an agent session.
 
 ## Writer libraries and shared recorder cores
 
-Install a writer when adding ASR to your own producer. Writers serialize facts
-that the caller supplies. Generated types provide structure. Neither can
-recover absent native history. Shared cores are installed through an adapter.
+Writer libraries add ASR output to your own agent or tool. They write what the caller passes in and cannot recover history the source never kept. The shared cores are installed together with an agent adapter.
 
 | Tool README | Live-test status |
 | --- | --- |
@@ -106,7 +78,3 @@ recover absent native history. Shared cores are installed through an adapter.
 | [Rust ASR core](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-core/README.md) | `not-applicable` |
 | [Shared JSON hook recorder](https://github.com/agentsessionrecord/asr/blob/main/plugins/hooks-core/README.md) | `not-applicable` |
 | [Shared recorder for remaining agent APIs](https://github.com/agentsessionrecord/asr/blob/main/plugins/remaining-core/README.md) | `partial` |
-
-Writer `not-applicable` statuses cover offline libraries. Local examples and
-generated sessions have validation coverage. The Python core's host runs predate
-its incremental storage revision. Current storage behavior has synthetic regression coverage.

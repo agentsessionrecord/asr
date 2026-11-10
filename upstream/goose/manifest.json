@@ -29,7 +29,7 @@
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
     "PROPOSAL.md": "f0b30396e43736022d9f4e4e20b3fd215129fa886135a607391940f5e5dcadda",
-    "README.md": "df57deedffe1f84da08eca7e3378563b1ca94e492b2c6aece6ac7de575179a92",
+    "README.md": "80f879e7677b38faf792ed38a135e2c3771d3ae202e7d08ea2ccae89e2f2dd60",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "check.test.mjs": "dfbbc5ae855eec050e941077646b26632581e123ab6fb01aed46daa52e0bd0a8",
     "live-test.recipe.yaml": "3a211ecc7f30cb8f07054f26640de25b8276fc96b202795459de5686042e5556",

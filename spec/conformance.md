@@ -5,23 +5,23 @@ sidebar:
   order: 8
 ---
 
-ASR defines conformance for writers, readers and validators. One implementation can perform several of these roles. A valid file establishes structure, not that its producer faithfully recorded the source.
+Agent Session Record has separate requirements for writers, readers and validators. One program can play more than one of these roles.
 
 ## Writers
 
 **ASR-067** A conforming writer MUST emit streams that pass validation and follow the missing-data rules. For each converter mapping, it MUST publish a sample native file and the source versions it supports.
 
-Samples let reviewers compare native facts with exported records. They exclude known secrets under the [safety rules](missing-data.md#safety). Passing a schema cannot prove that a converter kept the right model, outcome or authorship. Those claims need comparison with source data.
+A sample lets reviewers check that a converter kept the right model, outcome and authorship by comparing the native file with the exported records. A schema check cannot show that. Samples exclude known secrets under the [safety rules](missing-data.md#safety).
 
 ## Readers
 
 **ASR-068** A conforming reader MUST follow the rules for file order, unknown data, conservative call pairing, copied-record credit, blame and accounting. It MUST show gaps and unresolved references and MUST follow the safety rules for untrusted content.
 
-An indexer can support search without offering blame. When it does derive attribution, the [code-link checks](code.md) apply. A storage tool also preserves unknown data so a later reader can use it.
+An indexer can offer search without blame. If it does attribute code, the [code-link checks](code.md) apply.
 
 ## The validator
 
-The record schemas live at `schema/v0/agent-session.schema.json` and `schema/v0/annotation.schema.json`. A validator checks framing and relationships across records as well as individual record shapes.
+The JSON Schemas are `schema/v0/agent-session.schema.json` and `schema/v0/annotation.schema.json`. A validator checks more than record shapes. It also checks framing and the links between records.
 
 **ASR-069** A validator MUST report the following as errors when applicable to the file being checked.
 
@@ -41,13 +41,13 @@ The record schemas live at `schema/v0/agent-session.schema.json` and `schema/v0/
 
 **ASR-070** A validator MUST warn about a call without a result, an unpaired result, an `approval` with a `callId` but no unique matching call, an `inferenceId` without a matching `inference`, a tool call without `name`, an incomplete final line, and unknown record types or extensions.
 
-An incomplete final line is a warning, not an error. Unknown types, fields, enum values and content parts do not become errors merely because they are unfamiliar. An unavailable related session is not an error.
+A type, field, enum value or content part is not an error just because it is unfamiliar. An unavailable related session is not an error either.
 
 **ASR-071** A validator MUST NOT query Git, the network or native formats to validate a file, and MUST NOT claim that passing validation proves a writer was faithful.
 
-Repository checks belong to a reader deriving blame. Source comparisons belong to tests of the writer's converter mapping. The validator's structural result does not replace either.
+Checking the repository is the job of a reader that derives blame. Comparing output with the source is the job of a converter's tests. Validation replaces neither.
 
-This excerpt illustrates a call whose outcome is unknown. In a stream with no result for it, the validator warns.
+This call's outcome is unknown. A validator warns if the stream has no result for it.
 
 ```jsonl
 {"type":"tool_call","id":"read-call","callId":"read-1","name":"read_file","kind":"read","input":{"path":"/work/app/src/parser.py"}}
@@ -55,11 +55,11 @@ This excerpt illustrates a call whose outcome is unknown. In a stream with no re
 
 ## Collection manifests
 
-The collection manifest is a companion document described in the [audit guide](../guides/audits.md#write-a-collection-manifest). It has no numbered requirements. ASR conformance neither requires nor forbids checking it.
+A collection manifest is a separate document, described in the [audit guide](../guides/audits.md#write-a-collection-manifest). It has no numbered requirements, and ASR conformance neither requires nor forbids checking it.
 
 ## Requirement table
 
-The table lists every numbered requirement in page order. Requirement IDs are stable once assigned and are never reused. `schema` means a record-shape check, `semantic` means a file or cross-record check, and `fixture` means implementation behavior checked with examples or native source fixtures. A row names its main check. Some requirements also need behavioral evidence. Conformance fixtures belong in `conformance/fixtures/`, alongside the readable sessions in `examples/`.
+The table lists every numbered requirement in page order. The Check column gives the main way to test each requirement, and some also need behavioral evidence. `schema` is a record-shape check, and `semantic` is a check on a whole file or across records. `fixture` is implementation behavior checked with examples or native source fixtures. Conformance fixtures belong in `conformance/fixtures/`, and readable example sessions are in `examples/`.
 
 | ID | Page | Summary | Check |
 |---|---|---|---|

@@ -3,13 +3,11 @@ title: "OpenTelemetry"
 description: "Export recorded model and tool activity to OpenTelemetry GenAI spans."
 ---
 
-This guide maps ASR to [OpenTelemetry's GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/). Attribute names are checked on October 30, 2026 against the [GenAI registry](https://github.com/open-telemetry/semantic-conventions-genai/blob/72e0d0a097db3ba31ba3f33d0519401a044f6e23/model/gen-ai/registry.yaml), [GenAI spans](https://github.com/open-telemetry/semantic-conventions-genai/blob/72e0d0a097db3ba31ba3f33d0519401a044f6e23/model/gen-ai/spans.yaml), [OpenAI registry](https://github.com/open-telemetry/semantic-conventions-genai/blob/72e0d0a097db3ba31ba3f33d0519401a044f6e23/model/openai/registry.yaml), [user registry](https://github.com/open-telemetry/semantic-conventions/blob/debfc1c62dcaf49eece43e3ee1d56a92b837a7e2/model/user/registry.yaml) and [error registry](https://github.com/open-telemetry/semantic-conventions/blob/debfc1c62dcaf49eece43e3ee1d56a92b837a7e2/model/error/registry.yaml). The GenAI and user conventions are under development. An exporter should name the revisions it implements.
-
-This guide adds no requirements. ASR supplies a record for search and blame. OpenTelemetry supplies timed operations for monitoring. Exporting spans does not turn a session into an exact account of model input or a complete performance trace.
+An exporter can turn the model and tool calls in an Agent Session Record (ASR) session into spans that follow [OpenTelemetry's GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/). The attribute names below were checked on October 30, 2026 against the [GenAI registry](https://github.com/open-telemetry/semantic-conventions-genai/blob/72e0d0a097db3ba31ba3f33d0519401a044f6e23/model/gen-ai/registry.yaml), [GenAI spans](https://github.com/open-telemetry/semantic-conventions-genai/blob/72e0d0a097db3ba31ba3f33d0519401a044f6e23/model/gen-ai/spans.yaml), [OpenAI registry](https://github.com/open-telemetry/semantic-conventions-genai/blob/72e0d0a097db3ba31ba3f33d0519401a044f6e23/model/openai/registry.yaml), [user registry](https://github.com/open-telemetry/semantic-conventions/blob/debfc1c62dcaf49eece43e3ee1d56a92b837a7e2/model/user/registry.yaml) and [error registry](https://github.com/open-telemetry/semantic-conventions/blob/debfc1c62dcaf49eece43e3ee1d56a92b837a7e2/model/error/registry.yaml). The GenAI and user conventions are still under development, so name the revisions your exporter implements.
 
 ## Use recorded timing
 
-A span needs a start and an end. Emit it only when the source establishes both, or establishes a start and a duration. `ts` alone does not say whether it marks an operation's start or completion. Use the producer's documented timestamp meaning.
+A span needs a start and an end. Emit one only when the source establishes both, or a start and a duration. `ts` alone doesn't say whether it marks the start or the completion of an operation, so use the producer's documented meaning.
 
 | ASR source | Span | Timing needed |
 |---|---|---|
@@ -18,13 +16,13 @@ A span needs a start and an end. Emit it only when the source establishes both, 
 | Uniquely paired `tool_call` and `tool_result` | `execute_tool` | Recorded call start and result completion, or recorded start and result `durationMs`. |
 | A linked child session | `invoke_agent` for the child | The child's own recorded endpoints. |
 
-Do not borrow time from neighboring records or use export time to fill a missing endpoint. End of file is not a session end. A session that resumes can have work after a recorded end, so check that the chosen interval actually describes the exported activity.
+Don't borrow time from neighboring records or fill a missing endpoint with the export time. The end of the file is not the end of the session, and a resumed session can have work after a recorded end, so check that the interval covers the exported activity.
 
-Recorder receipt times can describe the observation interval. Label that basis in exporter metadata instead of presenting it as measured agent execution time.
+If you use recorder receipt times, label them in the exporter's metadata as the observation interval, not measured agent execution time.
 
-When a parent's span cannot be emitted, keep timed children without that parent. A child's `parent.callId` can connect its session span to the delegating tool span. `parentCallId` can connect a nested tool span to its enclosing tool. Unresolved links remain unresolved.
+When a parent span can't be emitted, keep its timed children without it. A child's `parent.callId` can connect its session span to the delegating tool span, and `parentCallId` can connect a nested tool span to its enclosing tool. Leave unresolved links unresolved.
 
-## Map attributes without changing their meaning
+## Attributes
 
 | Attribute | ASR value |
 |---|---|
@@ -56,38 +54,36 @@ When a parent's span cannot be emitted, keep timed children without that parent.
 | `agent_session.session_ref` | The ASR session reference. |
 | `agent_session.record_id` | The record from which the span is exported. |
 
-ASR input counts already include cache reads and writes. Output counts already include reasoning. Export the counts without adding those subsets again. The pinned convention names cache writes `gen_ai.usage.cache_write.input_tokens`. A derived inference ID is an ASR identity, so keep it in `agent_session.record_id` without presenting it as a provider response ID. A documented provider response ID retained in the agent's `_meta` can instead supply `gen_ai.response.id`.
+The two `agent_session.*` attributes are custom. The rest come from the semantic conventions.
 
-The two `agent_session.*` attributes are custom attributes defined by this guide. The other names in the table are semantic conventions. Export recorded request settings without inventing defaults. Apply settings recorded for a turn to each of its established inference spans.
+ASR input counts already include cache reads and writes, and output counts already include reasoning, so export them without adding those subsets again. A derived inference ID is an ASR identity. Put it in `agent_session.record_id`, not `gen_ai.response.id`. A documented provider response ID kept in the agent's `_meta` can supply `gen_ai.response.id` instead.
 
-Include user attributes only when the export policy permits personal data. Put them on the session span and any child operation spans that need that grouping. Do not guess whether `user.name` is a login or a full name. If its meaning is unknown, leave it in ASR. The label does not establish message or commit authorship.
+Export recorded request settings without inventing defaults, and apply settings recorded for a turn to each of its established inference spans.
 
-There is no provider-neutral service-tier attribute in the checked conventions. Do not map another provider's tier to an `openai.*` attribute, or fill both request and response tiers from one undifferentiated value. Leave the tier in ASR when the provider or its meaning is unknown.
+Include user attributes only when the export policy allows personal data, on the session span and any child spans that need that grouping. Don't guess whether `user.name` is a login or a full name. If you can't tell, leave it in ASR.
 
-The checked conventions have no standard attributes for approval decisions, `asks`, `externalSandbox`, native agent policies, `user.source` or message triggers, and configured `modelSettings` do not establish request attributes. Keep those facts in ASR and see the [audit guide](audits.md) for importing vendor decision events.
+There is no provider-neutral service-tier attribute. Use the `openai.*` attributes only for OpenAI calls, and only when the source says whether the tier was requested or used for the response. Otherwise leave the tier in ASR.
+
+Approval decisions, `asks`, `externalSandbox`, native agent policies, `user.source` and message triggers have no standard attributes, and configured `modelSettings` don't establish request attributes. Keep those facts in ASR. The [audit guide](audits.md) covers importing vendor decision events.
 
 ```jsonl
 {"type":"inference","id":"response-7","ts":"2026-10-26T14:02:11Z","model":{"provider":"example","requested":"code-latest","id":"code-model-1"},"durationMs":850,"usage":{"inputTokens":1200,"cacheReadTokens":800,"outputTokens":120,"reasoningTokens":20}}
 ```
 
-If this producer documents `ts` as the call start, the span ends 850 milliseconds later. Its input is 1,200 tokens and output is 120 tokens. Without that timestamp contract, export the usage through a suitable reporting path and omit the span.
+If this producer documents `ts` as the call start, the span ends 850 milliseconds later, with 1,200 input tokens and 120 output tokens. Without that timestamp contract, omit the span and export the usage through another reporting path.
 
-A failed tool result or an inference with `error` can set span status to error. Use a recorded error code for `error.type` where compatible. Do not infer tool failure from a nonzero exit code when the source does not.
+A failed tool result or an inference with `error` can set the span status to error. Use a recorded error code for `error.type` where it fits. Don't infer a tool failure from a nonzero exit code when the source doesn't.
 
-## Identity and counting
+## Trace IDs and usage
 
-For repeatable exports, derive a trace ID from the first 16 bytes of SHA-256 over the UTF-8 session reference without a fragment. Derive each span ID from the first 8 bytes of SHA-256 over the UTF-8 record reference `<sessionRef>#<recordId>`, with the record ID percent-encoded by ASR's reference rules. Encode these as 32 and 16 lowercase hexadecimal digits. Use the header's record ID for the session span and the call record's ID for a tool span.
+For repeatable exports, derive the trace ID from the first 16 bytes of SHA-256 over the UTF-8 session reference without a fragment. Derive each span ID from the first 8 bytes of SHA-256 over the UTF-8 record reference `<sessionRef>#<recordId>`, with the record ID percent-encoded by ASR's reference rules. Write them as 32 and 16 lowercase hexadecimal digits. The session span uses the header's record ID, and a tool span uses the call record's ID.
 
-OpenTelemetry IDs cannot be all zero. If a truncated digest is all zero, hash the same reference with `#1` appended, then `#2`, until nonzero. Keep one span per selected record so re-exporting does not create duplicate activity. Native trace context can be used when a documented producer mapping retains it under a reverse-DNS `_meta` key. An arbitrary native trace ID does not establish an OpenTelemetry parent.
+OpenTelemetry IDs can't be all zero. If a truncated digest is all zero, hash the same reference with `#1` appended, then `#2`, until the result is nonzero. Keep one span per selected record so a re-export doesn't duplicate activity. Native trace context can be used when a documented producer mapping keeps it under a reverse-DNS `_meta` key. An arbitrary native trace ID doesn't establish an OpenTelemetry parent.
 
-Exclude copied records from the child's own spans and usage. A new model call over copied context belongs to the child. Never add `session_info.usage` totals to per-call totals. Do not assign a session total to a guessed model call.
+Exclude copied records from a child's own spans and usage. Never add `session_info.usage` totals to per-call totals or assign a session total to a guessed model call.
 
-## Content is optional
+## Prompt and tool content
 
-Leave prompts, replies, tool arguments and results out of telemetry by default. When content export is enabled, apply the user's data handling policy and preserve known truncation and loss information.
+Leave prompts, replies, tool arguments and results out of telemetry by default. When content export is turned on, apply the user's data handling policy and keep known truncation and loss information.
 
-The core does not reconstruct the exact messages sent in a model request. Do not fill `gen_ai.input.messages` or `gen_ai.system_instructions` by collecting nearby session messages. A linked output message is an observed output, with whatever completeness the source provides.
-
-Tool arguments and recorded results can use the convention's content attributes when their shapes and meanings match. Encrypted reasoning carries no content. Secrets are excluded before ASR is written and remain excluded from telemetry.
-
-File changes, commits and annotations remain useful in ASR even when they produce no span. See [Records](../spec/records.md) and [Missing data](../spec/missing-data.md).
+ASR doesn't record the exact messages sent in a model request, so don't fill `gen_ai.input.messages` or `gen_ai.system_instructions` by collecting nearby session messages. Tool arguments and recorded results can use the convention's content attributes when their shapes and meanings match. Encrypted reasoning carries no content.

@@ -10,11 +10,14 @@ const read = (file) => readFileSync(new URL(file, root), "utf8");
 const blocks = (file, native = false) => [...read(file).matchAll(new RegExp("```jsonl" + (native ? " native" : "") + "\\n([\\s\\S]*?)\\n```", "g"))]
   .map((match) => match[1].split("\n").map((line) => JSON.parse(line)));
 
-test("home and paper use complete unchanged tour records with all local links", () => {
+test("home and paper use unchanged tour records with all local links", () => {
   const tour = blocks("site/pages/get-started/quick-tour.mdx").slice(0, 5).flat();
   const full = new Map(tour.map((record) => [record.id, record]));
   assert.equal(full.size, tour.length);
-  for (const [file, count] of [["site/pages/index.mdx", 3], ["whitepaper/whitepaper.md", 6]]) {
+  // The home page shows the tour's edit record on its own.
+  const [home] = blocks("site/pages/index.mdx");
+  assert.deepEqual(home, [full.get("change")]);
+  for (const [file, count] of [["whitepaper/whitepaper.md", 6]]) {
     const [excerpt] = blocks(file);
     assert.equal(excerpt.length, count);
     assert.deepEqual(excerpt, tour.filter((record) => excerpt.some(({ id }) => record.id === id)));

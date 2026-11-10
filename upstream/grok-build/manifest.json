@@ -25,7 +25,7 @@
     "files": {
       ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
       "PROPOSAL.md": "b5be9d235e4966463d99b4a6160d9501f4d159ff474d93dd3247fc413084eb42",
-      "README.md": "0a047b21c1d2da4133e8ff2a9aa9c6364cc047473f7c3041f61c3d9191d408f5",
+      "README.md": "52ff712b6e10e1bc24db295e2badd347469106948b3075ab00dca9d05b0601d0",
       "TESTS.json": "fd5f43811450b81ab1d2832d15074c918f20553eb17267b0406c4cc1e85069ac",
       "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
       "patches/0001-native-agent-session-export.patch": "fc50a5e71600b5caeb7d065fc314e46235d0ec4c93ce77d0538188030a682cec",
@@ -39,7 +39,7 @@
   "files": {
     ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
     "PROPOSAL.md": "b5be9d235e4966463d99b4a6160d9501f4d159ff474d93dd3247fc413084eb42",
-    "README.md": "0a047b21c1d2da4133e8ff2a9aa9c6364cc047473f7c3041f61c3d9191d408f5",
+    "README.md": "52ff712b6e10e1bc24db295e2badd347469106948b3075ab00dca9d05b0601d0",
     "TESTS.json": "fd5f43811450b81ab1d2832d15074c918f20553eb17267b0406c4cc1e85069ac",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "patches/0001-native-agent-session-export.patch": "fc50a5e71600b5caeb7d065fc314e46235d0ec4c93ce77d0538188030a682cec",

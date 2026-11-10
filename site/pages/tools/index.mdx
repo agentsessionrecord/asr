@@ -1,26 +1,23 @@
 ---
 title: "Tools"
-description: "Choose a tool to convert, record, collect, view, export, import or patch agent sessions."
+description: "Tools that convert, record, collect, view, export, import and patch agent sessions."
 ---
 
-Choose a job below. Each catalog links to the tool's README for installation,
-usage, recorded facts, capture limits and test evidence. Install from this
-repository checkout. The catalog does not imply a published package or service.
+Install the Agent Session Record (ASR) tools from a checkout of the [repository](https://github.com/agentsessionrecord/asr). None is published as a package or service. Each tool's README covers setup, limits and test results.
 
 | Job | Use it for |
 | --- | --- |
-| [Convert](/tools/convert) | Turn supported native logs and databases into ASR. |
-| [Record](/tools/record) | Capture new agent callbacks, gateway traffic or ACP exchanges. |
-| [Collect](/tools/collect) | Find changed sessions, store exact files and keep receipt manifests. |
-| [View](/tools/view) | Read a timeline or find session evidence behind a Git line. |
-| [Export](/tools/export) | Create traces, tables, search indexes, evals and Git notes from ASR. |
+| [Convert](/tools/convert) | Turn native agent logs and databases into ASR. |
+| [Record](/tools/record) | Capture new sessions through agent hooks, model gateways or ACP. |
+| [Collect](/tools/collect) | Find changed sessions and store exact copies with receipts. |
+| [View](/tools/view) | Read a session timeline or find the session behind a Git line. |
+| [Export](/tools/export) | Turn ASR into traces, tables, search indexes, eval datasets and Git notes. |
 | [Import](/tools/import) | Turn vendor exports and checkpoint stores into ASR. |
-| [Patch](/tools/patch) | Add native ASR export to a pinned upstream source checkout. |
+| [Patch](/tools/patch) | Add ASR export to an agent's own source. |
 
 ## Install the CLI
 
-Use Rust, Git, Node.js 22.13 or later and pnpm 12.11.2.
-Run from the repository root:
+You need Rust, Git, Node.js 22.13 or later and pnpm 12.11.2. From the repository root:
 
 ```sh
 pnpm --filter @agent-session/validate install --frozen-lockfile
@@ -28,17 +25,11 @@ cargo install --path crates/asr-cli --locked
 asr agents
 ```
 
-Keep the checkout available and set `ASR_REPO_ROOT` to its absolute path when
-using the installed binary elsewhere. The validator runs with Node.
-The viewer, exporters, importers and plugins have separate entry points.
-The CLI has no `view` subcommand.
+Keep the checkout and set `ASR_REPO_ROOT` to its absolute path when you run `asr` from another directory. The viewer, exporters, importers and plugins have their own entry points.
 
 ## Validate, redact, blame and replay
 
-Validation checks file structure and record relationships. Redaction writes a
-new derived file. Blame keeps edit evidence separate from commit evidence.
-Replay sends one reconstructed model request through explicit private provider
-settings and records a fork. It stops before executing any returned tool calls.
+`asr validate` checks file structure and the links between records, and `asr redact` writes a redacted copy. Neither makes a file safe to share. `asr blame` finds the session text behind a Git line and reports it apart from the commit. `asr replay` resends one model request with your private provider settings and writes the answer as a fork session, without running any tool calls.
 
 | Tool README | Live-test status |
 | --- | --- |
@@ -48,34 +39,17 @@ settings and records a fork. It stops before executing any returned tool calls.
 | [ASR redactor](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-cli/README.md) | `not-applicable` |
 | [ASR validator](https://github.com/agentsessionrecord/asr/blob/main/tools/validator/README.md) | `not-applicable` |
 
-The CLI README links to each command's options, examples and limits.
-Validation and redaction do not establish that a file is safe to share.
-Missing source facts remain unknown.
+A blame match means the committed line equals text the session wrote in the checked time window. It does not show who typed the line. A person who typed the same text, such as shared boilerplate, looks the same.
 
-For blame, a matched line means the committed line equals text the session wrote
-in the checked time window. It does not prove who typed it. A person who
-independently types the same change or shared new-file boilerplate looks the same
-in the record.
+Read the [security and privacy guidance](https://github.com/agentsessionrecord/asr/blob/main/SECURITY.md) before you capture, import, store or share sessions.
 
-Read the [security and privacy guidance](https://github.com/agentsessionrecord/asr/blob/main/SECURITY.md)
-before capturing, importing, storing or sharing recordings. It describes trust
-boundaries, credential filtering limits, private storage and resource limits.
+## Live-test status
 
-## Test evidence
-
-Test status comes from the [repository registry](https://github.com/agentsessionrecord/asr/blob/main/registry.json).
-`passed` names a tested path. `partial` means only part of the host path ran.
-`not-live-tested` means no qualifying host or service run is recorded.
-`not-applicable` applies to offline tools and shared libraries.
-Read each README for the version, test scope and remaining limits.
-
-A passing plugin run does not establish converter support for that host's
-stored logs. A local protocol test does not qualify a production service.
-Some READMEs distinguish a successful host run from later fixture-only checks.
+Each status comes from the [repository registry](https://github.com/agentsessionrecord/asr/blob/main/registry.json). `passed` means a live run passed on the path the README names. `partial` means only part of the host path ran. `not-live-tested` means no qualifying run against the real host or service is recorded. `not-applicable` covers offline tools and shared libraries. Some tools passed a host run before later changes that were only tested against fixtures.
 
 ## Repository checks
 
-These tools check source packages and documentation. They record no agent work.
+These check source packages and documentation, not sessions.
 
 | Tool README | Live-test status |
 | --- | --- |
@@ -84,8 +58,4 @@ These tools check source packages and documentation. They record no agent work.
 | [ASR security boundary checks](https://github.com/agentsessionrecord/asr/blob/main/scripts/README.md) | `not-applicable` |
 | [Workspace checks](https://github.com/agentsessionrecord/asr/blob/main/scripts/README.md) | `not-applicable` |
 
-The [end-to-end suite](https://github.com/agentsessionrecord/asr/blob/main/tests/e2e/README.md)
-has offline harness checks and an optional clean-container live run. Its retained
-live result covers three agent versions through a compatible endpoint, MinIO storage,
-the browser viewer and local exports. It does not qualify production services
-or other agent versions. CI skips the live run unless explicitly enabled.
+The end-to-end suite's optional live run covered three agent versions in a clean container, with MinIO storage, the browser viewer and local exports.

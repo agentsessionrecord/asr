@@ -1,4 +1,3 @@
-# Agent converter notes
+# Agents
 
-[The agent index](index.md) links to source formats and field mappings.
-Use these notes when implementing a converter and record supported versions.
+The [agent list](index.md) has the short names for `agent.name`. The other Markdown files here are converter notes for single agents.

@@ -1,28 +1,14 @@
-# Cline native ASR export patch
+# Agent Session Record export for Cline
 
-Export saved Cline sessions in an open schema for search and audit archives.
-
-Upstream: https://github.com/cline/cline
-
-The pinned base is `a542151bb737e25eb332d34c647ab4b9d99dd98b`. The manifest
-records the local feature commit, patch digest and all package file digests.
-Apply from a separate clean upstream checkout at that base:
+This patch adds ASR as a format of the existing history export command in [Cline](https://github.com/cline/cline). HTML stays the default, and an optional `--output` names a file. The pinned base is `a542151bb737e25eb332d34c647ab4b9d99dd98b`. [Apply the patch](../README.md#apply-a-patch) in a clean checkout at that base.
 
 ```sh
-git am "$ASR_PACKAGE"/patches/*.patch
 cline history export SESSION_ID --format agent-session
 ```
 
-Adds one format to the existing history export command. HTML remains the
-default. An optional `--output` names a file. Repeated tool results occupy their
-final retained position.
+The source is the selected local session transcript. A tool result that repeats sits at its final retained position. Approvals, settings, inference boundaries, usage, file edits, commits and lineage are missing, and compaction can remove history. Unsafe parsed integers stop the export. Known credentials are filtered out. See the [proposal](PROPOSAL.md) for the scope.
 
-The source is the selected local session transcript. Approvals, settings,
-inference boundaries, usage, file edits, commits and lineage remain missing.
-Compaction can remove history. Unsafe parsed integers stop export. Known
-credential filtering does not establish that an export is safe to share.
-
-Run package checks from the ASR repository root:
+## Checks
 
 ```sh
 node upstream/cline/check.mjs
@@ -30,20 +16,8 @@ node upstream/cline/reproduce.mjs /path/to/upstream-checkout
 bun upstream/cline/verify-native.mjs /path/to/upstream-checkout
 ```
 
-Reproduction compares a temporary Git index with the pinned feature tree. It
-preserves the source checkout and does not run a model. The native driver loads
-the source exporter, validates a synthetic stream and compares the sample. It
-does not exercise an installed full CLI and model session.
+See [package checks](../README.md#check-a-package) for the first two. `verify-native.mjs` loads the exporter from the patched source, validates a synthetic export and compares it with the sample, without running the installed CLI or a model.
 
-The SDK build, CLI build, CLI type check and Biome check pass. All 47 focused
-test cases pass across six files. The session-import file uses a 30-second hook
-timeout. Native fixture exports pass the reference validator with zero errors
-and zero warnings. [verification.json](verification.json) records the checked
-source revision and focused results. See [PROPOSAL.md](PROPOSAL.md) for the
-scope.
+The SDK build, CLI build, CLI type check and Biome check pass, as do all 47 focused test cases across six files. The session import test file uses a 30-second hook timeout. Native fixture exports validate with no errors or warnings. [verification.json](verification.json) records the source revision and results. An earlier live run was partial and covered an older revision. No live model run covers this one.
 
-Current live-model status is unverified. Earlier live evidence is partial and
-applies to an older revision. No model run was performed for this refresh.
-
-Submission prerequisites: An approved feature request is required before
-submission.
+Upstream requires an approved feature request before a pull request.

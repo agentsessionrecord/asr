@@ -5,13 +5,13 @@ sidebar:
   order: 7
 ---
 
-An annotation records a fact learned after a session ends. CI can attach a test result. A forge sync can report a merge. An indexer or a person can add a title or summary. These facts live beside the session without becoming actions the session performed.
+An annotation is a fact learned after a session ends, such as a CI test result, a merge reported by a forge, or a title added by a person. Annotations never count as actions the session took.
 
 ## File and fields
 
 **ASR-061** Facts learned after a session ends MUST be written in a separate file whose name ends in `.annotations.jsonl`, never added to the session's stream as session events. The file MUST use UTF-8 JSON Lines framing with one annotation per line and no session header.
 
-The [framing and recovery rules](format.md#file-format-and-order) apply to annotation lines. An annotation uses the following shape rather than the session record envelope.
+Annotation lines follow the same [framing and recovery rules](format.md#file-format-and-order) as session streams. Each line uses this shape instead of the session record envelope.
 
 | Field | Req | Meaning |
 |---|---|---|
@@ -26,7 +26,7 @@ The [framing and recovery rules](format.md#file-format-and-order) apply to annot
 
 **ASR-062** An annotation MUST have all required fields above, use a unique, well-formed record ID, and identify its target with a valid session reference. The `at` value MUST say when the fact was learned, not when an event in the session occurred.
 
-An annotations file can refer to several sessions. The target reference can cite a single record when the fact concerns that record. Missing target files remain unresolved references. They do not invalidate the annotation.
+One annotations file can cover several sessions. A target can point at a single record when the fact is about that record. If the target's file is missing, the reference stays unresolved and the annotation is still valid.
 
 ## Kinds
 
@@ -42,7 +42,7 @@ The known outcome statuses are `kept`, `reverted`, `merged` and `abandoned`. The
 
 **ASR-063** An annotation with a known kind MUST use that kind's payload above. Readers MUST keep kinds and status values open, ignore unfamiliar values and preserve them when storing annotations.
 
-A test run during the session is recorded as tool work in its stream. A result learned later from CI is a `test` annotation. A generated summary remains an annotation and does not become an assistant message in the session.
+A test the agent ran during the session belongs in its stream as tool work. A CI result learned later is a `test` annotation. A generated summary is an annotation, not an assistant message.
 
 ```jsonl
 {"type":"annotation","id":"title-1","session":"com.example.agent:session-7","kind":"title","at":"2026-10-27T09:00:00Z","source":{"name":"indexer","version":"1.0"},"data":{"title":"Parser fix"}}
@@ -54,12 +54,10 @@ A test run during the session is recorded as tool work in its stream. A result l
 
 **ASR-064** `supersedes` MUST name an earlier annotation ID in the same annotations file that the new annotation corrects.
 
-The earlier line remains available. A correction does not rewrite the session or pretend the corrected fact was known earlier.
+The earlier line stays in the file. A correction does not rewrite the session or claim that the corrected fact was known earlier.
 
 **ASR-065** Readers MUST join annotations by their target session reference and apply `supersedes` first, excluding corrected annotations from the current view. They MUST prefer the latest remaining `at` for each of `summary`, `outcome` and `title` on that target. They MUST retain all remaining `vcs` and `test` annotations as additive facts.
 
-In the example, the second title replaces the first through `supersedes`. A correction applies even if its `at` is older than the corrected fact's time. A later test or PR lookup does not erase an independent test or rewrite mapping. A record-specific target is distinct from a target for the whole session. If equally recent current values conflict, the reader can show that conflict without inventing an order from the session stream.
+In the example, `title-2` replaces `title-1` through `supersedes`. A correction applies even if its `at` is older than that of the annotation it corrects. A target that names a record is separate from a target for the whole session. If two current values are equally recent and conflict, the reader can show the conflict rather than invent an order from the session stream.
 
 **ASR-066** Readers MUST NOT give blame credit from an annotation alone. A `vcs` annotation MAY supply rewrite pairs, and a `vcs` or `outcome` annotation MAY supply `pr.mergeCommit` for the [code-link checks](code.md). These facts MUST NOT establish that the target session edited a line or performed a commit without its original session evidence.
-
-An outcome such as `merged` describes what was learned about a change. The original records and repository checks still establish edited-by and committed-by results.

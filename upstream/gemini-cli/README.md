@@ -1,29 +1,14 @@
-# Gemini CLI native ASR export patch
+# Agent Session Record export for Gemini CLI
 
-Export saved Gemini CLI sessions for tools that need an open, ordered record.
-
-Upstream: https://github.com/google-gemini/gemini-cli
-
-The pinned base is `203fbc528d83982a7866da43e989b69dd089de83`. The manifest
-records the local feature commit, patch digest and all package file digests.
-Apply from a separate clean upstream checkout at that base:
+This patch adds an offline `sessions export` subcommand to [Gemini CLI](https://github.com/google-gemini/gemini-cli) that writes saved sessions as ASR, for tools that need an open, ordered copy. The pinned base is `203fbc528d83982a7866da43e989b69dd089de83`. [Apply the patch](../README.md#apply-a-patch) in a clean checkout at that base.
 
 ```sh
-git am "$ASR_PACKAGE"/patches/*.patch
 gemini sessions export --format agent-session --session SESSION_ID
 ```
 
-Adds an offline `sessions export` subcommand. Updated messages and results
-occupy their final saved position. Unknown content parts stay in namespaced
-metadata.
+The source is Gemini CLI's saved native JSONL recordings. Updated messages and results sit at their final saved position, and unknown content parts stay in namespaced metadata. Approvals, settings, model accounting, edits, commits, tool definitions, instructions and lineage are incomplete. A session with several recording segments needs explicit selection, and input is held in memory. Known credentials are filtered out. See the [proposal](PROPOSAL.md) for the scope.
 
-The source is saved native JSONL recordings. Approvals, settings, model
-accounting, edits, commits, tool definitions, instructions and lineage remain
-incomplete. Multiple recording segments need explicit selection. Input is held
-in memory. Known credential filtering does not establish that an export is safe
-to share.
-
-Run package checks from the ASR repository root:
+## Checks
 
 ```sh
 node upstream/gemini-cli/check.mjs
@@ -31,20 +16,8 @@ node upstream/gemini-cli/reproduce.mjs /path/to/upstream-checkout
 bun upstream/gemini-cli/verify-native.mjs /path/to/upstream-checkout
 ```
 
-Reproduction compares a temporary Git index with the pinned feature tree. It
-preserves the source checkout and does not run a model. The native driver loads
-the source exporter, validates a synthetic stream and compares the sample. It
-does not exercise an installed full CLI and model session.
+See [package checks](../README.md#check-a-package) for the first two. `verify-native.mjs` loads the exporter from the patched source, validates a synthetic export and compares it with the sample, without running the installed CLI or a model.
 
-The workspace build, 11 focused export tests, CLI type check and focused ESLint
-pass. Validation used npm 11, which supports the repository's dependency alias
-overrides. Native fixture exports pass the reference validator with zero errors
-and zero warnings. [verification.json](verification.json) records the checked
-source revision and focused results. See [PROPOSAL.md](PROPOSAL.md) for the
-scope.
+The workspace build, 11 focused export tests, the CLI type check and focused ESLint pass. Validation used npm 11, which supports the repository's dependency alias overrides. Native fixture exports validate with no errors or warnings. [verification.json](verification.json) records the source revision and results. An earlier live run was partial and covered an older revision. No live model run covers this one.
 
-Current live-model status is unverified. Earlier live evidence is partial and
-applies to an older revision. No model run was performed for this refresh.
-
-Submission prerequisites: Google CLA and an approved feature issue are required
-before submission. The team is focused on maintenance.
+Upstream requires the Google CLA and an approved feature issue before a pull request. The team is focused on maintenance.

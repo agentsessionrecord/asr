@@ -3,13 +3,11 @@ title: "Agents"
 description: "Agent short names and a template for converter notes."
 ---
 
-The agent list assigns short names for `agent.name`. It is maintained by pull request. An unlisted agent uses a reverse-DNS name under a domain its maintainer controls.
+Every Agent Session Record (ASR) file names its agent in `agent.name`. The list below assigns short names for that field, and changes to it go through pull requests. An agent that is not listed uses a reverse-DNS name under a domain its maintainer controls. A listed name only identifies the agent. It does not mean a converter exists or that every release is supported. The list is also available as [JSON](https://agentsessionrecord.org/agents/agents.json).
 
-An entry identifies an agent. It does not claim that a converter exists or that every release is supported. The same list is available as [JSON](https://agentsessionrecord.org/agents/agents.json).
+## Converter notes
 
-## Start here
-
-Start with a converter note below. The other rows reserve a short name only.
+Five agents have converter notes, which describe how their native logs map to ASR and what each conversion loses:
 
 - [Claude Code](claude-code.md)
 - [Codex](codex.md)
@@ -17,8 +15,21 @@ Start with a converter note below. The other rows reserve a short name only.
 - [OpenCode](opencode.md)
 - [OpenClaw](openclaw.md)
 
-## Agent list
+## Shared mappings
 
+These rules hold for all five converter notes unless a page says otherwise.
+
+- Native fields with no ASR field can go in `_meta` under the agent's reverse-DNS key, which each page names. Do not keep known secrets or opaque provider state, including in tool definitions and instructions.
+- When the log has no user identity, a separately observed Git identity or a configured exporter identity can supply `user`, with its own `source`.
+- Leave a model setting absent unless the log records it for that call or turn. Model names and token counts do not establish settings.
+- Derive stable IDs when one native item splits into several records. Matching IDs or similar text never establish parent, fork or copy links.
+- When a shell call runs `git commit` and its linked result succeeds, output of the form `[branch short-id] subject` supports a `vcs` record with `evidence: parsed_output`, `commitPrefix` and `subject`. Parent counts need their own evidence.
+- List in `missing` any edit, commit, usage or copy mapping the converter does not support.
+- Pinned sources and samples establish fields for the versions they describe, not for every release.
+
+The specification covers the rest, including [settings changes](../spec/records.md#session_info), [file changes](../spec/records.md#file_change), [commits](../spec/records.md#vcs), [token totals](../spec/records.md#usage-and-cost) and [native trees and copies](../spec/sessions.md).
+
+## Agent list
 | Agent | Short name | Homepage | Converter notes |
 |---|---|---|---|
 | Amp | `amp` | [ampcode.com](https://ampcode.com/) | No |
@@ -68,26 +79,28 @@ Start with a converter note below. The other rows reserve a short name only.
 | Xum | `xum` | [xum.coder.com](https://xum.coder.com/) | No |
 | Zed | `zed` | [zed.dev](https://zed.dev/) | No |
 
+The `mux` short name stays available for legacy logs, and Xum uses `xum`. Qoder CN keeps `lingma` to match its recorded logs.
+
 ## Converter notes template
 
-Converter notes add no requirements. Use the following headings in order and keep each mapping concise. Name the native fields and the source versions that support each mapping. If a fact is not documented, say so. Related undocumented fields can share one "Unmapped evidence" paragraph in place of repeated sections. Mark partial notes clearly.
+Converter notes add no requirements to the format. Use these headings in order and keep each mapping short. Name the native fields and the source versions that support each mapping, and say when a fact is not documented. Related undocumented fields can share one "Unmapped evidence" paragraph instead of separate sections. Mark partial notes clearly.
 
-1. **Logs and format.** Where the logs live, their storage shape and the string used for `producer.source`.
+1. **Logs and format.** Log location, storage and the `producer.source` string.
 2. **Session identity.** The native `sessionId` and whether `namespace` is needed.
-3. **User and settings.** Native sources for `user`, call or turn model settings, and agent mode, approval and sandbox policies. Identify undocumented fields and settings that need `_meta`.
-4. **Record and call IDs.** Sources of record `id`, `callId`, `turnId` and `inferenceId`, including deterministic derivations and ambiguous joins.
-5. **Subagents and parents.** Native pointers for delegation, forks, continuations and copied records.
-6. **File-edit evidence.** Tools and native fields carrying edit text, and their mapping to `patch`, `edits`, `before` or `after`. Explain how application is established.
-7. **Commit evidence.** Structured Git results or the command output shape the converter may parse. Keep mentions distinct from performed actions.
-8. **Usage arithmetic.** How per-call and session totals are identified, which counts include cache or reasoning, and the source of cost.
-9. **Missing data.** What goes in `missing`, which records can be truncated, and where gaps arise.
-10. **Capture coverage.** A table covering messages, calls, approval decisions and scopes, agent settings and asking, outer sandboxes, triggers, hooks, store changes and pruning.
-11. **Source versions.** The releases or source documents described and the limits of the available samples.
-12. **Worked example.** A few native log lines beside the ASR records they produce, with the resulting `missing` list. Label synthetic examples and state which fields establish each mapping.
+3. **User and settings.** Sources for `user`, call or turn model settings, and agent mode, approval and sandbox policies.
+4. **Record and call IDs.** Sources of record `id`, `callId`, `turnId` and `inferenceId`, derived IDs and ambiguous joins.
+5. **Subagents and parents.** Native pointers for delegation, forks, continuations and copies.
+6. **Tool kinds and file edits.** The map from tool names to `kind`, the fields that carry edit text and their mapping to `patch`, `edits`, `before` or `after`, and what establishes that an edit was applied.
+7. **Commits.** Structured Git results, or command output the converter may parse.
+8. **Token usage and cost.** Per-call and session totals, which counts include cache or reasoning, and where cost comes from.
+9. **Missing data.** What goes in `missing`, what can be truncated and where gaps arise.
+10. **Approvals and agent settings.** Decision, decider and scope mappings, how `asks` is derived and whether an outer sandbox is recorded.
+11. **Triggers, hooks and storage.** A table of trigger fields, hook effects, store changes and pruning.
+12. **Source versions.** The releases or source documents described and the limits of the samples.
+13. **Worked example.** A few native lines beside the ASR they produce, with the `missing` list. Label synthetic examples and say which fields establish each mapping.
 
-Native fields without a core home can go in `_meta` under the agent's reverse-DNS key, at the converter's choice. Do not retain known secrets or opaque provider state. For every converter and recorder mapping, publish synthetic native inputs, the ASR they produce and the source versions supported. Recorder inputs can be hook payloads or connection messages. A valid example alone does not establish native behavior.
+Sections for other sources, such as live hooks or a native export, go after these.
 
-[Conformance](../spec/conformance.md) defines writer and reader behavior. [Missing data](../spec/missing-data.md) explains how to represent a source's limits.
+For every converter and recorder mapping, publish synthetic native inputs, the ASR they produce and the source versions supported. Recorder inputs can be hook payloads or connection messages. A valid example alone does not establish native behavior.
 
-The `mux` short name remains available for legacy logs. Xum uses `xum`.
-Qoder CN keeps `lingma` for compatibility with its recorded logs.
+[Conformance](../spec/conformance.md) defines writer and reader behavior, and [Missing data](../spec/missing-data.md) explains how to represent a source's limits.

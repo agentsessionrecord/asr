@@ -18,7 +18,7 @@
     "files": {
       ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
       "PROPOSAL.md": "aa1682eafa2aa0e1ea3ba9253894cf7558e21d3e3e5abd152713338d5324c565",
-      "README.md": "5d201ae6692f8ca8c6aeba5cffece903b89c3487871101ac89335c17576ea9d4",
+      "README.md": "1da8159807a2dec299a4f566175ae30b66966324b9906ed8e193b1690b71e8d9",
       "TESTS.json": "160a0bbe6be3da4f65b63db53cfc91a9d3a46cb0068326ecbc7345e525920c9a",
       "check-plugin.sh": "e2f0c3e987fbc2ed97a2c7b8ad6eb0f16ee00a605786488fdb9d2318d6838e44",
       "check.mjs": "0f632cc353e1e31ad610ef930c5ca9491ec6a221cbd22018be97ffed29ee3ecf",
@@ -46,7 +46,7 @@
   "files": {
     ".gitattributes": "03fbaa8c998de6ee87729248118b37200e97f3423e67869c74ae6f58b82c7944",
     "PROPOSAL.md": "aa1682eafa2aa0e1ea3ba9253894cf7558e21d3e3e5abd152713338d5324c565",
-    "README.md": "5d201ae6692f8ca8c6aeba5cffece903b89c3487871101ac89335c17576ea9d4",
+    "README.md": "1da8159807a2dec299a4f566175ae30b66966324b9906ed8e193b1690b71e8d9",
     "TESTS.json": "160a0bbe6be3da4f65b63db53cfc91a9d3a46cb0068326ecbc7345e525920c9a",
     "check-plugin.sh": "e2f0c3e987fbc2ed97a2c7b8ad6eb0f16ee00a605786488fdb9d2318d6838e44",
     "check.mjs": "0f632cc353e1e31ad610ef930c5ca9491ec6a221cbd22018be97ffed29ee3ecf",

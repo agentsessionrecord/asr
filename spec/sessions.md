@@ -5,11 +5,11 @@ sidebar:
   order: 4
 ---
 
-A session keeps its native identity. A related session has its own stream and can name its parent or predecessor. These links let a reader follow delegated work and inherited context without counting copied work twice.
+A subagent, fork or continuation is a separate session that can name the session it came from. Readers use these links to follow delegated work without counting copied history twice.
 
 ## Parent
 
-The optional `session.parent` object describes one relationship.
+The optional `session.parent` object links a session to its parent or predecessor.
 
 | Field | Req | Meaning |
 |---|---|---|
@@ -20,33 +20,33 @@ The optional `session.parent` object describes one relationship.
 | `role` | O | Subagent role or type, verbatim |
 | `copiedThrough` | O | Last record ID in this file's copied prefix |
 
-`subagent` means the parent started this session. `fork` means this session branched from the parent's history. `continues` means it picks up where a predecessor stopped under a different session ID. That includes a resume with a new ID, compaction into a new session or a daily restart.
+`subagent` means the parent started this session. `fork` means this session branched from the parent's history. `continues` means it picks up where a predecessor stopped under a different session ID. Examples are a resume that gets a new ID, compaction into a new session and a daily restart.
 
 **ASR-040** A `parent` object MUST have `session` and `kind` and use these field shapes. A `copiedFrom` object MUST have `session`, `record` or both, using a session reference and source record ID respectively.
 
-`parent.record` points into the parent's file. `parent.copiedThrough` points into this file. They answer different questions. A fork can link to shared history without including copies of that history in its own stream.
+`parent.record` points into the parent's file, and `parent.copiedThrough` points into this file. A fork can name the last shared record without copying that history into its own file.
 
 ## Copies and credit
 
 **ASR-041** `parent.copiedThrough` MUST name a record after the header in this file. Every record after the header up to and including that record MUST be treated as copied from the parent.
 
-The boundary follows file order. It does not compare IDs or timestamps. A record outside the prefix can carry `copiedFrom` to mark an individual copy. The source session or record can be unknown, but at least one must be named. An unavailable source does not make the copy original.
+The prefix ends by position in the file, not by ID or timestamp. A record outside the prefix can carry `copiedFrom` to mark it as a copy. Its source session or record can be unknown, but not both. A copy stays a copy when its source is unavailable.
 
 **ASR-042** Producers MUST assert `parent`, `copiedFrom` and `copiedThrough` only from a native field or storage structure, never from similar text, timing or shared folders. A producer that cannot detect copies MUST list `copies` in `missing`.
 
 **ASR-043** Readers MUST count a record as this session's own work for blame, cost and edit counts unless it carries `copiedFrom` or falls within `copiedThrough`. They MUST exclude those copies from this session's credit and count new model calls over inherited context as the child's work.
 
-An inference retained in several native revisions of the same session is recorded once, and a copied inference carries `copiedFrom` and gets no credit in the copying session.
+An inference that appears in several native revisions of the same session is recorded once.
 
-Copies remain useful for search and display. The credit rule does not erase them. A missing `copies` capability reports a limit on the producer's knowledge. It does not introduce another originality state or change the rule.
+Copied records still appear in search and display. If `missing` lists `copies`, some copies may be unmarked, but readers apply the same credit rule.
 
 ## Subagents
 
-The parent records delegation through `tool_call.subagent`. Its optional `session` names the child, `role` records its role, and `description` records the task description. A `tool_result.subagent` can supply the child session when it becomes known at completion. The child's `parent` can name the parent and its starting `callId`.
+The parent records delegation in `tool_call.subagent`. Its optional `session`, `role` and `description` fields name the child session, its role and its task. If the child session is only known at completion, `tool_result.subagent` can name it. The child's `parent` can name the parent and the `callId` that started it.
 
 **ASR-044** Readers MUST combine available parent-side and child-side links to the same subagent relationship. Either side alone MUST be accepted, and an unavailable related session file MUST remain an unresolved reference rather than an error.
 
-Here is a parent that delegates a review. The result keeps what came back.
+In this example a parent delegates a review. The tool result holds the child's answer.
 
 ```jsonl
 {"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"parent-7","producer":{"name":"example-export","version":"1.0","method":"native"}}
@@ -55,7 +55,7 @@ Here is a parent that delegates a review. The result keeps what came back.
 {"type":"tool_result","id":"spawn-result","callId":"spawn-1","status":"completed","content":[{"type":"text","text":"The empty-input check is present."}],"subagent":{"session":"com.example.agent:child-7"}}
 ```
 
-The child contains one copied prompt, followed by its own model call and reply. The child incurs the new call's usage even though the call reads inherited context.
+The child starts with a copied prompt. Its own model call and reply follow, and that call's usage counts toward the child.
 
 ```jsonl
 {"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.agent"},"sessionId":"child-7","producer":{"name":"example-export","version":"1.0","method":"native"},"parent":{"session":"com.example.agent:parent-7","kind":"subagent","callId":"spawn-1","role":"reviewer","copiedThrough":"inherited-prompt"}}
@@ -64,12 +64,12 @@ The child contains one copied prompt, followed by its own model call and reply. 
 {"type":"message","id":"child-reply","inferenceId":"child-call-1","role":"assistant","author":"model","phase":"final","content":[{"type":"text","text":"The empty-input check is present."}]}
 ```
 
-If the parent also stores the child's reply as a separate message copied from the child, that message uses `copiedFrom`. The parent's own request to start the child remains its own work.
+If the parent also stores a copy of the child's reply as a separate message, that message carries `copiedFrom`. The parent's call that started the child is still the parent's own work.
 
 ## Continuation and native trees
 
 **ASR-045** A resume with the same native session identity MUST remain the same session. Producers MUST write tree-shaped native history in native order and retain work from rewound or abandoned branches as ordinary records. Readers MUST include their recorded work in search, cost and blame under the same credit rules.
 
-An abandoned edit can still have text that survives in a commit. A model call on an abandoned branch still incurred usage. ASR records that work without reconstructing an exact conversation tree or the model's full context.
+An edit on an abandoned branch can still reach a commit, and a model call there still used tokens. The stream keeps those records, but it does not rebuild the exact conversation tree or the model's full context.
 
-A continuation with a new native ID uses `parent.kind: "continues"` when the source records the relationship. A compaction summary uses a [message](records.md#message) and a following gap when earlier history is lost.
+A continuation with a new native ID uses `parent.kind: "continues"` when the source records the relationship. A compaction summary uses a [message](records.md#message), followed by a gap when earlier history is lost.

@@ -1,63 +1,44 @@
 ---
 title: "For tool builders"
-description: "Read sessions conservatively and connect their edits to repository history."
+description: "Read ASR files and connect their edits to repository history."
 ---
 
-ASR gives search engines, history viewers and blame tools one input format. A useful reader can begin with messages and tools, then add file and commit indexes.
+Agent Session Record (ASR) gives search, history and blame tools one input format for sessions from many agents. Start with messages and tool calls, then add file and commit indexes. The [quick tour](/get-started/quick-tour) session makes a good first test file.
 
-## 1. Read one stream
+## Read the file
 
-Read UTF-8 JSON Lines in file order. The first line is the only session header. Report malformed lines and continue after them. Treat a non-empty final line without a newline as incomplete.
+Read UTF-8 JSON Lines in file order. The first line is the only session header. Report malformed lines and keep reading, and treat a non-empty last line without a newline as incomplete. Keep unknown record types, fields and values when you store or re-export records, and ignore them when interpreting the core.
 
-Preserve unknown types, fields, values and content parts when storing or exporting records. Ignore them when interpreting the core. Resolve references when their targets arrive, since `inferenceId` may point forward. Show unresolved references and gaps.
+References such as `inferenceId` can point forward, so resolve them when the target arrives and show any that stay unresolved. Pair a result with a call only when exactly one call has its `callId`. A call with no result has an unknown outcome, and a missing value never means zero, false or success.
 
-Pair a result only when exactly one call has its `callId`. A dangling call has an unknown outcome. Missing values never mean zero, false or success.
+## Index text and files
 
-Check: the [tour](/get-started/quick-tour) loads in file order, forward references resolve, and an incomplete last line waits for completion.
+Index prompts, replies, tool arguments and output. Keep each message's `author` and `origin` so a compaction summary isn't mistaken for a person's request. `tool_call.locations` gives files read or targeted, and `file_change.path` gives files edited. Resolve relative paths against `cwd` and match them to `repos[].path`. Paths inside commands and patches are only text.
 
-## 2. Build text and file indexes
+Treat all recorded content as untrusted, and never run commands or fetch URIs found in a session.
 
-Index prompts, replies, tool arguments and output. Keep author and origin alongside text so a compaction summary is distinguishable from a person's request. Use `tool_call.locations` to find reads and targets, and `file_change.path` to find edits.
+## Blame a line
 
-Resolve relative paths against `cwd`. Match paths to `repos[].path`, then check against the real repository for blame. Paths inside commands and patches are source text.
+Start with `git blame` for the line's commit and path, and follow any recorded rewrite pairs back to commits that existed during a session. Then check candidate sessions for [commit actions](/spec/code#committed-by) and [surviving edits](/spec/code#edited-by), and report the two answers separately. An applied edit can show which session wrote a line even when a person committed it, and a session that commits, pushes or rewrites code doesn't become the author of every line in it. Show ambiguous matches and leave unmatched lines unattributed.
 
-Note: treat recorded content as untrusted. Never execute commands or fetch URIs found in a stream. Validation does not mean a file is safe to share. A redacted export is a new file.
+Records marked `copiedFrom`, or inside a parent's `copiedThrough` prefix, don't count toward the child's own edits or cost. Parent files are often missing. See [Sessions](/spec/sessions).
 
-Check: searching for the tour's prompt finds its session, and a file query finds its recorded reads and edits.
+To test, reproduce the tour's edit in a scratch repository with a real commit ID. The reader should find the edited line, prompt and model, and keep commit credit separate in the [variant where a person commits](/get-started/quick-tour#a-person-makes-the-commit).
 
-## 3. Answer blame in two parts
+## Usage, cost and annotations
 
-Start with Git's commit and path for the line. Follow recorded rewrite pairs back to commits that existed during sessions. Then check candidate sessions separately for [commit actions](/spec/code#committed-by) and [surviving edits](/spec/code#edited-by).
+Sum per-call usage once. Input tokens already include cache reads and writes, and output tokens include reasoning. Don't add `session_info` totals to per-call sums, and keep cost currencies and estimate sources visible.
 
-An applied edit can identify the session that wrote a line even if a person committed it. A session that commits, pushes or rewrites code does not thereby become the author of every line. Show ambiguous matches and keep unattributed lines untracked.
-
-Exclude records marked `copiedFrom` or inside a parent's `copiedThrough` prefix from the child's own edits and costs. Missing parent files are normal. See [Sessions](/spec/sessions).
-
-Check: reproduce the tour edit in a test repository and replace its illustrative commit ID with the real one. The reader identifies the edited line, prompt and model. In the [person-commits variant](/get-started/quick-tour#a-person-makes-the-commit), commit credit stays separate from edit credit.
-
-## 4. Add totals and annotations
-
-Sum per-call usage once. Input includes cache reads and writes, and output includes reasoning. Show `session_info` totals separately from per-call figures. Keep cost currencies and estimate sources visible.
-
-Join [annotations](/spec/annotations) by session reference to show later tests, merges or reverts. An annotation can supply rewrite pairs or a PR merge commit. It cannot establish line authorship by itself.
-
-Note: apply `supersedes` before choosing current titles, summaries or outcomes. Keep all remaining tests and VCS facts.
-
-Check: copied calls add no cost, session totals are not added to call totals, and two independent test results both remain visible. You have a first reader when it answers the first three questions on the tour session and shows the gap case as unknown.
+Join [annotations](/spec/annotations) by session reference to show later tests, merges or reverts. Apply `supersedes` corrections first and keep every remaining test and VCS fact. An annotation can add rewrite pairs or a merge commit, but alone it can't establish who wrote a line.
 
 ## Updates and retention
 
-For collection across many engineers, see [Running ASR across a company](/guides/organizations). It covers user identity, directory joins, storage keys and access by person and repository.
-For receipts, approval evidence and independent checks, see [Using ASR for audits](/guides/audits). A collection manifest records the exact received file and its digest while the index can show the latest export.
+A live writer appends complete lines, so read only new lines while the file's identity and the prefix you already read still match. A converter may replace the whole export. Then rebuild that session's index entries and drop entries for records the new file lacks. Stable record IDs prevent duplicate results.
 
-Session files can live beside native logs, in an export directory or in storage managed by a reader. ASR assigns no global transcript directory. The [discovery file](/guides/integration#discovery-file) advertises native paths and an optional export command.
+ASR has no global session directory. An agent's [discovery file](/guides/integration#discovery-file) lists its native paths and an optional export command.
 
-A live writer appends. Read only new complete lines while the file identity and retained prefix still match. A converter can replace the whole export. On replacement, rebuild that session's indexed records and remove entries absent from the replacement. Stable record IDs help avoid duplicate results.
+When a native session is deleted, mark its source unavailable and apply your retention policy to indexed text and any exported copy you keep. `supportsDeletionHook` says the agent can notify consumers before deleting, but it doesn't register a hook or promise delivery, so also check availability on refresh.
 
-When a native session is deleted, mark its source unavailable. Remove indexed content if the store's retention policy requires deletion, or retain an authorized exported copy with its own access policy. Do not silently keep serving text that a deletion policy requires removing. `supportsDeletionHook` means the source can notify consumers before deletion. The flag does not register a hook or promise delivery. Without a hook, reconcile source availability during refresh. A missing file does not erase a separately retained export by itself.
+## Schemas and guides
 
-## Validate and integrate
-
-The schemas cover [session records](https://agentsessionrecord.org/schema/v0/agent-session.schema.json), [annotations](https://agentsessionrecord.org/schema/v0/annotation.schema.json), [discovery files](https://agentsessionrecord.org/schema/v0/discovery.schema.json) and the optional [collection manifest](https://agentsessionrecord.org/schema/v0/manifest.schema.json). [Conformance](/spec/conformance) describes the stream's semantic checks.
-
-The guides cover [Git AI notes](/guides/git-ai), [OpenTelemetry spans](/guides/otel) and [session discovery](/guides/integration). To test a prompt, model or setting against recorded work, see [Replaying sessions](/guides/replay). Treat all recorded text as untrusted. Never execute commands or fetch URIs found in a stream.
+JSON Schemas cover [session records](https://agentsessionrecord.org/schema/v0/agent-session.schema.json), [annotations](https://agentsessionrecord.org/schema/v0/annotation.schema.json), [discovery files](https://agentsessionrecord.org/schema/v0/discovery.schema.json) and the optional [collection manifest](https://agentsessionrecord.org/schema/v0/manifest.schema.json), and [Conformance](/spec/conformance) lists the checks beyond the schema. Guides cover [Git AI notes](/guides/git-ai), [OpenTelemetry export](/guides/otel) and [replaying sessions](/guides/replay). For company collection and audits, see [Running ASR across a company](/guides/organizations) and [Using ASR for audits](/guides/audits).

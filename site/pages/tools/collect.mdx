@@ -1,11 +1,9 @@
 ---
 title: "Collect and receive sessions"
-description: "Store changed native sessions as exact ASR files with receipt manifests."
+description: "Store changed sessions as exact files with receipt manifests."
 ---
 
-Use `asr collect` to discover supported native logs, convert changed sessions
-and store their exact bytes. Use `asr receive` for authenticated HTTP uploads.
-Install both through the [CLI](/tools).
+`asr collect` converts native sessions that changed and stores the exact Agent Session Record (ASR) files. `asr receive` accepts authenticated HTTP uploads. Both come with the [CLI](/tools).
 
 | Tool README | Live-test status |
 | --- | --- |
@@ -17,25 +15,14 @@ asr collect --source codex=./native-history \
   --target ./received --state ./collector-state --uploader configured-account
 ```
 
-Add `--watch` to scan on file events with periodic recovery scans. Keep state
-and output outside the native source directory. Explicit `--source` arguments
-bound discovery. The README lists default roots and identity namespaces.
+Add `--watch` to scan on file events, with periodic recovery scans. `--source` limits discovery to the sources you name. Keep state and output outside the native source directory.
 
 ## Storage and receipts
 
-Local directories, a reference HTTP receiver and S3-compatible, GCS and Azure
-adapters are available. The receiver uses a private authentication file that
-binds each token to an uploader and permitted machines. Remote HTTP collection
-needs TLS through an operator-managed proxy.
+Sessions can go to local directories, the reference HTTP receiver, or S3-compatible, GCS and Azure storage. The receiver's private authentication file ties each token to an uploader and the machines it may upload from. Remote HTTP collection needs TLS through a proxy you run.
 
-Receipt manifests identify exact received bytes and link prior manifest windows.
-Re-exports preserve prior versions. An identity mismatch is recorded for review.
-Receipts and empty windows do not establish complete capture, machine availability
-or the author of a session. Collection inherits each converter's source losses.
+Receipt manifests identify the exact bytes received and link to earlier manifests. Re-exports keep earlier versions. A receipt does not show that capture was complete or who wrote a session.
 
-## Test evidence
+## Test results
 
-Local watch, polling and authenticated receiver checks passed. A local MinIO
-container qualified multipart uploads, exact bytes and digest metadata. Production
-S3, GCS and Azure services were not used. Local-history checks retained private
-output and aggregate evidence. The README gives offline and optional MinIO checks.
+Local watch, polling and receiver checks passed, and a local MinIO container verified multipart uploads, exact bytes and digests. Production S3, GCS and Azure were not tested.

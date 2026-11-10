@@ -3,31 +3,23 @@ title: "Recording ACP sessions"
 description: "A mapping from live ACP updates to completed ASR records."
 ---
 
-This guide describes recording a live [Agent Client Protocol](https://agentclientprotocol.com/) connection as ASR. It covers [ACP schema v2.0.0-alpha.9](https://github.com/agentclientprotocol/agent-client-protocol/releases/tag/schema-v2.0.0-alpha.9), published October 16, 2026, for wire protocol version 2. Subagent and inter-session updates use the unstable schema at that revision. This guide adds no requirements.
-
-ACP carries the interaction between an editor and an agent. A recorder sees that connection, which may expose less than the agent's own logs. It records what it observes and names the losses.
+A recorder can write an Agent Session Record (ASR) file from a live [Agent Client Protocol](https://agentclientprotocol.com/) connection. This mapping follows [ACP schema v2.0.0-alpha.9](https://github.com/agentclientprotocol/agent-client-protocol/releases/tag/schema-v2.0.0-alpha.9), published October 16, 2026, for wire protocol version 2, and uses the unstable schema at that revision for subagent and inter-session updates. The connection can show less than the agent's own logs, so declare what it misses as known losses.
 
 ## Start a stream
 
-Use the ACP `sessionId` verbatim. Map `initialize` response `info.name` to a short name in the [agent list](../agents/index.md), or use a configured reverse-DNS name controlled by the agent's maintainer. An arbitrary display name does not establish a domain. `info.version` supplies `agent.version`.
-
-The `session/new` request supplies `cwd`. Additional directories do not establish Git repositories. Write `repos` only when repository facts are observed.
-
-Set `producer.method` to `recorder`. Use a string naming the schema in `producer.source`, as in this illustrative header:
+Use the ACP `sessionId` verbatim. Map the `initialize` response's `info.name` to a short name in the [agent list](../agents/index.md), or use a configured reverse-DNS name controlled by the agent's maintainer. A display name alone doesn't establish a domain. `info.version` supplies `agent.version`, and the `session/new` request supplies `cwd`. Its additional directories don't establish Git repositories, so write `repos` only from observed repository facts.
 
 ```jsonl
 {"type":"session","id":"header","formatVersion":"0.1","agent":{"name":"com.example.coder","version":"1.0"},"sessionId":"acp-session-7","producer":{"name":"example-acp-recorder","version":"1.0","method":"recorder","source":"acp-2.0.0-alpha.9"},"cwd":"/work/parser","missing":["usage","model","timestamps","tool_output","approvals","agent_settings"]}
 ```
 
-A recorder uses receipt time for live events. That is not the time the agent performed the work, so list the missing source timestamps. Omit event times on historical items replayed during resume unless source times are available.
+A recorder stamps live events with the time it received them, which isn't when the agent did the work, so it lists `timestamps` as missing. Items the agent replays during a resume get no event time unless the source supplies one.
 
 ## Fold updates into completed items
 
-ACP upserts identify an entity by its stable ID. Apply the pinned schema's field rules. Usually an omitted field stays unchanged, `null` clears it, and a value replaces it. On `session_message`, omitted or null sender and recipient IDs retain known values. Arrays are replaced as a whole. Chunks concatenate without inserted whitespace. Full content replaces accumulated content. Patch `_meta` key by key.
+ACP upserts identify an entity by its stable ID. Follow the pinned schema's field rules. Usually an omitted field stays unchanged, `null` clears it and a value replaces it. On `session_message`, omitted or null sender and recipient IDs keep their known values. Arrays are replaced whole, chunks concatenate without added whitespace, full content replaces accumulated content, and `_meta` is patched key by key.
 
-Buffer message chunks until the message is complete or the session becomes idle, requires action, closes or disconnects. Preserve a known interruption in `message.status`. A tool call can be written once its request is complete, with its result written when the final outcome arrives. Do not emit streaming chunks as ASR records.
-
-Keep completed items in observed order. Derive distinct record IDs when one ACP tool ID supplies both a call and a result. The unchanged native `toolCallId` remains their `callId`.
+Buffer message chunks until the message is complete or the session goes idle, requires action, closes or disconnects, and keep a known interruption in `message.status`. Write a tool call once its request is complete and its result when the final outcome arrives. Streaming chunks never become records. When one ACP tool ID supplies both a call and a result, give them distinct record IDs and keep the unchanged `toolCallId` as their `callId`.
 
 ## Map the observed facts
 
@@ -37,7 +29,7 @@ Keep completed items in observed order. Derive distinct record IDs when one ACP 
 | `user_message`, `user_message_chunk` | The same message when `messageId` identifies the accepted prompt. |
 | `agent_message`, `agent_message_chunk` | `message`, `role: assistant`. |
 | `agent_thought`, `agent_thought_chunk` | A message containing a `reasoning` part. Leave `visibility` absent when ACP does not distinguish full text from a summary. |
-| `tool_call_update` | `tool_call`, with `callId` from `toolCallId`, and recorded `name`, `kind`, `rawInput` and `locations`. `rawInput` becomes `input`. |
+| `tool_call_update` | `tool_call`, with `callId` from `toolCallId`, `input` from `rawInput`, and the recorded `name`, `kind` and `locations`. |
 | Final tool status | `tool_result` with `completed`, `failed` or `cancelled`. Unresolved status stays `unknown`. |
 | `session/request_permission` and its response | An `approval` record when the response arrives, using the request's options and the mapping below. |
 | Tool `content`, `tool_call_content_chunk` | Fold content updates. Unwrap `type: content` blocks into `tool_result.content`. ACP does not establish that this is what reached the model. |
@@ -51,17 +43,17 @@ Keep completed items in observed order. Derive distinct record IDs when one ACP 
 | `notice` | `message`, `author: harness`, `origin: notice`. |
 | Successful `session/close` | `session_info.endedAt` using the recorder's receipt time. |
 
-Only mark a prompt `author: human` when the recorder knows the client is relaying a person's input. A JSON-RPC error from `session/prompt` does not establish an accepted message.
+Mark a prompt `author: human` only when the recorder knows the client is relaying a person's input. A JSON-RPC error from `session/prompt` doesn't establish an accepted message.
 
-Configuration options can establish settings when the agent documents their meaning. The optional `category` is a display hint, so it does not alone identify an approval policy. Record each established value at the position observed. The connection does not guarantee effective permission or sandbox settings or an outer boundary. List `agent_settings` when that evidence is known to be incomplete, as in the example header.
+Configuration options establish settings only as far as the agent documents what they mean, and the optional `category` is a display hint that doesn't by itself identify an approval policy. The connection doesn't guarantee the effective permission or sandbox settings or any outer boundary, so list `agent_settings` as missing when that evidence is known to be incomplete.
 
-A completed edit call can establish an applied diff. A failed call supplies `failed`, a cancelled call leaves application unknown, and a pending proposal stays `proposed`. Diff text by itself does not establish success. Preserve paths inside patches and input exactly.
+A completed edit call can establish an applied diff, and a failed one gives `failed`. A cancelled call leaves it unknown whether the diff was applied, a pending proposal stays `proposed`, and diff text alone doesn't establish success.
 
-Prefer folded `content` blocks to `rawOutput` when both exist. If `content` is absent, text `rawOutput` can become text content. Keep structured raw output without a matching content shape under the recorder's reverse-DNS `_meta` key. Do not concatenate the two representations or call either verified model input. Keep display-only terminal references as vendor data.
+Prefer folded `content` blocks to `rawOutput`. When `content` is absent, text `rawOutput` can become text content, and structured raw output with no matching content shape goes under the recorder's reverse-DNS `_meta` key. Don't concatenate the two or call either one verified model input. Display-only terminal references stay vendor data.
 
 ## Permission decisions
 
-Keep each permission request and its `options`. In the pinned schema, `PermissionOption.kind` is on a request option. A selected response carries `outcome: selected` and `optionId`, so the response alone does not establish approval or denial. Join the selected ID to that request's option. For a `tool_call` subject, `subject.toolCall.toolCallId` identifies the call. For a `command` subject, `subject.toolCallId` identifies it when known. Other subjects can have no call. Write an `approval` record when the response arrives, using the identified call as `callId` and receipt time as `ts`.
+In the pinned schema, `PermissionOption.kind` is on the request's option, and a selected response carries only `outcome: selected` and `optionId`. Keep each request with its `options` and join the selected ID to them. The call is `subject.toolCall.toolCallId` for a `tool_call` subject and `subject.toolCallId`, when known, for a `command` subject. Other subjects can have no call. Write the `approval` when the response arrives, with that call as `callId` and the receipt time as `ts`.
 
 | ACP option kind or outcome | ASR `decision` | ASR `scope` |
 |---|---|---|
@@ -71,28 +63,24 @@ Keep each permission request and its `options`. In the pinned schema, `Permissio
 | `reject_always` | `denied` | `always` or `session` by the refusal's real lifetime |
 | Outcome `cancelled` | `cancelled` | Absent |
 
-ACP's option kind is a hint. It does not establish whether a remembered answer survives the session. Omit `scope` when its real lifetime is unknown. Preserve the selected option and outcome in `native`. An unknown option kind or outcome does not mean approval.
-
-ACP does not identify who or what decided. Set `by` and `person` only when another observed source establishes them. Reuse of a grant is `by: policy`, even when a person created it. Keep multiple decisions as separate records in source order, including a second request for the same call. A decision with no tool call omits `callId` and uses the recorded request title as `subject`. A title naming a narrower request can also supply `subject` on a linked decision.
+The option kind is only a hint about lifetime, so omit `scope` when you can't tell whether a remembered answer outlives the session. Keep the selected option and outcome in `native`. An unknown option kind or outcome doesn't mean approval.
 
 ```jsonl
 {"type":"approval","id":"permission-decision","callId":"edit-7","decision":"denied","scope":"once","native":{"option":{"optionId":"reject-7","name":"Reject once","kind":"reject_once"},"outcome":{"outcome":"selected","optionId":"reject-7"}}}
 ```
 
-The excerpt keeps the recorded denial without guessing an answerer or a tool outcome. A source that reports only a cancelled request supplies `decision: cancelled`, which does not by itself establish a tool's final status. List `approvals` in `missing` when the connection omits decisions made by policy or other paths. Declare a newly discovered loss in the next `session_info.missing`.
+ACP doesn't say who or what decided, so set `by` and `person` only from another observed source. A second request for the same call is a separate record. A decision with no tool call omits `callId` and uses the recorded request title as `subject`, and a title naming a narrower request can supply `subject` on a linked decision. A `cancelled` decision doesn't establish the tool's final status. List `approvals` as missing when the connection hides decisions made by policy or other paths.
 
 ## Sessions and copies
 
-Resume with the same session ID continues the same stream. Do not append duplicate entities when the agent replays history. A fork creates a new header with `parent.kind: fork`. Mark replayed parent records with `copiedFrom` when ACP identity establishes the copy. Use `copiedThrough` only for an established initial copied prefix.
+Resuming with the same session ID continues the same stream, so don't append duplicates when the agent replays history. A fork gets a new header with `parent.kind: fork`, and replayed parent records get `copiedFrom` when ACP identity establishes the copy.
 
-An ACP subagent association can supply the child's `parent` and the parent's `tool_call.subagent` when a tool call is identified. Do not invent a call to hold an association. A received inter-session message can carry `author: agent` and `from` as a session reference. Keep unsupported routing detail in `_meta`.
+A subagent association can supply the child's `parent`, and the parent's `tool_call.subagent` when a tool call is identified. Don't invent a call to hold it. A received inter-session message can carry `author: agent` and `from` as a session reference, with other routing detail in `_meta`.
 
-If an update changes an item after its complete ASR line is written, produce a new export file or retain the update as vendor data. Do not rewrite a complete line in a live stream. Report any resulting loss.
+If an update changes an item after its line is written, produce a new export file or keep the update as vendor data. Don't rewrite lines in a live stream, and report any resulting loss.
 
 ## What the connection leaves unknown
 
-ACP at this revision does not establish per-call model boundaries. Do not create `inference` records from reply boundaries. `usage_update.used` and `size` describe the context window, not accumulated token use. Keep them in `_meta` if useful, and list `usage` in `missing`.
+ACP at this revision doesn't establish per-call model boundaries, so don't create `inference` records from reply boundaries. `usage_update.used` and `size` describe the context window, not accumulated token use, so list `usage` as missing. A model selection doesn't identify the served model. Plans, terminal lifecycle and intermediate statuses have no core records. Keep them as vendor data or list them as missing.
 
-Model selection alone does not identify a served model. Tool display content does not establish model-facing output. Plans, terminal lifecycle and intermediate statuses have no dedicated core records. Retain useful detail as vendor data or name the omitted category in `missing`.
-
-Do not record server credentials, headers, environment secrets or secret prompt answers. Recording ASR does not provide wire replay or session resume. See [Missing data](../spec/missing-data.md) and [Records](../spec/records.md).
+Never record server credentials, headers, environment secrets or secret answers to prompts. An ASR recording doesn't provide wire replay or session resume.

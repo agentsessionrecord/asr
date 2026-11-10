@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Agent Session Record",
-  "description": "An open format for searching agent sessions and tracing code to the work that produced it.",
+  "description": "An open file format for coding agent sessions.",
   "colors": {
     "primary": "#18181b",
     "light": "#fafafa",
@@ -40,7 +40,6 @@
             "group": "Get started",
             "pages": [
               "index",
-              "get-started/why-asr",
               "get-started/quick-tour",
               "get-started/agent-developers",
               "get-started/tool-builders",
@@ -103,9 +102,14 @@
               "guides/git-ai",
               "guides/otel",
               "guides/integration",
-              "guides/organizations",
-              "guides/audits",
               "guides/replay"
+            ]
+          },
+          {
+            "group": "Teams and audits",
+            "pages": [
+              "guides/organizations",
+              "guides/audits"
             ]
           }
         ]

@@ -1,33 +1,22 @@
 ---
 title: "Convert native logs"
-description: "Convert saved transcripts, documents and databases into private ASR streams."
+description: "Convert saved agent transcripts, documents and databases."
 ---
 
-Use `asr convert` for supported local agent history. It writes one ASR stream
-per recorded native session. Use `asr agents` to list selectable names.
+`asr convert` turns local agent logs into Agent Session Record (ASR) files, one per native session. `asr agents` lists the agent names it accepts. [Install the CLI](/tools) first.
 
 ```sh
 asr convert --agent codex ./native-history --out ./private-asr
 asr validate --summary ./private-asr
 ```
 
-Install the [CLI](/tools). Conversion reads local evidence in source order.
-It does not start an agent, run recorded commands or follow recorded URLs.
-Output can replace an earlier export of the same session after conversion
-succeeds. Keep the files private.
+Conversion does not start the agent, run recorded commands or open recorded URLs. Output replaces an earlier export of the same session only after conversion succeeds. Keep the output private.
 
 ## Default native log locations
 
-These paths come from the CLI's [native discovery code](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-collect/src/discovery.rs).
-`asr convert` reads the input path you supply. These roots help you find it.
-Pass a native file or a directory beneath the appropriate root.
-The collector searches these roots when no explicit source is configured.
+These are the roots the CLI's [discovery code](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-collect/src/discovery.rs) searches. `asr convert` reads only the file or directory you pass it, and `asr collect` searches these roots when you configure no source.
 
-`~` means your home directory. `./` means the current working directory.
-`$XDG_DATA_HOME` defaults to `~/.local/share`, `$XDG_CONFIG_HOME` to `~/.config`,
-and `$XDG_STATE_HOME` to `~/.local/state`. An unset or empty override uses its default.
-The paths below describe the discovery implementation. Other platforms or
-installations can store history elsewhere. Supply that location explicitly.
+`./` is the current directory. `$XDG_DATA_HOME` defaults to `~/.local/share`, `$XDG_CONFIG_HOME` to `~/.config` and `$XDG_STATE_HOME` to `~/.local/state`, and an empty override uses the default. Other platforms and installs can keep history elsewhere.
 
 | Agent selector | Default native roots | Root override |
 | --- | --- | --- |
@@ -78,8 +67,8 @@ installations can store history elsewhere. Supply that location explicitly.
 
 For Cline and Roo Code, `<editor>` is `Code`, `Code - Insiders`, `VSCodium` or
 `Cursor`. Roo Code's `<extension>` is `rooveterinaryinc.roo-cline` or
-`RooVeterinaryInc.roo-cline`. Some roots contain SQLite databases and companion
-files rather than plain text logs. Keep those files together when copying history.
+`RooVeterinaryInc.roo-cline`. Some roots hold SQLite databases with companion
+files. Copy those files together.
 
 ## Converter library
 
@@ -87,21 +76,14 @@ files rather than plain text logs. Keep those files together when copying histor
 | --- | --- |
 | [ASR converter framework](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-applicable` |
 
-The README lists every supported group and links its source profile, mapping,
-fixtures and limits. A recorded tool outcome does not establish approval.
-Settings, usage, edits and lineage appear only when native evidence supports them.
-Unsupported fields, missing history, malformed input and size limits stay visible
-through metadata, declared losses and gaps.
+The README links each agent's source profile, mapping, fixtures and limits. Converters add settings, usage, edits and lineage only when the native log has them, and report unsupported fields, missing history, malformed input and size limits as [declared losses and gaps](/spec/missing-data).
+
+Goose and legacy Kiro sessions keyed by working directory need a stable installation namespace, set with `--namespace`. Records over the 16 MiB default limit can become gaps, and an incomplete last line waits for a later conversion.
 
 ## Agent profiles
 
-All registered converters below have synthetic native fixtures and validated
-ASR goldens. They remain `not-live-tested` until a fresh agent session qualifies
-that converter. Source profile support does not cover every host release.
-The two OpenClaw entries use the same `openclaw` CLI selector.
+Every converter below is tested with synthetic native fixtures and validated ASR output, but none against a fresh session from its agent. A profile does not cover every release of its agent. Both OpenClaw entries use the `openclaw` selector.
 
-| Tool README | Live-test status |
-| --- | --- |
 | [antigravity native JSONL converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/src/jsonl/README.md) | `not-live-tested` |
 | [AstrBot database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
 | [Auggie converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
@@ -147,8 +129,3 @@ The two OpenClaw entries use the same `openclaw` CLI selector.
 | [Warp database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
 | [Xum converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
 | [Zed database converter](https://github.com/agentsessionrecord/asr/blob/main/crates/asr-convert/README.md) | `not-live-tested` |
-
-Goose needs a stable installation namespace. Legacy Kiro sessions keyed by
-working directory also need one. Use the README's `--namespace` instructions.
-The default record limit is 16 MiB. Oversized complete records can become gaps,
-and an incomplete final line waits for a later conversion.

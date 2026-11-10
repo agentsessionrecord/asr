@@ -27,7 +27,7 @@
   "files": {
     ".gitattributes": "fb25a78a6381f5646d71aacea4486f6aeeeb03c4d71740227011024be0d20a8f",
     "PROPOSAL.md": "85479d8b13f83a02979cbe3588b1eaff97a3582f5bbce025dba708047a59412a",
-    "README.md": "4714f0b5b0c48c21042d5e5bd616bd2594f0347855a785c3d84d0236b81d0dd4",
+    "README.md": "f375b2587b638b4cd680e63804c66c61e0b06e496b0cc3ea183e03829e90537a",
     "TEST-RESULTS.md": "5a117db8e2880a9e94607c9436e2943a3e8b2e73fc65a3acdb309c7503f40d71",
     "check.mjs": "b96dae03fcfa49edf81b0f63ac8c9bf318d749ce9a4cae960e926186cc922dd8",
     "check.test.mjs": "1ea0a59dded17c00d3c64de31ea2b44d6cb92aadfdc4a69735116e1b67b59ca4",

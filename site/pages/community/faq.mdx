@@ -1,64 +1,55 @@
 ---
 title: "FAQ"
-description: "Answers about session records, conversion, blame and missing data."
+description: "Answers about conversion, blame, related formats and missing data."
 ---
 
-## Is ASR a transcript format?
+## Why JSON Lines and not SQLite or Parquet?
 
-It is an indexable log of work. It records messages, tool activity, edits and commits as the source retains them. It does not reconstruct the exact request a model saw or prove that all history is present.
+An agent writes its session while it runs. With JSON Lines it appends one line per event, and if it crashes, every complete line is still readable. Several agents already write JSONL logs, including Claude Code, Codex and Gemini CLI. A text file is also easy to read, search and diff.
 
-## Why not search the native logs directly?
+SQLite and Parquet are better for querying many sessions at once. For that, the [tables exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/tables/) turns Agent Session Record (ASR) files into Parquet tables you can load into DuckDB. Some agents, such as opencode and Goose, store sessions in SQLite, and the converters read those databases directly.
 
-You can, for one agent. Each agent stores sessions differently, so readers must rebuild search and blame logic for each format and keep it current as formats change. A converter holds that knowledge once. Readers then work across agents.
+## How does ASR relate to ACP, Git AI, OpenTelemetry and Git?
+
+| Tool or format | What it covers | What it leaves out |
+|---|---|---|
+| [ACP](https://agentclientprotocol.com/) | Live communication between an editor and an agent | A record after the session. Most sessions run without it. |
+| [Git AI](https://github.com/git-ai-project/git-ai) | Line attribution in Git notes | The prompt, model call and tool history behind a line |
+| [OpenTelemetry](https://opentelemetry.io/docs/specs/semconv/gen-ai/) | Monitoring model and tool operations | Retained content by default, and any model of files and commits |
+| Git | File and commit history | Who edited a line before it was committed, and why |
+
+A [recorder](/guides/acp) can save an ACP session as ASR, [Git AI notes](/guides/git-ai) can be written from ASR blame results, and model calls can be [exported to OpenTelemetry](/guides/otel).
 
 ## Can an agent ship version 0.1 now?
 
-Yes. Changes to 0.1 only add optional fields, record types and enum values. Requirement IDs and meanings stay fixed within a format version, and a breaking change gets a new `formatVersion`. The tools in this repository keep reading 0.1 files. The [Versions section](/spec/format#versions) defines what agent makers can rely on. From 1.0, a reader for 1.x reads every 1.x file. Later 1.x versions only add optional fields, record types and values. Readers preserve unfamiliar data and ignore meanings they do not understand.
+Yes. Changes to 0.1 only add optional fields, record types and enum values, and requirement IDs and meanings don't change within a format version. A breaking change gets a new `formatVersion`, and the tools in this repository keep reading 0.1 files. See [Versions](/spec/format#versions).
 
-## Must an agent write ASR itself?
+## Does a commit show who wrote a line?
 
-No. A converter can read native logs after the session. An agent can supply an export command or write a second log in ASR. All three use the same records.
+No. One session can edit a file and another commit it, and a person can commit an agent's edits. So readers give two separate answers. Edited by needs an applied edit whose added lines survive in the commit, and committed by needs a recorded commit that passes the [repository checks](/spec/code#committed-by). A commit trailer or a commit mentioned in a reply only points to a candidate session, and even a match is evidence, not proof. The [quick tour](/get-started/quick-tour#a-person-makes-the-commit) shows a person committing an agent's edit.
 
-## Can I resume a session from it?
+After a rebase, recorded rewrite pairs connect the old and new commits. A squash commit can be checked directly against the surviving edit text. Similar commit subjects alone don't establish a rewrite.
 
-ASR does not define resume or replay. Native state may include model context or provider data that ASR does not retain. [Replaying sessions](/guides/replay) describes how recorded sessions can still support model and prompt comparisons.
+## What if the source log is incomplete?
 
-## Does a commit record prove who wrote a line?
+Unknown fields stay absent. The header lists known losses, a `gap` marks missing history and shortened text is marked `truncated`. A session without edit records can still be searched. See [Missing data](/spec/missing-data).
 
-No. It can establish who performed a commit when the [repository checks](/spec/code#committed-by) pass. Line attribution also needs original, applied edits that match the commit. Readers report edited by and committed by separately.
+## Can I replay or resume a session?
 
-## What if a person commits the agent's edits?
+ASR doesn't define resume or replay, and it doesn't reconstruct the exact request a model saw, because native state can hold model context or provider data that ASR doesn't keep. [Replaying sessions](/guides/replay) shows how recorded sessions can still be used to compare models and prompts.
 
-The reader can still match recorded edits to the commit's added lines. The [tour variant](/get-started/quick-tour#a-person-makes-the-commit) shows the same edit with a person's commit. The editor and committer are separate facts. A match supports attribution, but it is not proof.
+## Is a valid file safe to share?
 
-## What happens after a rebase or squash merge?
+No. Prompts, paths and tool output can contain private information, and validation only checks structure. Producers exclude known secrets, redaction creates a new file, and readers treat all recorded content as untrusted.
 
-Recorded rewrite pairs connect old and new commits. A squash commit can also be checked directly against surviving edit text. Similar commit subjects alone do not establish a rewrite.
+## Where do test results learned later go?
 
-## What if the source is incomplete?
+In a separate [annotations file](/spec/annotations), along with later outcomes and summaries. It can change without touching the session file.
 
-Unknown fields stay absent. The header lists known losses, gaps show missing history, and shortened text is marked. A file with missing edits can still support text search.
+## Can I add my own fields?
 
-## How are subagents counted?
+Yes, in `_meta` under a reverse-DNS key. Agents can also add namespaced record types, and named extensions can add fields and records without changing what core records mean.
 
-Parent and child sessions reference one another when the source provides the link. Copies of parent records do not count as the child's own edits or cost. New model calls over inherited context belong to the child.
+## Can a company collect sessions or use them for audits?
 
-## Does a valid file mean it is safe to share?
-
-No. Prompts, paths and tool results can contain private information. Producers exclude known secrets. Readers treat content as untrusted. Redaction creates a new file.
-
-## Where do later results go?
-
-Tests, outcomes and summaries learned after a session go in a separate [annotations file](/spec/annotations). They can be updated without changing the session stream.
-
-## Can ASR help with audits?
-
-Yes. It can link recorded approvals and policy settings to tool activity and code changes. A collector can preserve the received bytes and a receipt. Protecting the receipt separately can make later changes detectable. Local logs can change before collection. The [audit guide](/guides/audits) explains the limits and checks against independent systems.
-
-## Does it work with ACP?
-
-Yes. A [recorder](/guides/acp) can save a session that runs over ACP as ASR. Most sessions run without ACP, so converters read the logs agents already write.
-
-## Can the format grow?
-
-Vendor data uses `_meta` and namespaced record types. Named extensions can add fields and records while keeping the core meanings intact.
+Yes. See [Running ASR across a company](/guides/organizations) and [Using ASR for audits](/guides/audits). A collected file shows only what the machine kept, and the person running the agent can change local logs before collection.
