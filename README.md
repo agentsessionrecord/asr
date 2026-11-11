@@ -25,7 +25,7 @@
   <br>
 </div>
 
-Coding agents all log the same things: prompts, replies, tool calls, file edits and commits. Each one uses its own format. Agent Session Record (ASR) is one open format for the exported session, so an agent exports once and any tool can read it. [ACP](https://agentclientprotocol.com/) covers steering an agent while it runs. ASR covers the session file it exports.
+Coding agents all log the same things: prompts, replies, tool calls, file edits and commits. Each one uses its own format. Agent Session Record (ASR) is an open format for exporting sessions, so a harness exports once and any tool can read it. [ACP](https://agentclientprotocol.com/) covers steering an agent while it runs. ASR covers the exported session file. It doesn't change how a harness stores its own logs.
 
 ASR is a file format, not a service. Session files stay on your machine unless you choose to share them. Use them to search past sessions across agents, find the session behind a line of code, or move history between tools.
 

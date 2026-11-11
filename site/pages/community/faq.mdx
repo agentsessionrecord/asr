@@ -3,11 +3,19 @@ title: "FAQ"
 description: "Answers about conversion, blame, related formats and missing data."
 ---
 
+## Does an agent harness have to store its sessions in ASR?
+
+No, but it can. ASR is an export format first: a harness, the app such as Claude Code or Codex, can keep its own log format and add a command that writes ASR. ASR also works as a harness's own log. It's written a line at a time, and anything app-specific can go in each record's `_meta`. Harnesses without an export command can still be read by the ASR converters.
+
 ## Why JSON Lines and not SQLite or Parquet?
 
-An agent writes its session while it runs. With JSON Lines it appends one line per event, and if it crashes, every complete line is still readable. Several agents already write JSONL logs, including Claude Code, Codex and Gemini CLI. A text file is also easy to read, search and diff.
+ASR is built to be easy to write, read and keep, not to be fast to query.
 
-SQLite and Parquet are better for querying many sessions at once. For that, the [tables exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/tables/) turns Agent Session Record (ASR) files into Parquet tables you can load into DuckDB. Some agents, such as opencode and Goose, store sessions in SQLite, and the converters read those databases directly.
+A session is a mix of record types in order: prompts, model calls, tool calls, file edits and commits, each with different fields. JSON Lines keeps them as one ordered stream. Parquet wants one fixed set of columns per table, so a session would be split across tables or carry mostly empty columns.
+
+A JSON Lines file can be written and read one line at a time, so a long session with large tool output never has to be loaded whole. Every language can read it, and a person can open it and see what happened, which matters for audits. New fields and agent-specific data can be added, and older readers skip what they don't know. Recorders that write while a session runs can append to it, and every complete line survives a crash.
+
+SQLite and Parquet are better for querying many sessions at once. The [tables exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/tables/) turns ASR files into Parquet tables you can load into DuckDB. Some agents, such as opencode and Goose, store sessions in SQLite, and the converters read those databases directly.
 
 ## How does ASR relate to ACP, Git AI, OpenTelemetry and Git?
 

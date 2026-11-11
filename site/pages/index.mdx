@@ -5,13 +5,13 @@ description: "An open file format for coding agent sessions."
 
 Every coding agent logs its sessions. Claude Code, Codex, Cursor, opencode and the rest record the same things: prompts, replies, tool calls, file edits and commits. Each one uses its own format, so a tool that searches or analyzes agent history ends up maintaining 40 or 50 parsers.
 
-Agent Session Record (ASR) is one open format for the exported session. [ACP](https://agentclientprotocol.com/) covers how an editor steers an agent while it runs. ASR covers the session file the agent exports. An agent exports once, and any tool can read it.
+Agent Session Record (ASR) is an open format for exporting sessions. [ACP](https://agentclientprotocol.com/) covers how an editor steers an agent while it runs. ASR covers the exported session file. It doesn't change how an agent harness, the app such as Claude Code or Codex, stores its own logs. The harness adds an export command, and any tool can read the result.
 
 ASR is a file format, not a service. Your session files stay on your machine, and nothing is uploaded or shared unless you choose to.
 
 ## What you can do with it
 
-You can search past sessions from all your agents at once, find the session and prompt behind a line of code, or move your history to another tool.
+You can search past sessions from all your agents at once, find the session and prompt behind a line of code, review what an agent did for an audit, analyze cost and usage, or move your history to another tool.
 
 Each session is one JSON Lines file. Here is the file edit from the [quick tour](/get-started/quick-tour), where an agent fixes a parser bug:
 
@@ -21,7 +21,7 @@ Each session is one JSON Lines file. Here is the file edit from the [quick tour]
 
 ## Why JSON Lines
 
-Agents append one line at a time while they run, so the file is still readable after a crash. To analyze many sessions at once, export them to Parquet tables with the [tables exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/tables/).
+A session is a mix of records in order: prompts, model calls, tool calls, file edits and commits. JSON Lines keeps them as one ordered stream. You can read it a line at a time, open it in any language, and read it yourself. Recorders can also add to it while a session runs. To analyze many sessions at once, export them to Parquet tables with the [tables exporter](https://github.com/agentsessionrecord/asr/blob/main/exporters/tables/).
 
 ## Try it
 
