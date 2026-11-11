@@ -1,7 +1,7 @@
 [project]
 name = "asr-entire"
-version = "0.1.0"
-description = "Read local Entire checkpoint branches into ASR"
+version = "0.2.0"
+description = "Read local Entire checkpoints into ASR"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 dependencies = ["asr-importer-core", "asr-anthropic-compliance"]

@@ -1161,9 +1161,21 @@
       "language": "Python",
       "status": "built",
       "location": "importers/entire",
-      "liveTestStatus": "partial",
-      "liveTestNotes": "Prior revision: Entire v0.12.2 created a checkpoint from scripted synthetic Claude Code hooks and a local Git commit. Four imported records validate with zero errors and warnings. No account or model requests. A live run of the current implementation has not been verified.",
-      "notes": "Read-only Git object reader for the local entire/checkpoints/v1 branch. Claude Code and Codex raw transcript adapters. No edit or commit credit from checkpoint associations."
+      "liveTestStatus": "passed",
+      "liveTestNotes": "Entire v0.13.2 recorded a scripted Claude Code session across two commits on the git-refs and git-branch backends, and a real Claude Code session and a real Codex session with live model calls through a loopback endpoint. Each import matches the native call and tool counts and validates with zero errors and warnings. Counts are in importers/entire/live-test.json.",
+      "notes": "Read-only Git object reader for both Entire checkpoint backends. Maps the normalized transcript for every agent Entire supports and merges checkpoints at compact_transcript_start. Claude Code and Codex raw adapters keep reasoning. No edit or commit credit from checkpoint associations."
+    },
+    {
+      "id": "entire-asr-command",
+      "name": "Entire external command",
+      "kind": "importer",
+      "path": "plugins/entire",
+      "language": "Python",
+      "status": "built",
+      "location": "plugins/entire",
+      "liveTestStatus": "passed",
+      "liveTestNotes": "Installed with entire plugin install and run as entire asr export through the released Entire v0.13.2 CLI, on scripted sessions for both backends and on the real Claude Code and Codex sessions. Output matches the importer and validates with zero errors and warnings. Counts are in importers/entire/live-test.json.",
+      "notes": "entire-asr, discovered by Entire as entire asr. Selects sessions by checkpoint, commit or session and writes one ASR file per session through the Entire checkpoint importer."
     },
     {
       "id": "vendor-importer-core",

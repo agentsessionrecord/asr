@@ -1,271 +1,191 @@
-"""Read checkpoint Git objects without running a checkout or a recorded command."""
+"""Read Entire checkpoints from Git objects into ASR without a checkout or a recorded command."""
 from __future__ import annotations
 
-from collections import defaultdict
+from dataclasses import dataclass, field
 import hashlib
-import json
-import os
-from pathlib import Path, PurePosixPath
-import re
-import subprocess
-import tempfile
+from pathlib import Path
 
-from asr_anthropic_compliance import blocks
-from asr_importer_core import META, MAX_INPUT_BYTES, Stream, json_lines, loads, native, text_parts, usage
+from asr_importer_core import META, Stream
 
-REF = "refs/heads/entire/checkpoints/v1"
-AGENTS = {"Claude Code": "claude-code", "Codex": "codex", "claude-code": "claude-code", "codex": "codex"}
+from . import raw
+from .normalized import ASR_NAMES, REGISTRY_NAMES, UNKNOWN_AGENT, Mapper, extends, key, parse
+from .raw import native_transcript
+from .store import BRANCH, REFS, Reader, SessionEntry, checked_path, checkpoint_from_ref, repository_root
 
+__all__ = ["BRANCH", "REF", "REFS", "PROFILE", "Session", "checked_path", "checkpoint_from_ref", "convert", "discover",
+           "import_repository", "map_lines", "native_transcript", "new_stream", "output_name", "repository_root",
+           "write_all"]
 
-def git(repo: Path, *args: str) -> bytes:
-    # Prevent inherited Git routing and object replacement from changing the
-    # repository selected by the caller. Read commands do not invoke hooks.
-    env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
-    env.update(GIT_TERMINAL_PROMPT="0", GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull, GIT_NO_LAZY_FETCH="1")
-    # A large Git object must not be buffered without a bound in this process.
-    with tempfile.TemporaryFile() as output:
-        try:
-            result = subprocess.run(["git", "--no-optional-locks", "--no-replace-objects", "-c", "core.fsmonitor=false",
-                                     "-c", "log.showSignature=false", "-c", "core.hooksPath=" + os.devnull, "-C", str(repo), *args],
-                                    env=env, stdout=output, stderr=subprocess.DEVNULL, check=False, timeout=30)
-        except subprocess.TimeoutExpired:
-            raise ValueError("local checkpoint Git read timed out") from None
-        if result.returncode or output.tell() > MAX_INPUT_BYTES:
-            raise ValueError("local checkpoint Git read failed or exceeded byte limit")
-        output.seek(0)
-        return output.read(MAX_INPUT_BYTES + 1)
+REF = BRANCH
+PROFILE = "entire-v0.13.2"
+PRODUCER = {"name": "asr-import-entire", "version": "0.2.0", "method": "converter"}
+TRANSCRIPTS = ("auto", "normalized", "full")
 
 
-def checked_path(value: str, prefix: str) -> str:
-    if not isinstance(value, str):
-        raise ValueError("checkpoint pointer must be a Git path")
-    path = value.lstrip("/")
-    if "\\" in path or "\x00" in path or any(part in (".", "..") for part in path.split("/")) or not path.startswith(prefix + "/"):
-        raise ValueError("checkpoint pointer escapes its checkpoint subtree")
-    return path
+@dataclass
+class Session:
+    agent: str
+    registry: str | None
+    native_agent: str | None
+    session_id: str
+    entries: list[SessionEntry]
+    shadowed: list[SessionEntry] = field(default_factory=list)
+
+    @property
+    def checkpoints(self) -> list[str]:
+        return [entry.checkpoint for entry in self.entries]
 
 
-def snapshots(repo: Path):
-    revision = git(repo, "rev-parse", "--verify", REF + "^{commit}").decode().strip()
-    tree = {}
-    for entry in git(repo, "ls-tree", "-rz", "--full-tree", revision).split(b"\0"):
-        if not entry:
-            continue
-        info, path = entry.split(b"\t", 1)
-        mode, kind, oid = info.decode().split()
-        if kind == "blob" and mode == "100644":
-            tree[path.decode("utf-8")] = oid
-    order = {}
-    for index, path in enumerate(git(repo, "log", "--reverse", "--format=", "--name-only", revision).decode().splitlines()):
-        if path:
-            order[path] = index
-
-    retained_bytes = 0
-    def blob(path):
-        nonlocal retained_bytes
-        if path not in tree:
-            return None
-        data = git(repo, "cat-file", "blob", tree[path])
-        retained_bytes += len(data)
-        if retained_bytes > MAX_INPUT_BYTES:
-            raise ValueError("checkpoint_byte_limit")
-        return data
-
-    result = []
-    for root in tree:
-        if not re.fullmatch(r"[0-9a-f]{2}/[0-9a-f]{10}/metadata\.json", root):
-            continue
-        summary = loads(blob(root).decode("utf-8"))
-        if not isinstance(summary, dict):
-            raise ValueError("invalid checkpoint summary")
-        prefix = str(PurePosixPath(root).parent)
-        sessions = summary.get("sessions")
-        if not isinstance(sessions, list):
-            # Legacy single-session checkpoints keep metadata at the root.
-            sessions = [{"metadata": root, "transcript": prefix + "/full.jsonl"}]
-        for pointers in sessions:
-            if not isinstance(pointers, dict):
-                raise ValueError("invalid checkpoint session pointer")
-            metadata_path = checked_path(pointers.get("metadata"), prefix)
-            raw_metadata = blob(metadata_path)
-            if raw_metadata is None:
-                raise ValueError("checkpoint session metadata is absent")
-            metadata = loads(raw_metadata.decode("utf-8"))
-            if not isinstance(metadata, dict):
-                raise ValueError("invalid checkpoint session metadata")
-            transcript_path = checked_path(pointers.get("transcript", str(PurePosixPath(metadata_path).parent / "full.jsonl")), prefix)
-            transcript = blob(transcript_path)
-            # Entire numbers additional raw chunks as full.jsonl.001, .002.
-            chunks = sorted((path for path in tree if re.fullmatch(re.escape(transcript_path) + r"\.\d{3,}", path)),
-                            key=lambda path: int(path.rsplit(".", 1)[1]))
-            expected = [transcript_path + f".{index:03d}" for index in range(1, len(chunks) + 1)]
-            if chunks != expected:
-                raise ValueError("checkpoint transcript chunks are incomplete")
-            if transcript is not None:
-                transcript += b"".join(blob(path) for path in chunks)
-            result.append((order.get(metadata_path, order.get(root, -1)), metadata_path, metadata, transcript, summary))
-    return revision, sorted(result, key=lambda row: (row[0], row[1]))
+def order_key(entry: SessionEntry):
+    # Entire's own position markers grow through a session. Creation time and
+    # the ID only break ties. Event timestamps never reorder records.
+    start = entry.compact_start
+    created = entry.metadata.get("created_at")
+    return (entry.transcript_start, -1 if start is None else start,
+            created if isinstance(created, str) else "", entry.checkpoint, entry.index)
 
 
-def native_transcript(stream: Stream, data: bytes, agent: str):
-    rows = list(json_lines(data))
-    # A retained UUID can have several snapshots. Keep its completion point.
-    last_uuid = {}
-    last_call = {}
-    for position, row in rows:
-        if row and agent == "claude-code":
-            if row.get("uuid"):
-                last_uuid[str(row["uuid"])] = position
-            message = row.get("message")
-            if row.get("type") == "assistant" and isinstance(message, dict) and message.get("id"):
-                last_call[str(message["id"])] = position
-    requested_model = None
-    settings = {}
-    inference_ids = set()
-    for position, row in rows:
-        if row is None:
-            stream.gap(meta={"sourceLine": position + 1})
-            continue
-        ts = row.get("timestamp")
-        if agent == "claude-code":
-            if row.get("uuid") and last_uuid[str(row["uuid"])] != position:
-                continue
-            message = row.get("message")
-            if row.get("type") in ("user", "assistant") and isinstance(message, dict):
-                inference = str(message["id"]) if row["type"] == "assistant" and message.get("id") else None
-                # Reserve a stable provider ID for the later inference. Native
-                # messages use UUIDs and calls use their own tool IDs.
-                blocks(stream, message, source_id=row.get("uuid"), ts=ts,
-                       meta={key: value for key, value in row.items() if key != "message"},
-                       verified=row["type"] == "assistant", inference_id=inference, native_input=True)
-                if inference and last_call[inference] == position:
-                    fields = {}
-                    if isinstance(message.get("model"), str) and message["model"]:
-                        fields["model"] = {"provider": "anthropic", "id": message["model"]}
-                    if isinstance(message.get("usage"), dict):
-                        fields["usage"] = usage(message["usage"], anthropic=True)
-                    if isinstance(message.get("stop_reason"), str):
-                        fields["stopReason"] = message["stop_reason"]
-                    actual = stream.add("inference", source_id=inference, ts=ts, meta={"messageUsage": message.get("usage")}, **fields)["id"]
-                    if actual != inference:
-                        # A native ID collision must not break links.
-                        for record in stream.records:
-                            if record.get("inferenceId") == inference:
-                                record["inferenceId"] = actual
-                if row.get("isCompactSummary") is True:
-                    for record in stream.records:
-                        if record["type"] == "message" and record.get("_meta", {}).get(META, {}).get("uuid") == row.get("uuid"):
-                            record.update(origin="compaction", author="harness")
-                    stream.gap("not_retained", "The source retains a compaction summary.", ts=ts)
-            else:
-                stream.add("session_info", ts=ts, missing=["native_events"], meta={"nativeRecord": row})
-        elif agent == "codex":
-            payload = row.get("payload")
-            if not isinstance(payload, dict):
-                stream.gap(ts=ts, meta={"nativeRecord": row})
-                continue
-            kind = row.get("type")
-            if kind == "turn_context":
-                requested_model = payload.get("model")
-                settings = {target: payload[key] for key, target in (("effort", "reasoningEffort"), ("service_tier", "serviceTier")) if isinstance(payload.get(key), str)}
-                policies = {target: payload[key] for key, target in (("approval_policy", "approval"), ("sandbox_policy", "sandbox")) if key in payload}
-                if policies:
-                    stream.add("session_info", ts=ts, agentSettings=policies, meta={"nativeRecord": row})
-            elif kind == "response_item":
-                item = payload.get("type")
-                if item == "message" and payload.get("role") in ("user", "assistant", "system", "developer"):
-                    content = text_parts(payload.get("content"))
-                    shortened = isinstance(payload.get("content"), list) and len(content) != len(payload["content"])
-                    if shortened:
-                        stream.missing("content")
-                    stream.add("message", source_id=payload.get("id"), ts=ts, role=payload["role"],
-                               content=content, meta={"nativeRecord": row}, **({"truncated": True} if shortened else {}))
-                elif item in ("function_call", "custom_tool_call") and isinstance(payload.get("call_id"), str):
-                    value = payload.get("arguments", payload.get("input"))
-                    fields = {"inputText": value} if isinstance(value, str) else {"input": value} if value is not None else {}
-                    stream.add("tool_call", source_id=payload.get("id"), ts=ts, callId=payload["call_id"],
-                               **({"name": payload["name"]} if isinstance(payload.get("name"), str) else {}),
-                               requestedBy="model", meta={"nativeRecord": row}, **fields)
-                elif item in ("function_call_output", "custom_tool_call_output"):
-                    content = text_parts(payload.get("output"))
-                    shortened = isinstance(payload.get("output"), list) and len(content) != len(payload["output"])
-                    if shortened:
-                        stream.missing("tool_output")
-                    stream.add("tool_result", source_id=payload.get("id"), ts=ts, status="unknown",
-                               **({"callId": payload["call_id"]} if isinstance(payload.get("call_id"), str) else {}),
-                               content=content, meta={"nativeRecord": row}, **({"truncated": True} if shortened else {}))
-                elif item == "reasoning":
-                    summary = payload.get("summary")
-                    reasoning = {"type": "reasoning", "visibility": "encrypted"}
-                    if isinstance(summary, list):
-                        reasoning.update(visibility="summary", summary=[part["text"] for part in summary if isinstance(part, dict) and isinstance(part.get("text"), str)])
-                    stream.add("message", source_id=payload.get("id"), ts=ts, role="assistant", content=[reasoning])
-                else:
-                    stream.add("session_info", ts=ts, missing=["native_events"], meta={"nativeRecord": row})
-            elif kind == "token_usage_record" and isinstance(payload.get("response_id"), str):
-                if payload["response_id"] in inference_ids:
-                    stream.add("session_info", ts=ts, missing=["duplicate_usage_observations"], meta={"nativeRecord": row})
-                    continue
-                inference_ids.add(payload["response_id"])
-                fields = {"settings": settings}
-                if isinstance(requested_model, str) and requested_model:
-                    fields["model"] = {"requested": requested_model}
-                if isinstance(payload.get("usage"), dict):
-                    fields["usage"] = usage(payload["usage"])
-                stream.add("inference", source_id=payload["response_id"], ts=ts, meta={"nativeRecord": row}, **fields)
-            else:
-                stream.add("session_info", ts=ts, missing=["native_events"], meta={"nativeRecord": row})
+def discover(repo: Path, reader: Reader | None = None) -> list[Session]:
+    """Group every retained checkpoint copy by agent and native session ID."""
+    reader = reader or Reader(repo)
+    copies: dict[tuple, SessionEntry] = {}
+    shadowed: dict[tuple, list[SessionEntry]] = {}
+    for entry in reader.sessions():
+        label = entry.metadata.get("agent") if isinstance(entry.metadata.get("agent"), str) else None
+        slot = (label, entry.session_id, entry.checkpoint)
+        previous = copies.get(slot)
+        # Entire's readers try a checkpoint's own ref before the v1 branch,
+        # including hex checkpoints migrated from the branch.
+        if previous is None or (previous.backend == "git-branch" and entry.backend == "git-refs"):
+            if previous is not None:
+                shadowed.setdefault(slot, []).append(previous)
+            copies[slot] = entry
         else:
-            stream.gap(reason="unknown", ts=ts, detail="This checkpoint's native agent format is unsupported.", meta={"nativeRecord": row})
+            shadowed.setdefault(slot, []).append(entry)
+    groups: dict[tuple, Session] = {}
+    for (label, session, checkpoint), entry in copies.items():
+        registry = REGISTRY_NAMES.get(label) if label else None
+        agent = ASR_NAMES.get(registry, UNKNOWN_AGENT) if registry else UNKNOWN_AGENT
+        group = groups.setdefault((label, session), Session(agent, registry, label, session, []))
+        group.entries.append(entry)
+        group.shadowed += shadowed.get((label, session, checkpoint), [])
+    for group in groups.values():
+        group.entries.sort(key=order_key)
+    return sorted(groups.values(), key=lambda group: (group.agent, group.session_id, group.native_agent or ""))
 
 
-def import_repository(repo: Path, output_dir: Path, *, namespace=None) -> list[Path]:
-    revision, saved = snapshots(repo)
-    grouped = defaultdict(list)
-    for _, path, metadata, transcript, summary in saved:
-        session = metadata.get("session_id")
-        if not isinstance(session, str) or not session:
-            raise ValueError("checkpoint metadata lacks its native session ID")
-        agent = AGENTS.get(metadata.get("agent"), "org.agentsessionrecord.entire-unknown") if isinstance(metadata.get("agent"), str) else "org.agentsessionrecord.entire-unknown"
-        grouped[(agent, session)].append((path, metadata, transcript, summary))
-    output_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-    prepared = []
-    for (agent, session), checkpoints in grouped.items():
-        stream = Stream(agent, session, "entire-checkpoints-v1", namespace=namespace)
-        stream.missing("checkpoint_history", "checkpoint_attribution", "assets")
-        stream.header["_meta"] = {META: {"branchRevision": revision, "profile": "entire-v0.12.2", "checkpoints": [item[1] for item in checkpoints]}}
-        # full.jsonl is a whole-session snapshot. Merge only provable prefix
-        # extensions. Divergent retained branches remain visible with a gap.
-        merged = b""
-        for path, metadata, transcript, summary in checkpoints:
-            if transcript is None:
-                stream.gap("not_retained", "The checkpoint has no raw transcript.", meta={"metadata": metadata})
-                continue
-            if transcript.startswith(merged):
-                merged = transcript
-            elif merged.startswith(transcript):
-                continue
-            else:
-                stream.missing("checkpoint_order")
-                # Export both snapshots below. Matching native IDs, rather than
-                # matching text, are the only deduplication key for the merge.
-                stream.gap("unknown", "Retained checkpoint snapshots diverge. Their cross-checkpoint event order is unresolved.")
-                old_rows = list(json_lines(merged))
-                identities = {row.get("uuid") or row.get("payload", {}).get("id"): row for _, row in old_rows if row and isinstance(row.get("payload", {}), dict)}
-                identities.pop(None, None)
-                additional = []
-                for _, row in json_lines(transcript):
-                    identity = (row.get("uuid") or row.get("payload", {}).get("id")) if row and isinstance(row.get("payload", {}), dict) else None
-                    if identity is None or identity not in identities:
-                        additional.append(row)
-                    elif identities[identity] != row:
-                        stream.gap("unknown", "Conflicting retained native revisions are preserved here without merging their claims.",
-                                   meta={"nativeRecord": row})
-                merged += b"".join((json.dumps(native(row)) + "\n").encode() for row in additional)
+def output_name(session: Session) -> str:
+    # The hash is a file name, not a replacement session identity.
+    return hashlib.sha256((session.agent + "\0" + session.session_id).encode()).hexdigest() + ".jsonl"
+
+
+def convert(session: Session, reader: Reader, *, namespace=None, transcript="auto", invoked=None) -> Stream:
+    if transcript not in TRANSCRIPTS:
+        raise ValueError("unknown transcript source")
+    reader.budget = 0
+    last = session.entries[-1]
+    use_raw = session.agent in raw.AGENTS and (
+        (transcript == "full" and any(entry.full for entry in session.entries))
+        or (transcript == "auto" and last.compact is None and last.full is not None))
+    stream = new_stream(session.agent, session.session_id, "entire-full-jsonl" if use_raw else "entire-transcript-v1",
+                        namespace=namespace)
+    meta = {"profile": PROFILE, "transcript": "full" if use_raw else "normalized",
+            "checkpoints": [entry.describe() for entry in session.entries]}
+    if session.native_agent and session.agent == UNKNOWN_AGENT:
+        meta["agent"] = session.native_agent
+    if session.shadowed:
+        meta["shadowedCopies"] = [{"checkpoint": entry.checkpoint, "backend": entry.backend, "revision": entry.revision}
+                                  for entry in session.shadowed]
+    if invoked:
+        meta["invokedBy"] = invoked
+    stream.header["_meta"] = {META: meta}
+    if use_raw:
+        stream.missing("assets")
+        merged = raw.merge(stream, [(entry.metadata, reader.blob(entry.full)) for entry in session.entries])
         if merged:
-            native_transcript(stream, merged, agent)
-        name = hashlib.sha256((agent + "\0" + session).encode()).hexdigest() + ".jsonl"
-        prepared.append((stream, output_dir / name))
+            raw.native_transcript(stream, merged, session.agent)
+        return stream
+    normalized_session(stream, session, reader)
+    return stream
+
+
+def new_stream(agent: str, session_id: str, source: str, *, namespace=None) -> Stream:
+    stream = Stream(agent, session_id, source, namespace=namespace)
+    stream.header["producer"] = {**PRODUCER, "source": source}
+    stream.missing("checkpoint_history", "checkpoint_attribution")
+    return stream
+
+
+def normalized_session(stream: Stream, session: Session, reader: Reader):
+    current: list[tuple] = []  # (raw, line, checkpoint) or ("gap", entry)
+    orphans: list[tuple] = []
+    for entry in session.entries:
+        data = reader.blob(entry.compact)
+        if data is None:
+            # A later self-contained view covers this checkpoint. Without one,
+            # its content is missing here.
+            current.append(("gap", entry))
+            continue
+        lines = parse(data)
+        start = entry.compact_start
+        real = [item for item in current if item[0] != "gap"]
+        if start is None:
+            # Checkpoints from CLIs before 0.8 store only their own delta.
+            current += [(raw_line, line, entry.checkpoint) for raw_line, line in lines]
+            stream.missing("checkpoint_deltas")
+            continue
+        if start > len(lines):
+            stream.gap("unknown", "A checkpoint's transcript start marker is past the end of its transcript.",
+                       meta={"checkpoint": entry.checkpoint, "compactTranscriptStart": start})
+            start = len(lines)
+        pairs = [(item[0], item[1]) for item in real]
+        # The slice can repeat one merged line from the previous checkpoint.
+        consistent = (start == len(real) and all(extends(pairs[i], lines[i]) for i in range(start))) or (
+            start == len(real) - 1 and start < len(lines) and all(extends(pairs[i], lines[i]) for i in range(start + 1)))
+        if not consistent:
+            # Keep earlier content that this view no longer holds.
+            held = {key(*line) for line in lines}
+            orphans += [item for item in real if key(item[0], item[1]) not in held]
+            earlier = {key(item[0], item[1]): item[2] for item in real}
+            current = [(raw_line, line, earlier.get(key(raw_line, line)) if index < start else entry.checkpoint)
+                       for index, (raw_line, line) in enumerate(lines)]
+            continue
+        current = [(raw_line, line, real[index][2] if index < len(real) else entry.checkpoint)
+                   for index, (raw_line, line) in enumerate(lines)]
+
+    map_lines(stream, session.registry or "", current, orphans)
+
+
+def map_lines(stream: Stream, agent: str, lines: list[tuple], orphans: list[tuple] = ()) -> None:
+    """Write records for assembled lines, then settle the session's declared losses."""
+    mapper = Mapper(stream, agent)
+    position = 0
+    for item in lines:
+        if item[0] == "gap":
+            stream.gap("not_retained", "A checkpoint of this session has no normalized transcript.",
+                       meta={"checkpoint": item[1].checkpoint})
+            continue
+        raw_line, line, checkpoint = item
+        mapper.line(raw_line, line, {"transcriptLine": position, **({"checkpoint": checkpoint} if checkpoint else {})})
+        position += 1
+    if orphans:
+        stream.missing("checkpoint_order")
+        stream.gap("unknown", "Content that earlier checkpoints held and later checkpoints do not follows. "
+                   "Its order relative to the records above is unresolved.")
+        for raw_line, line, checkpoint in orphans:
+            mapper.line(raw_line, line, {"checkpoint": checkpoint} if checkpoint else {})
+    if mapper.assets:
+        stream.missing("assets")
+    if mapper.user_text:
+        # Entire trims user text and removes IDE context tags.
+        stream.missing("content")
+    # Injected text and compaction summaries are not marked in this format.
+    stream.missing("message_origin")
+    captured = mapper.losses()
+    stream.header["missing"] = [name for name in stream.header["missing"] if name not in captured]
+
+
+def write_all(prepared: list[tuple[Stream, Path]]) -> list[Path]:
     if any(output.exists() for _, output in prepared):
         raise ValueError("an output session already exists")
     outputs = []
@@ -278,3 +198,14 @@ def import_repository(repo: Path, output_dir: Path, *, namespace=None) -> list[P
             output.unlink()
         raise
     return outputs
+
+
+def import_repository(repo: Path, output_dir: Path, *, namespace=None, transcript="auto", select=None) -> list[Path]:
+    reader = Reader(repo)
+    sessions = discover(repo, reader)
+    if select is not None:
+        sessions = select(sessions)
+    prepared = [(convert(session, reader, namespace=namespace, transcript=transcript), output_dir / output_name(session))
+                for session in sessions]
+    output_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    return write_all(prepared)

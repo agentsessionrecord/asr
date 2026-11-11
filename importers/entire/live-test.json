@@ -1,21 +1,164 @@
 {
-  "cliVersion": "0.12.2",
-  "scenario": "released CLI, scripted synthetic Claude Code hooks, local Git commit",
-  "modelRequests": 0,
-  "accounts": 0,
-  "sessions": 1,
-  "records": {
-    "session": 1,
-    "message": 2,
-    "inference": 1
-  },
-  "validation": {
-    "valid": true,
-    "errors": 0,
-    "warnings": 0,
-    "records": 4
-  },
-  "branch": "refs/heads/entire/checkpoints/v1",
+  "cliVersion": "0.13.2",
+  "date": "2026-11-11",
+  "entireAccounts": 0,
   "telemetry": false,
-  "pushSessions": false
+  "pushSessions": false,
+  "externalCommand": "entire-asr 0.1.0, linked with entire plugin install and run as entire asr export",
+  "runs": [
+    {
+      "scenario": "scripted synthetic Claude Code hooks, two local Git commits",
+      "backend": "git-refs",
+      "checkpoints": 2,
+      "compactTranscriptStarts": [
+        0,
+        3
+      ],
+      "modelRequests": 0,
+      "records": {
+        "session": 1,
+        "message": 4,
+        "tool_call": 1,
+        "tool_result": 1,
+        "inference": 3
+      },
+      "entireAsrMatchesImporter": true,
+      "ranThroughEntire": true,
+      "validation": {
+        "importer": {
+          "valid": true,
+          "errors": 0,
+          "warnings": 0,
+          "records": 10
+        },
+        "entireAsr": {
+          "valid": true,
+          "errors": 0,
+          "warnings": 0,
+          "records": 10
+        }
+      }
+    },
+    {
+      "scenario": "scripted synthetic Claude Code hooks, two local Git commits",
+      "backend": "git-branch",
+      "checkpoints": 2,
+      "compactTranscriptStarts": [
+        0,
+        3
+      ],
+      "modelRequests": 0,
+      "records": {
+        "session": 1,
+        "message": 4,
+        "tool_call": 1,
+        "tool_result": 1,
+        "inference": 3
+      },
+      "entireAsrMatchesImporter": true,
+      "ranThroughEntire": true,
+      "validation": {
+        "importer": {
+          "valid": true,
+          "errors": 0,
+          "warnings": 0,
+          "records": 10
+        },
+        "entireAsr": {
+          "valid": true,
+          "errors": 0,
+          "warnings": 0,
+          "records": 10
+        }
+      }
+    },
+    {
+      "scenario": "real Claude Code 2.1.316 session with live model calls through a loopback endpoint, two prompts and two local Git commits",
+      "backend": "git-refs",
+      "checkpoints": 2,
+      "compactTranscriptStarts": [
+        0,
+        7
+      ],
+      "modelRequests": 8,
+      "records": {
+        "session": 1,
+        "message": 7,
+        "tool_call": 9,
+        "tool_result": 9,
+        "inference": 8
+      },
+      "ranThroughEntire": true,
+      "native": {
+        "assistantMessageIds": 8,
+        "uniqueToolUseIds": 9
+      },
+      "validation": {
+        "normalized": {
+          "valid": true,
+          "errors": 0,
+          "warnings": 0,
+          "records": 34
+        },
+        "full": {
+          "valid": true,
+          "errors": 0,
+          "warnings": 0,
+          "records": 106
+        },
+        "commitHead": {
+          "valid": true,
+          "errors": 0,
+          "warnings": 0,
+          "records": 34
+        }
+      },
+      "fullTranscriptReasoningParts": 5,
+      "inferenceIdsMatchNative": true,
+      "toolCallIdsMatchNative": true
+    },
+    {
+      "scenario": "real codex-cli 0.163.0 session with live model calls through a loopback endpoint, two prompts and two local Git commits",
+      "backend": "git-refs",
+      "checkpoints": 2,
+      "compactTranscriptStarts": [
+        0,
+        6
+      ],
+      "modelRequests": 5,
+      "records": {
+        "session": 1,
+        "message": 6,
+        "tool_call": 5,
+        "tool_result": 5,
+        "inference": 5
+      },
+      "ranThroughEntire": true,
+      "native": {
+        "distinctTokenSnapshots": 5
+      },
+      "validation": {
+        "normalized": {
+          "valid": true,
+          "errors": 0,
+          "warnings": 0,
+          "records": 22
+        },
+        "full": {
+          "valid": true,
+          "errors": 0,
+          "warnings": 0,
+          "records": 54
+        },
+        "commitHead": {
+          "valid": true,
+          "errors": 0,
+          "warnings": 0,
+          "records": 22
+        }
+      },
+      "fullTranscriptReasoningParts": 3,
+      "inferencesMatchNativeCalls": true
+    }
+  ]
 }

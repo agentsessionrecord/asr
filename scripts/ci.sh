@@ -134,6 +134,7 @@ run_file 'Search exporter tests' exporters/search/check.sh bash exporters/search
 run_file 'Observability exporters and evals' exporters/evals/pyproject.toml uv run --isolated --package asr-phoenix --with 'pytest>=8.3,<10' --with-editable exporters/langfuse --with-editable exporters/braintrust pytest exporters/evals/tests exporters/phoenix/tests
 run_file 'ACP and gateway recorder tests' recorders/acp/pyproject.toml uv run --all-packages pytest recorders/acp/tests recorders/envoy/tests
 run_file 'Vendor and Entire importers' importers/vendor-core/pyproject.toml uv run --all-packages pytest importers/vendor-core/tests importers/anthropic-compliance/tests importers/openai-codex-logs/tests importers/copilot/tests importers/entire/tests
+run_file 'Entire external command' plugins/entire/pyproject.toml uv run --all-packages pytest plugins/entire/tests
 run_file 'Codex hook recorder tests' plugins/codex/pyproject.toml uv run --all-packages pytest plugins/codex/tests
 run_file 'Python hook recorders' plugins/python-core/pyproject.toml uv run --all-packages pytest plugins/python-core/tests
 run_file 'SIEM exporter' exporters/siem/check.sh bash exporters/siem/check.sh
