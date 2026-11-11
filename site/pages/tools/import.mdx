@@ -9,7 +9,7 @@ Importers turn vendor exports, approval telemetry and checkpoint stores into Age
 | --- | --- |
 | [Anthropic Compliance transcript importer](https://github.com/agentsessionrecord/asr/blob/main/importers/anthropic-compliance/README.md) | `not-live-tested` |
 | [Entire checkpoint importer](https://github.com/agentsessionrecord/asr/blob/main/importers/entire/README.md) | `passed` |
-| [Entire external command](https://github.com/agentsessionrecord/asr/blob/main/plugins/entire/README.md) | `passed` |
+| [Entire external command](https://github.com/agentsessionrecord/entire-asr#readme) | `passed` |
 | [GitHub Copilot usage importer](https://github.com/agentsessionrecord/asr/blob/main/importers/copilot/README.md) | `not-live-tested` |
 | [OpenAI Codex compliance log importer](https://github.com/agentsessionrecord/asr/blob/main/importers/openai-codex-logs/README.md) | `not-live-tested` |
 | [Telemetry approval importer](https://github.com/agentsessionrecord/asr/blob/main/importers/telemetry-approvals/README.md) | `partial` |
@@ -20,7 +20,7 @@ Anthropic transcript exports can keep messages and tool calls. Copilot usage rec
 
 The telemetry importer adds explicit approval events to session records you supply. It does not treat a successful tool call as approved. Codex can leave out refusal events, so decision counts may be incomplete.
 
-The Entire importer reads checkpoints from local Git data, on both of Entire's storage backends. It maps Entire's normalized transcript, so it covers every agent Entire supports. Install the Entire external command to run it as `entire asr export`. Live runs used the released Entire 0.13.2 CLI with scripted hooks and with real Claude Code and Codex sessions.
+The Entire importer reads checkpoints from local Git data, on both of Entire's storage backends. It maps Entire's normalized transcript, so it covers every agent Entire supports. The Entire external command brings the same mapping to Entire as `entire asr export`. Install it with `entire plugin install https://github.com/agentsessionrecord/entire-asr`. Entire downloads its release for your system and checks it against the published checksums. Live runs used the released Entire 0.13.2 CLI with scripted hooks and with real Claude Code and Codex sessions.
 
 ## Shared library
 

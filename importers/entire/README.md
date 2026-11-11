@@ -6,8 +6,9 @@ normalized transcript covers. It does not check out, fetch, run hooks, read
 working files or execute recorded commands.
 
 The storage and transcript profile is pinned to Entire CLI v0.13.2.
-The [Entire external command](../../plugins/entire/README.md) runs this
-importer as `entire asr export`.
+The [Entire external command](https://github.com/agentsessionrecord/entire-asr)
+brings the same reading and mapping to Entire as `entire asr export`. Install
+it with `entire plugin install https://github.com/agentsessionrecord/entire-asr`.
 
 Live test: passed. The released Entire v0.13.2 CLI recorded a scripted Claude
 Code session on each backend, and a real Claude Code session and a real Codex
@@ -164,18 +165,19 @@ each session at 128 MiB of checkpoint data. See the
 ## Checks and local reproduction
 
 ```sh
-uv run --all-packages pytest importers/entire/tests plugins/entire/tests
-uv tool install ./plugins/entire
+uv run --all-packages pytest importers/entire/tests
 uv run --all-packages python importers/entire/tools/live_test.py \
-  --entire /work/bin/entire --plugin "$(command -v entire-asr)" \
+  --entire /work/bin/entire --plugin /work/bin/entire-asr \
   --output-dir /work/live-asr --summary /work/live-summary.json
 ```
 
-The live runner needs the released v0.13.2 binary and new output paths.
-For each backend it creates and removes a throwaway repository, home directory
-and runtime config. It records a scripted Claude Code session across two
-commits, imports it, installs the external command into Entire's plugin
-directory and runs `entire asr export`. Telemetry and session uploads are off.
+The live runner needs the released v0.13.2 binary, an `entire-asr` binary
+from its [release](https://github.com/agentsessionrecord/entire-asr/releases)
+and new output paths. For each backend it creates and removes a throwaway
+repository, home directory and runtime config. It records a scripted Claude
+Code session across two commits, imports it, installs the external command
+into Entire's plugin directory and runs `entire asr export`. The two exports
+must match apart from the producer. Telemetry and session uploads are off.
 It seeds the update cache and sends outbound proxy traffic to a closed local
 port. It never signs in or sends a model request.
 

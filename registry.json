@@ -1170,12 +1170,13 @@
       "name": "Entire external command",
       "kind": "importer",
       "path": "plugins/entire",
-      "language": "Python",
-      "status": "built",
-      "location": "plugins/entire",
+      "language": "Go",
+      "status": "elsewhere",
+      "location": "https://github.com/agentsessionrecord/entire-asr",
+      "revision": "c4a38f854ffbf0b98b9e58e0fcb317e9f047f5c6",
       "liveTestStatus": "passed",
-      "liveTestNotes": "Installed with entire plugin install and run as entire asr export through the released Entire v0.13.2 CLI, on scripted sessions for both backends and on the real Claude Code and Codex sessions. Output matches the importer and validates with zero errors and warnings. Counts are in importers/entire/live-test.json.",
-      "notes": "entire-asr, discovered by Entire as entire asr. Selects sessions by checkpoint, commit or session and writes one ASR file per session through the Entire checkpoint importer."
+      "liveTestNotes": "Release v0.1.0 installed with entire plugin install https://github.com/agentsessionrecord/entire-asr through the released Entire v0.13.2 CLI, with its checksum verified, and run as entire asr export on scripted sessions for both backends and on a real Claude Code session. Output matches the Entire checkpoint importer apart from the producer and validates with zero errors and warnings.",
+      "notes": "entire-asr, a Go binary that Entire installs from its GitHub release and runs as entire asr. Selects sessions by checkpoint, commit or session and writes one ASR file per session with the Entire checkpoint importer's mapping."
     },
     {
       "id": "vendor-importer-core",

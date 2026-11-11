@@ -4,7 +4,7 @@
   "entireAccounts": 0,
   "telemetry": false,
   "pushSessions": false,
-  "externalCommand": "entire-asr 0.1.0, linked with entire plugin install and run as entire asr export",
+  "externalCommand": "entire-asr 0.1.0 in Go, from its v0.1.0 release, installed with entire plugin install and run as entire asr export",
   "runs": [
     {
       "scenario": "scripted synthetic Claude Code hooks, two local Git commits",

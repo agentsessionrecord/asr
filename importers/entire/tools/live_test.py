@@ -91,7 +91,9 @@ def run(entire: Path, plugin: Path, destination: Path, backend: str) -> dict:
         # The release has no update-check opt-out. Seed its documented cache so
         # this run does not make a release-origin request after public commands.
         (config / "version_check.json").write_text(json.dumps({"last_check_time": datetime.now(timezone.utc).isoformat()}))
-        env = {key: value for key, value in os.environ.items() if not key.startswith(("GIT_", "ENTIRE_", "XDG_"))}
+        # Agent and provider settings from the calling session stay out of the run.
+        env = {key: value for key, value in os.environ.items()
+               if not key.startswith(("GIT_", "ENTIRE_", "XDG_", "CLAUDE", "ANTHROPIC_", "OPENAI_", "CODEX_"))}
         env.update(HOME=str(home), XDG_CONFIG_HOME=str(scratch / "xdg-config"), XDG_DATA_HOME=str(scratch / "xdg-data"),
                    XDG_CACHE_HOME=str(scratch / "xdg-cache"), ENTIRE_CONFIG_DIR=str(config),
                    ENTIRE_TELEMETRY_OPTOUT="1", ENTIRE_NO_AUTO_UPDATE="1",
@@ -127,14 +129,18 @@ def run(entire: Path, plugin: Path, destination: Path, backend: str) -> dict:
         rows = [json.loads(line) for line in Path(listed[0]).read_text().splitlines()]
         checkpoints = rows[0]["_meta"]["org.agentsessionrecord.importers"]["checkpoints"]
         same = [json.loads(line) for line in imported[0].read_text().splitlines()]
+        invoked = rows[0]["_meta"]["org.agentsessionrecord.importers"].get("invokedBy")
+        producer = rows[0]["producer"]
+        # The command names itself as the producer. Every other field must match.
         for row in (rows[0], same[0]):
             row["_meta"]["org.agentsessionrecord.importers"].pop("invokedBy", None)
+            row["producer"] = {**row["producer"], "name": None, "version": None}
         return {"backend": backend, "checkpointRefs": [ref for ref in refs if ref.startswith(("refs/entire/", "refs/heads/entire/"))],
                 "checkpoints": [{"checkpoint": item["checkpoint"], "backend": item["backend"],
                                  "compactTranscriptStart": item["metadata"].get("compact_transcript_start")} for item in checkpoints],
                 "sessions": len(listed), "records": dict(Counter(row["type"] for row in rows)),
                 "inferences": sum(row["type"] == "inference" for row in rows),
-                "invokedBy": json.loads(Path(listed[0]).read_text().splitlines()[0])["_meta"]["org.agentsessionrecord.importers"]["invokedBy"],
+                "invokedBy": invoked, "producer": producer,
                 "matchesImporter": rows == same, "agentHelpCommand": agent_help["command"],
                 "validation": {"importer": validate(destination / "import"), "entireAsr": validate(destination / "entire-asr")}}
 
@@ -142,7 +148,7 @@ def run(entire: Path, plugin: Path, destination: Path, backend: str) -> dict:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--entire", type=Path, required=True)
-    parser.add_argument("--plugin", type=Path, required=True, help="the installed entire-asr executable")
+    parser.add_argument("--plugin", type=Path, required=True, help="an entire-asr executable from its release")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--summary", type=Path, required=True)
     args = parser.parse_args()
