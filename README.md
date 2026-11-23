@@ -1,3 +1,6 @@
+> [!WARNING]
+> **Superseded by ATIF v2.0.** Agent Session Record is deprecated and archived. Harbor's [ATIF v2.0 proposal](https://github.com/harbor-framework/harbor/pull/4134) covers the same ground with broader ecosystem backing, so work has moved upstream there instead of maintaining a competing format. This repository and [agentsessionrecord.org](https://agentsessionrecord.org) remain online for reference.
+
 <div align="center">
   <br>
   <a href="https://agentsessionrecord.org">

@@ -15,8 +15,8 @@
   },
   "favicon": "/favicon.svg",
   "banner": {
-    "content": "ASR 0.1 is ready to build on. Feedback: [feedback@agentsessionrecord.org](mailto:feedback@agentsessionrecord.org)",
-    "dismissible": true
+    "content": "Agent Session Record is deprecated and superseded by [ATIF v2.0](https://github.com/harbor-framework/harbor/pull/4134).",
+    "dismissible": false
   },
   "navbar": {
     "links": [
@@ -27,8 +27,8 @@
     ],
     "primary": {
       "type": "button",
-      "label": "Send feedback",
-      "href": "mailto:feedback@agentsessionrecord.org"
+      "label": "ATIF v2.0 RFC",
+      "href": "https://github.com/harbor-framework/harbor/pull/4134"
     }
   },
   "navigation": {

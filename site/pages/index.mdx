@@ -3,6 +3,10 @@ title: "Agent Session Record"
 description: "An open file format for coding agent sessions."
 ---
 
+<Warning>
+  **Superseded by ATIF v2.0.** Agent Session Record is deprecated. Harbor's [ATIF v2.0 proposal](https://github.com/harbor-framework/harbor/pull/4134) covers the same ground with broader ecosystem backing, so work has moved upstream there instead of maintaining a competing format. This site, the specification, and the converters remain online for reference.
+</Warning>
+
 Every coding agent logs its sessions. Claude Code, Codex, Cursor, opencode and the rest record the same things: prompts, replies, tool calls, file edits and commits. Each one uses its own format, so a tool that searches or analyzes agent history ends up maintaining 40 or 50 parsers.
 
 Agent Session Record (ASR) is an open format for exporting sessions. [ACP](https://agentclientprotocol.com/) covers how an editor steers an agent while it runs. ASR covers the exported session file. It doesn't change how an agent harness, the app such as Claude Code or Codex, stores its own logs. The harness adds an export command, and any tool can read the result.
